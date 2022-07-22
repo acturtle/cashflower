@@ -107,7 +107,6 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-optyjaciel/.env
 .env
 .venv
 env/

@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    author="Zuzanna Chmielewska",
+    author="",
     description="Framework for actuarial cash flow models",
     name="cashflower",
     version="0.1.0",

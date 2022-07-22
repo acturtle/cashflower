@@ -1,5 +1,4 @@
 bleach==5.0.1
--e git+https://github.com/zchmielewska/cashflower.git@fa0e8c4697646bd656df18164cc181f9d59f7e3a#egg=cashflower
 certifi==2022.6.15
 charset-normalizer==2.1.0
 commonmark==0.9.1

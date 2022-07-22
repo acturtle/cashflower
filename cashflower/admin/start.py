@@ -3,16 +3,17 @@ import shutil
 
 
 def startproject(project):
-    """
+    """Create folder structure for the new project.
 
     Parameters
     ----------
-    project :
+    project : str
+        Name of the project
         
 
     Returns
     -------
-
+    None
     """
     current_path = os.path.dirname(__file__)
     template_path = os.path.join(current_path, 'template-project')
@@ -22,18 +23,19 @@ def startproject(project):
 
 
 def addmodel(project, model):
-    """
+    """Create a folder structure for a model inside of the project.
 
     Parameters
     ----------
-    project :
+    project : str
+        Name of the existing project.
         
-    model :
-        
+    model : str
+        Name of the model to be added.
 
     Returns
     -------
-
+    None
     """
     current_path = os.path.dirname(__file__)
     template_path = os.path.join(current_path, 'template-model')
