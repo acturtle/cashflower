@@ -16,7 +16,7 @@ def startproject(project):
     None
     """
     current_path = os.path.dirname(__file__)
-    template_path = os.path.join(current_path, 'template-project')
+    template_path = os.path.join(current_path, 'project_tpl')
     shutil.copytree(template_path, project)
 
     return None
@@ -38,7 +38,7 @@ def addmodel(project, model):
     None
     """
     current_path = os.path.dirname(__file__)
-    template_path = os.path.join(current_path, 'template-model')
+    template_path = os.path.join(current_path, 'model_tpl')
     shutil.copytree(template_path, os.path.join(project, model))
 
     return None
