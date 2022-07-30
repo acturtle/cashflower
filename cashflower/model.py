@@ -23,9 +23,12 @@ class ModelVariable:
         self.function = function
         self.settings = settings
         self.name = function.__name__
-        self.result = [None] * self.settings["T_MAX"]
+        self.t_max = settings["T_MAX"] + 1
+        self.result = [None] *self.t_max
 
     def __call__(self, t):
+        if t < 0 or t >= self.t_max:
+            return 0
         if not self.result[t]:
             self.result[t] = self.formula(t)
         return self.result[t]
@@ -35,10 +38,14 @@ class ModelVariable:
         return self.function(t)
 
     def clear(self):
-        self.result = [None] * self.settings["T_MAX"]
+        self.result = [None] * self.t_max
 
     def calculate(self):
-        self.result = [self(t) for t in range(self.settings["T_MAX"])]
+        try:
+            self.result = [self(t) for t in range(self.t_max)]
+        except RecursionError:
+            for t in range(self.t_max - 1, -1, -1):
+                self.result[t] = self(t)
 
 
 class Model:

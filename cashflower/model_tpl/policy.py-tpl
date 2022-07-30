@@ -1,0 +1,7 @@
+from {{ model }}.modelpoint import policy
+from {{ model }}.assumption import assumption
+
+
+def my_variable(t):
+    return t
+
