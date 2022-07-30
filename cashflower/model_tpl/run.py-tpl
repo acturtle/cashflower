@@ -1,9 +1,10 @@
 import datetime
 import importlib
 import inspect
+import os
 
 from cashflower.model import Model, ModelVariable
-from example.wol.input.modelpoint import policy
+from {{ model }}.modelpoint import policy
 
 # Settings
 settings = {}
@@ -15,9 +16,10 @@ for variable in module_variables:
 
 
 # User defines model functions
-exec(open("model/policy.py").read())
-module_name = "model.policy"
-module = importlib.import_module(module_name)
+current_path = os.path.dirname(__file__)
+script_path = os.path.join(current_path, "policy.py")
+exec(open(script_path).read())
+module = importlib.import_module("policy")
 module_functions = inspect.getmembers(module, inspect.isfunction)
 module_functions = [func for func in module_functions if inspect.getmodule(func[1]) == module]
 
