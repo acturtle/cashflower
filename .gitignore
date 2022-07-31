@@ -1,6 +1,7 @@
 .flake8
 .idea/
-example/*
+example_old/*
+wol/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
