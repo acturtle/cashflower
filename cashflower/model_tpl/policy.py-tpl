@@ -1,7 +1,19 @@
-from {{ model }}.modelpoint import policy
+from cashflower.model import ModelVariable
+
 from {{ model }}.assumption import assumption
+from {{ model }}.modelpoint import policy
 
 
-def my_variable(t):
-    return t
+projection_year = ModelVariable(name="projection_year")
 
+
+def projection_year_formula(t):
+    if t == 0:
+        return 0
+    elif t % 12 == 1:
+        return projection_year(t-1) + 1
+    else:
+        return projection_year(t-1)
+
+
+projection_year.formula = projection_year_formula
