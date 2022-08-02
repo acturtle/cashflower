@@ -39,7 +39,10 @@ assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv")
 
 wol/policy.py
 ```python
-def age(t):
+age = ModelVariable(name="age")
+death_prob = ModelVariable(name="death_prob")
+
+def age_formula(t):
     if t == 0:
         return int(policy.get("AGE"))
     elif t % 12 == 0:
@@ -48,7 +51,7 @@ def age(t):
         return age(t-1)
 
 
-def death_prob(t):
+def death_prob_formula(t):
     sex = policy.get("SEX")
     if age(t) <= 100:
         yearly_rate = float(get_cell(assumption["mortality"], sex, AGE=age(t)))
@@ -57,12 +60,8 @@ def death_prob(t):
     else:
         return 1
 
-
-def survival_rate(t):
-    if t == 0:
-        return 1 - death_prob(t)
-    else:
-        return survival_rate(t-1) * (1 - death_prob(t))
+age.formula = age_formula
+death_prob.formula = death_prob_formula
 ```
 
 ## Calculate

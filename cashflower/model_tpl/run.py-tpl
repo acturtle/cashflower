@@ -1,40 +1,23 @@
 import datetime
 import importlib
-import inspect
 import os
 
 from cashflower.model import Model, ModelVariable
 from {{ model }}.modelpoint import policy
 
-# Settings
-settings = {}
-module = importlib.import_module("settings")
-module_variables = inspect.getmembers(module)
-for variable in module_variables:
-    if not variable[0].startswith("__"):
-        settings[variable[0]] = variable[1]
-
-
-# User defines model functions
+# List model variables
 current_path = os.path.dirname(__file__)
 script_path = os.path.join(current_path, "policy.py")
-exec(open(script_path).read())
 module = importlib.import_module("policy")
-module_functions = inspect.getmembers(module, inspect.isfunction)
-module_functions = [func for func in module_functions if inspect.getmodule(func[1]) == module]
 
-# Functions are turned into model variables
-model_variables = []
-for name, func in module_functions:
-    exec(f"{name} = ModelVariable({name}, settings=settings)")
-    exec(f"model_variables.append({name})")
-
-# Model encompasses model point and model variables
-model = Model(model_point=policy, model_variables=model_variables)
+# Create model
+model = Model(model_point=policy, variables=ModelVariable.instances)
+model.set_children()
+model.set_grandchildren()
 model.calculate()
-output = model.output
+model.set_output()
 
-# Results are saved to file
+# Save results
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 filename = f"{timestamp}.csv"
-output.to_csv(filename)
+model.output.to_csv(filename)
