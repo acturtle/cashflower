@@ -40,7 +40,7 @@ assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv")
 wol/policy.py
 ```python
 age = ModelVariable(name="age")
-death_prob = ModelVariable(name="death_prob")
+death_prob = ModelVariable(name="mortality_rate")
 
 def age_formula(t):
     if t == 0:

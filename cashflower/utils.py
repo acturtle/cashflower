@@ -34,24 +34,12 @@ def get_cell(df, column, **kwargs):
     return df[column].values[0]
 
 
-# def is_child(potential_child, parent):
-#     func_def = inspect.getsource(parent)
-#     return potential_child + "(" in func_def
-#
-#
-# def get_children(parent, potential_children):
-#     children = []
-#     for potential_child in potential_children:
-#         if is_child(potential_child, parent):
-#             children.append(potential_child)
-#     return children
-
-def get_called_functions(function_source, functions):
-    called_functions = []
-    for func in functions:
-        if func + "(" in function_source:
-            called_functions.append(func)
-    return called_functions
+# def get_called_functions(function_source, functions):
+#     called_functions = []
+#     for func in functions:
+#         if func + "(" in function_source:
+#             called_functions.append(func)
+#     return called_functions
 
 
 def unique_append(lst, item):
@@ -73,3 +61,13 @@ def list_used_words(text, words):
         if word in text:
             used_words.append(word)
     return used_words
+
+
+def get_second_element(lst, value):
+    # You have a list of tuples with 2 elements
+    # You know the value of 1st element
+    # You want to get the 2nd element
+    for item1, item2 in lst:
+        if item1 == value:
+            return item2
+
