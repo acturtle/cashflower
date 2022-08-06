@@ -1,23 +1,25 @@
-import datetime
 import importlib
-import os
+import inspect
 
-from cashflower.model import Model, ModelVariable
-from {{ model }}.modelpoint import policy
+from cashflower import Model, ModelPoint, ModelVariable
+
+# List model points
+modelpoint_module = importlib.import_module("{{ model }}.modelpoint")
+modelpoint_members = inspect.getmembers(modelpoint_module)
+modelpoint_members = [m for m in modelpoint_members if isinstance(m[1], ModelPoint)]
+first_modelpoint = modelpoint_members[0][1]
 
 # List model variables
-current_path = os.path.dirname(__file__)
-script_path = os.path.join(current_path, "policy.py")
-module = importlib.import_module("policy")
+model_module = importlib.import_module("{{ model }}.model")
+model_members = inspect.getmembers(model_module)
+model_members = [m for m in model_members if isinstance(m[1], ModelVariable)]
 
-# Create model
-model = Model(model_point=policy, variables=ModelVariable.instances)
-model.set_children()
-model.set_grandchildren()
-model.calculate()
-model.set_output()
+variables = []
+for name, variable in model_members:
+    variable.name = name
+    if variable.modelpoint is None:
+        variable.modelpoint = first_modelpoint
+    variables.append(variable)
 
-# Save results
-timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-filename = f"{timestamp}.csv"
-model.output.to_csv(filename)
+model = Model(variables=variables)
+model.run()
