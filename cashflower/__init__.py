@@ -11,29 +11,7 @@ from . import utils
 
 
 def assign(var):
-    """
-
-    Parameters
-    ----------
-    var :
-        
-
-    Returns
-    -------
-
-    """
     def wrapper(func):
-        """
-
-        Parameters
-        ----------
-        func :
-            
-
-        Returns
-        -------
-
-        """
         func = functools.cache(func)
         var.formula = func
         return func
@@ -41,19 +19,6 @@ def assign(var):
 
 
 def get_model_input(modelpoint_module, model_module):
-    """
-
-    Parameters
-    ----------
-    modelpoint_module :
-        
-    model_module :
-        
-
-    Returns
-    -------
-
-    """
     modelpoint_members = inspect.getmembers(modelpoint_module)
     modelpoints = [m[1] for m in modelpoint_members if isinstance(m[1], ModelPoint)]
     first_modelpoint = modelpoints[0]
