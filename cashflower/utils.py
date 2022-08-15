@@ -88,3 +88,4 @@ def repeated_numbers(m, n):
         lst.append([i] * n)
     lst = flatten(lst)
     return lst
+
