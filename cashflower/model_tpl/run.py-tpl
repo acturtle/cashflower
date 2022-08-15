@@ -1,25 +1,10 @@
 import importlib
-import inspect
 
-from cashflower import Model, ModelPoint, ModelVariable
+from cashflower import get_model_input, Model
 
-# List model points
 modelpoint_module = importlib.import_module("{{ model }}.modelpoint")
-modelpoint_members = inspect.getmembers(modelpoint_module)
-modelpoint_members = [m for m in modelpoint_members if isinstance(m[1], ModelPoint)]
-first_modelpoint = modelpoint_members[0][1]
-
-# List model variables
 model_module = importlib.import_module("{{ model }}.model")
-model_members = inspect.getmembers(model_module)
-model_members = [m for m in model_members if isinstance(m[1], ModelVariable)]
+variables, modelpoints = get_model_input(modelpoint_module, model_module)
 
-variables = []
-for name, variable in model_members:
-    variable.name = name
-    if variable.modelpoint is None:
-        variable.modelpoint = first_modelpoint
-    variables.append(variable)
-
-model = Model(variables=variables)
+model = Model(variables, modelpoints)
 model.run()
