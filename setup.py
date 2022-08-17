@@ -12,10 +12,14 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/acturtle/cashflower",
     author="",
-    version="0.1.6",
+    version="0.0.20",
     packages=find_packages(include=["cashflower", "cashflower.*"]),
     include_package_data=True,
     install_requires=[
         'pandas',
     ],
+    project_urls={
+        'Source': 'https://github.com/acturtle/cashflower',
+        'Tracker': 'https://github.com/acturtle/cashflower/issues',
+    }
 )

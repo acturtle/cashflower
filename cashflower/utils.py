@@ -74,12 +74,24 @@ def replace_in_file(_file, _from, _to):
         file.write(filedata)
 
 
-def flatten(lst):
+def flatten(lst, n=None):
     flat_list = []
+
+    if n is not None:
+        lst = [sublist[:n] for sublist in lst]
+
     for sublist in lst:
         for item in sublist:
             flat_list.append(item)
     return flat_list
+
+
+def aggregate(lst, n=None):
+    if n is not None:
+        lst = [sublist[:n] for sublist in lst]
+
+    aggregated_list = [sum(i) for i in zip(*lst)]
+    return aggregated_list
 
 
 def repeated_numbers(m, n):
