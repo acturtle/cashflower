@@ -1,10 +1,13 @@
 import importlib
 
-from cashflower import get_model_input, Model
+from cashflower import get_model_input, load_settings, Model
+from {{ model }}.settings import settings
+
+settings = load_settings(settings)
 
 modelpoint_module = importlib.import_module("{{ model }}.modelpoint")
 model_module = importlib.import_module("{{ model }}.model")
-variables, modelpoints = get_model_input(modelpoint_module, model_module)
+variables, modelpoints = get_model_input(modelpoint_module, model_module, settings)
 
-model = Model(variables, modelpoints)
+model = Model(variables, modelpoints, settings)
 model.run()
