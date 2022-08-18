@@ -12,7 +12,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/acturtle/cashflower",
     author="",
-    version="0.1.8",
+    version="0.0.20",
     packages=find_packages(include=["cashflower", "cashflower.*"]),
     include_package_data=True,
     install_requires=[
