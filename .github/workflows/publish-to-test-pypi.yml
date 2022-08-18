@@ -2,14 +2,14 @@ name: Publish Python distributions to PyPI and TestPyPI
 
 on:
     push:
-    branches: [ main ]
+        branches: [ main ]
     pull_request:
-    branches: [ main ]
+        branches: [ main ]
 
 jobs:
     build-n-publish:
-    name: Build and publish Python distribution
-    runs-on: ubuntu-18.04
+        name: Build and publish Python distribution
+        runs-on: ubuntu-latest
     steps:
         - uses: actions/checkout@master
         - name: Initialize Python 3.7
@@ -20,16 +20,10 @@ jobs:
         run: |
             python -m pip install --upgrade pip
             pip install flake8
-        - name: Lint with flake8
-        run: |
-            # stop the build if there are Python syntax errors or undefined names
-            flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-            # exit-zero treats all errors as warnings.
-            flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-        - name: Build binary wheel and a source tarball
+        - name: Build source distribution
         run: python setup.py sdist
         - name: Publish distribution to Test PyPI
         uses: pypa/gh-action-pypi-publish@main
         with:
-            password: ${{ secrets.test_pypi_password }}
+            password: ${{ secrets.TEST_PYPI_API_TOKEN }}
             repository_url: https://test.pypi.org/legacy/
