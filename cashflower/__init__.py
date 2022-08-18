@@ -1,3 +1,4 @@
+import copy
 import datetime
 import functools
 import inspect
@@ -132,7 +133,7 @@ class ModelPoint:
         Looped over in model_variable.calculate().
     policy_data : data frame
         Row(s) of data for the current policyholder.
-    policy_nrow : int
+    size : int
         Number of rows of policy data.
     policy_record : data frame
         Row of data for the current policyholder and record.
@@ -148,7 +149,7 @@ class ModelPoint:
         self._policy_id = None
         self._record_num = None
         self.policy_data = None
-        self.policy_nrow = 0
+        self.size = 0
         self.policy_record = None
 
     def __repr__(self):
@@ -169,7 +170,7 @@ class ModelPoint:
         policy_id_column = self.settings["POLICY_ID_COLUMN"]
         self._policy_id = new_policy_id
         self.policy_data = self.data[self.data[policy_id_column] == new_policy_id]
-        self.policy_nrow = self.policy_data.shape[0]
+        self.size = self.policy_data.shape[0]
 
     @property
     def record_num(self):
@@ -243,9 +244,9 @@ class ModelVariable:
 
     def calculate(self):
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
-        self.result = [None] * self.modelpoint.policy_nrow
+        self.result = [None] * self.modelpoint.size
 
-        for r in range(self.modelpoint.policy_nrow):
+        for r in range(self.modelpoint.size):
             self.modelpoint.record_num = r
             self.clear()
 
@@ -344,13 +345,12 @@ class Model:
 
         self.empty_output = empty_output
 
-
     def clear_variables(self):
         for variable in self.variables:
             variable.clear()
 
     def calculate_one_policy(self):
-        policy_output = self.empty_output.copy()
+        policy_output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
         t_output_max = min(self.settings["T_OUTPUT_MAX"], self.settings["T_CALCULATION_MAX"])
 
@@ -363,13 +363,13 @@ class Model:
 
         if not aggregate:
             for modelpoint in self.modelpoints:
-                policy_output[modelpoint.name]["t"] = list(range(t_output_max + 1)) * modelpoint.policy_nrow
-                policy_output[modelpoint.name]["r"] = utils.repeated_numbers(modelpoint.policy_nrow, t_output_max + 1)
+                policy_output[modelpoint.name]["t"] = list(range(t_output_max + 1)) * modelpoint.size
+                policy_output[modelpoint.name]["r"] = utils.repeated_numbers(modelpoint.size, t_output_max + 1)
 
         return policy_output
 
     def calculate_all_policies(self):
-        output = self.empty_output.copy()
+        output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
         t_output_max = min(self.settings["T_OUTPUT_MAX"], self.settings["T_CALCULATION_MAX"])
         policy_id_column = self.settings["POLICY_ID_COLUMN"]
@@ -388,8 +388,8 @@ class Model:
 
         for modelpoint in self.modelpoints:
             if aggregate:
-                output[modelpoint.name]["t"] = list(range(t_output_max+1))
                 output[modelpoint.name] = sum(policy_output[modelpoint.name] for policy_output in policy_outputs)
+                output[modelpoint.name]["t"] = list(range(t_output_max+1))
             else:
                 output[modelpoint.name] = pd.concat(policy_output[modelpoint.name] for policy_output in policy_outputs)
 
@@ -406,11 +406,11 @@ class Model:
         self.set_queue()
         self.calculate_all_policies()
 
-        if not os.path.exists("mp_output"):
-            os.makedirs("mp_output")
+        if not os.path.exists("output"):
+            os.makedirs("output")
 
         for modelpoint in self.modelpoints:
-            filepath = f"mp_output/{timestamp}_{modelpoint.name}.csv"
+            filepath = f"output/{timestamp}_{modelpoint.name}.csv"
 
             mp_output = self.output.get(modelpoint.name)
             if user_chose_columns:
