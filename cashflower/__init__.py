@@ -54,11 +54,15 @@ def get_model_input(modelpoint_module, model_module, settings):
 
     # Gather model points
     modelpoint_members = inspect.getmembers(modelpoint_module)
-    modelpoints = [m[1] for m in modelpoint_members if isinstance(m[1], ModelPoint)]
-    first_modelpoint = modelpoints[0]
+    modelpoint_members = [m for m in modelpoint_members if isinstance(m[1], ModelPoint)]
 
-    for modelpoint in modelpoints:
+    modelpoints = []
+    for name, modelpoint in modelpoint_members:
+        modelpoint.name = name
         modelpoint.settings = settings
+        modelpoints.append(modelpoint)
+
+    first_modelpoint = modelpoints[0]
 
     # Gather model variables
     model_members = inspect.getmembers(model_module)
@@ -107,27 +111,45 @@ def load_settings(settings):
 
 
 class ModelPoint:
-    """The model point object stores data of policyholders.
+    """Policyholders' data.
+
+    The model point stores data on all policyholders and points to a specific policyholder
+    for which model should be calculated.
 
     Attributes
     ----------
+    data : data frame
+        Policyholders' data.
     name : str
-        This is where we store arg,
-
+        Used in the output filename. Set in get_model_input().
+    settings : dict
+        User settings. Model point uses POLICY_ID_COLUMN setting. Set in get_model_input().
+    _policy_id : str
+        Value to identify the policyholder by in the column defined by POLICY_ID_COLUMN setting.
+        Looped over in model.calculated_all_policies().
+    _record_num : int
+        Number of records - relevant when there are multiple records for the same policyholder.
+        Looped over in model_variable.calculate().
+    policy_data : data frame
+        Row(s) of data for the current policyholder.
+    policy_nrow : int
+        Number of rows of policy data.
+    policy_record : data frame
+        Row of data for the current policyholder and record.
     """
 
     instances = []
 
-    def __init__(self, name, data):
+    def __init__(self, data):
         self.__class__.instances.append(self)
-        self.name = name
         self.data = data
+        self.name = None
+        self.settings = None
         self._policy_id = None
         self._record_num = None
-        self.size = 0
         self.policy_data = None
+        self.policy_nrow = 0
         self.policy_record = None
-        self.settings = None
 
     def __repr__(self):
         return f"MP: {self.name}"
@@ -135,7 +157,6 @@ class ModelPoint:
     def __len__(self):
         return self.data.shape[0]
 
-    @functools.cache
     def get(self, attribute):
         return self.policy_record[attribute]
 
@@ -145,11 +166,10 @@ class ModelPoint:
 
     @policy_id.setter
     def policy_id(self, new_policy_id):
-        """ Policy id in model point is changed by model.calculated_all_policies() """
         policy_id_column = self.settings["POLICY_ID_COLUMN"]
         self._policy_id = new_policy_id
         self.policy_data = self.data[self.data[policy_id_column] == new_policy_id]
-        self.size = self.policy_data.shape[0]
+        self.policy_nrow = self.policy_data.shape[0]
 
     @property
     def record_num(self):
@@ -157,25 +177,35 @@ class ModelPoint:
 
     @record_num.setter
     def record_num(self, new_record_num):
-        """ Record number is changed in model_variable.calculate() """
         self._record_num = new_record_num
         self.policy_record = self.policy_data.iloc[new_record_num]
-        self.get.cache_clear()
 
 
 class ModelVariable:
-    """ Model Variable class
+    """Variable of a cash flow model.
 
-    name = it is set to code variable name is get_model_input()
-    modelpoint = user sets it directly; otherwise it is set to the first modelpoint in get_model_input()
-    recalc = should be recalculated for each policyholder or calculate only once
-    formula = function of the variable, attached with @assign
-    result = initially None, then list of n lists with m elements where:
-        n = num of records for policy, m = num of projection months
-    children = only relevant in model context (because then we know the groups of variables),
-        which variables is this function calling?
-    grandchildren = children and their descendants (i.e. also grandgrandchildren and so on)
-    settings = user settings
+    Model variable is linked to a modelpoint and calculates results based on the formula.
+
+    Attributes
+    ----------
+    name : str
+        Name of the code variable which is set in get_model_input().
+    modelpoint : ModelPoint object
+        Model point to which the variable is linked.
+        User sets it directly in the model script, otherwise it is set to the first modelpoint in get_model_input().
+    recalc : bool
+        Should the variable be calculated for each policyholder or only once?
+    formula : function
+        The formula to calculate the results. It is attached using the @assign decorator.
+    settings : dict
+        User settings. Model variable uses T_CALCULATION_MAX setting. Set in get_model_input().
+    result : list
+        List of n lists with m elements where: n = num of records for policy, m = num of projection months.
+    children : list of model variables
+        List of model variables that this variable is calling in its formula.
+        Only relevant in the model context because model is linked to a group of variables.
+    grandchildren : list of model variables
+        Children and their descendants (children, grandchildren, grandgrandchildren and so on...).
     """
     instances = []
 
@@ -185,10 +215,10 @@ class ModelVariable:
         self.modelpoint = modelpoint
         self.recalc = recalc
         self.formula = None
+        self.settings = None
         self.result = None
         self.children = []
         self.grandchildren = []
-        self.settings = None
 
     def __repr__(self):
         return f"MV: {self.name}"
@@ -207,11 +237,15 @@ class ModelVariable:
 
         return self.formula(t)
 
+    def clear(self):
+        if self.recalc:
+            self.formula.cache_clear()
+
     def calculate(self):
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
-        self.result = [[None] * t_calculation_max for _ in range(self.modelpoint.size)]
+        self.result = [None] * self.modelpoint.policy_nrow
 
-        for r in range(self.modelpoint.size):
+        for r in range(self.modelpoint.policy_nrow):
             self.modelpoint.record_num = r
             self.clear()
 
@@ -223,24 +257,28 @@ class ModelVariable:
                 lst.reverse()
                 self.result[r] = lst
 
-    def clear(self):
-        if self.recalc:
-            self.formula.cache_clear()
-
 
 class Model:
-    """Model class
+    """Actuarial cash flow model.
 
-     A model is a set of variables and a set of modelpoints.
+    Model combines variables and modelpoints. Variables are ordered into a calculation queue.
+    All variables are calculated for data of each policyholder in the modelpoints.
 
-     variables = list of model variable objects
-     modelpoints = list of model point objects
-     settings = user's settings
-     queue = in which order should variables be calculated?
-     empty_output = empty dict with keys prepared for output
-     output = dict with key=modelpoints, values=data frames with column names are variable names
-
-     """
+    Attributes
+    ----------
+    variables : list
+        List of model variables objects.
+    modelpoints : list
+        List of model point objects.
+    settings : dict
+        User settings.
+    queue : list
+        List of model variables in an order in which they should be calculated.
+    empty_output : dict
+        Empty dict with keys prepared for output
+    output : dict
+        Dict with key = modelpoints, values = data frames (columns for model variables).
+    """
     def __init__(self, variables, modelpoints, settings):
         self.variables = variables
         self.modelpoints = modelpoints
@@ -263,7 +301,7 @@ class Model:
         variable_names = [variable.name for variable in self.variables]
         for variable in self.variables:
             formula_source = inspect.getsource(variable.formula)
-            child_names = utils.list_used_words(formula_source, variable_names)  # TODO
+            child_names = utils.list_used_words(formula_source, variable_names)
             for child_name in child_names:
                 if child_name != variable.name:
                     child = self.get_variable(child_name)
@@ -293,16 +331,8 @@ class Model:
 
     def set_empty_output(self):
         empty_output = dict()
-        for modelpoint in self.modelpoints:
-            empty_output[modelpoint.name] = pd.DataFrame()
-
-        for variable in self.variables:
-            empty_output[variable.modelpoint.name][variable.name] = None
-        self.empty_output = empty_output
-
-    def get_empty_output(self):
         aggregate = self.settings["AGGREGATE"]
-        empty_output = dict()
+
         for modelpoint in self.modelpoints:
             empty_output[modelpoint.name] = pd.DataFrame()
             empty_output[modelpoint.name]["t"] = None
@@ -311,64 +341,63 @@ class Model:
 
         for variable in self.variables:
             empty_output[variable.modelpoint.name][variable.name] = None
-        return empty_output
+
+        self.empty_output = empty_output
+
 
     def clear_variables(self):
         for variable in self.variables:
             variable.clear()
 
     def calculate_one_policy(self):
+        policy_output = self.empty_output.copy()
         aggregate = self.settings["AGGREGATE"]
         t_output_max = min(self.settings["T_OUTPUT_MAX"], self.settings["T_CALCULATION_MAX"])
-        output = self.get_empty_output()
 
-        # output contains time and record number
+        for var in self.queue:
+            var.calculate()
+            if aggregate:
+                policy_output[var.modelpoint.name][var.name] = utils.aggregate(var.result, n=t_output_max + 1)
+            else:
+                policy_output[var.modelpoint.name][var.name] = utils.flatten(var.result, n=t_output_max + 1)
+
         if not aggregate:
             for modelpoint in self.modelpoints:
-                output[modelpoint.name]["t"] = list(range(t_output_max+1)) * modelpoint.size
-                output[modelpoint.name]["r"] = utils.repeated_numbers(modelpoint.size, t_output_max+1)
+                policy_output[modelpoint.name]["t"] = list(range(t_output_max + 1)) * modelpoint.policy_nrow
+                policy_output[modelpoint.name]["r"] = utils.repeated_numbers(modelpoint.policy_nrow, t_output_max + 1)
 
-        # variable.result is a list of lists
-        for variable in self.queue:
-            variable.calculate()
-            if aggregate:
-                output[variable.modelpoint.name][variable.name] = utils.aggregate(variable.result, n=t_output_max+1)
-            else:
-                output[variable.modelpoint.name][variable.name] = utils.flatten(variable.result, n=t_output_max+1)
-
-        return output
+        return policy_output
 
     def calculate_all_policies(self):
+        output = self.empty_output.copy()
         aggregate = self.settings["AGGREGATE"]
         t_output_max = min(self.settings["T_OUTPUT_MAX"], self.settings["T_CALCULATION_MAX"])
-        output = self.get_empty_output()
+        policy_id_column = self.settings["POLICY_ID_COLUMN"]
         primary = self.get_modelpoint("policy")
 
         policy_outputs = []
         for row in range(len(primary)):
-            # Primary modelpoint has unique column with policy ID
-            policy_id_column = self.settings["POLICY_ID_COLUMN"]
             policy_id = primary.data.iloc[row][policy_id_column]
 
-            # All modelpoints must have the same policy ID
             for modelpoint in self.modelpoints:
                 modelpoint.policy_id = policy_id
 
             self.clear_variables()
-
             policy_output = self.calculate_one_policy()
             policy_outputs.append(policy_output)
 
         for modelpoint in self.modelpoints:
             if aggregate:
-                output[modelpoint.name] = sum(policy_output[modelpoint.name] for policy_output in policy_outputs)
                 output[modelpoint.name]["t"] = list(range(t_output_max+1))
+                output[modelpoint.name] = sum(policy_output[modelpoint.name] for policy_output in policy_outputs)
             else:
                 output[modelpoint.name] = pd.concat(policy_output[modelpoint.name] for policy_output in policy_outputs)
 
         self.output = output
 
     def run(self):
+        output_columns = self.settings["OUTPUT_COLUMNS"]
+        user_chose_columns = len(output_columns) > 0
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
         self.set_empty_output()
@@ -377,20 +406,16 @@ class Model:
         self.set_queue()
         self.calculate_all_policies()
 
-        if not os.path.exists("output"):
-            os.makedirs("output")
+        if not os.path.exists("mp_output"):
+            os.makedirs("mp_output")
 
-        output_columns = self.settings["OUTPUT_COLUMNS"]
-        user_chose_columns = len(output_columns) > 0
+        for modelpoint in self.modelpoints:
+            filepath = f"mp_output/{timestamp}_{modelpoint.name}.csv"
 
-        for mp in self.modelpoints:
-            output = self.output.get(mp.name)
+            mp_output = self.output.get(modelpoint.name)
             if user_chose_columns:
                 output_columns.extend(["t", "r"])
-                columns = output.columns.intersection(output_columns)
+                columns = mp_output.columns.intersection(output_columns)
+                mp_output.to_csv(filepath, index=False, columns=columns)
             else:
-                columns = output.columns
-
-            filepath = f"output/{timestamp}_{mp.name}.csv"
-            output.to_csv(filepath, index=False, columns=columns)
-
+                mp_output.to_csv(filepath, index=False)
