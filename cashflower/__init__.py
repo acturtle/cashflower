@@ -9,6 +9,20 @@ from . import utils
 
 
 def assign(var):
+    """Assign formula to a model variable.
+
+    The decorator should be used in the main model script to link model variables and their forulas.
+    It also caches the function so that the results get remembered.
+
+    Parameters
+    ----------
+    var : model variable object
+        Model variable to which formula is attached.
+
+    Returns
+    -------
+    decorator
+    """
     def wrapper(func):
         func = functools.cache(func)
         var.formula = func
@@ -17,21 +31,25 @@ def assign(var):
 
 
 def get_model_input(modelpoint_module, model_module, settings):
-    """Prepares input for model.
+    """Prepare input for model.
 
     Gathers all model points and model variable instances.
-    Assigns names to model variables and, if not assigned by user, also model point.
-    (Thanks to that user doesn't have to assign model point to model variable if there is only one model point)
+    Assigns names to model variables and, if not assigned by user, also model points.
+    (User doesn't have to assign a model point to a model variable if there is only one model point.)
 
     Parameters
     ----------
-    modelpoint_module : module where user defines model points
-    model_module : module where user defines model variables
-    settings : dictionary with user settings
+    modelpoint_module : module
+        Module where user defines model points.
+    model_module : module
+        Module where user defines model variables.
+    settings : dict
+        Dictionary with user settings.
 
     Returns
     -------
-    tuple containing two lists (variables and model points)
+    tuple
+        Contains two lists - model variables and model points.
     """
 
     # Gather model points
@@ -58,6 +76,22 @@ def get_model_input(modelpoint_module, model_module, settings):
 
 
 def load_settings(settings):
+    """Load model settings.
+
+    The function firstly reads the default settings and then overwrites these that have been defined by the user.
+    The function helps with backward compatibility.
+    If there is a new setting in the package, the user doesn't have to have it in the settings script.
+
+    Parameters
+    ----------
+    settings : dict
+        Model settings defined by the user.
+
+    Returns
+    -------
+    dict
+        Full set of settings.
+    """
     initial_settings = {
         "POLICY_ID_COLUMN": "POLICY_ID",
         "T_CALCULATION_MAX": 1440,
@@ -72,16 +106,14 @@ def load_settings(settings):
     return initial_settings
 
 
-
 class ModelPoint:
-    """Model Point class
+    """The model point object stores data of policyholders.
 
-    data = data frame with data for all policies
-    policy_id = id for the current policy that is being calculated
-    record_num = if the given policy has multiple records, which record is currently used
-    size = how many records does the current policy have
-    policy_data = data frame with rows only for the current policy_id
-    policy_record = row of data frame for the current policy_id and record_num
+    Attributes
+    ----------
+    name : str
+        This is where we store arg,
+
     """
 
     instances = []
