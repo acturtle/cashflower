@@ -6,16 +6,13 @@ def get_cell(df, column, **kwargs):
     df : data frame
     column : str
         Column to get a cell from.
-    **kwargs : dict
+    **kwargs
         Keys are columns names which are filtered based on values.
 
     Returns
     -------
     scalar
     """
-    if column not in df.columns:
-        raise ValueError(f"There is no column {column} in the data frame.")
-
     for key, val in kwargs.items():
         df = df[df[key] == val]
 
@@ -32,17 +29,19 @@ def get_cell(df, column, **kwargs):
 
 def unique_append(lst, item):
     """Append a unique item to a list."""
+    output = lst.copy()
     if item not in lst:
-        lst.append(item)
-    return lst
+        output.append(item)
+    return output
 
 
 def unique_extend(lst1, lst2):
-    """Extend list with items of other list if they are uinque."""
+    """Extend list with items of other list if they are unique."""
+    output = lst1.copy()
     for item in lst2:
         if item not in lst1:
-            lst1.append(item)
-    return lst1
+            output.append(item)
+    return output
 
 
 def list_used_words(text, words):
@@ -116,7 +115,7 @@ def aggregate(lst, n=None):
 
 
 def repeated_numbers(m, n):
-    """Create a list of repested consecutive numbers.
+    """Create a list of repeated consecutive numbers.
 
     Parameters
     ----------
@@ -135,4 +134,3 @@ def repeated_numbers(m, n):
 
     lst = flatten(lst)
     return lst
-

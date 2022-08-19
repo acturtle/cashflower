@@ -9,6 +9,10 @@ from . import admin
 from . import utils
 
 
+class CashflowModelError(Exception):
+    pass
+
+
 def assign(var):
     """Assign formula to a model variable.
 
@@ -29,6 +33,40 @@ def assign(var):
         var.formula = func
         return func
     return wrapper
+
+
+def load_settings(settings=None):
+    """Load model settings.
+
+    The function firstly reads the default settings and then overwrites these that have been defined by the user.
+    The function helps with backward compatibility.
+    If there is a new setting in the package, the user doesn't have to have it in the settings script.
+
+    Parameters
+    ----------
+    settings : dict
+        Model settings defined by the user.
+
+    Returns
+    -------
+    dict
+        Full set of settings.
+    """
+    if settings is None:
+        settings = dict()
+
+    initial_settings = {
+        "POLICY_ID_COLUMN": "POLICY_ID",
+        "T_CALCULATION_MAX": 1440,
+        "T_OUTPUT_MAX": 1440,
+        "AGGREGATE": False,
+        "OUTPUT_COLUMNS": [],
+    }
+
+    for key, value in settings.items():
+        initial_settings[key] = value
+
+    return initial_settings
 
 
 def get_model_input(modelpoint_module, model_module, settings):
@@ -78,37 +116,6 @@ def get_model_input(modelpoint_module, model_module, settings):
         variables.append(variable)
 
     return variables, modelpoints
-
-
-def load_settings(settings):
-    """Load model settings.
-
-    The function firstly reads the default settings and then overwrites these that have been defined by the user.
-    The function helps with backward compatibility.
-    If there is a new setting in the package, the user doesn't have to have it in the settings script.
-
-    Parameters
-    ----------
-    settings : dict
-        Model settings defined by the user.
-
-    Returns
-    -------
-    dict
-        Full set of settings.
-    """
-    initial_settings = {
-        "POLICY_ID_COLUMN": "POLICY_ID",
-        "T_CALCULATION_MAX": 1440,
-        "T_OUTPUT_MAX": 1440,
-        "AGGREGATE": False,
-        "OUTPUT_COLUMNS": [],
-    }
-
-    for key, value in settings.items():
-        initial_settings[key] = value
-
-    return initial_settings
 
 
 class ModelPoint:
@@ -179,7 +186,7 @@ class ModelPoint:
     @record_num.setter
     def record_num(self, new_record_num):
         self._record_num = new_record_num
-        self.policy_record = self.policy_data.iloc[new_record_num]
+        self.policy_record = self.policy_data.iloc[[new_record_num]]
 
 
 class ModelVariable:
@@ -196,7 +203,7 @@ class ModelVariable:
         User sets it directly in the model script, otherwise it is set to the first modelpoint in get_model_input().
     recalc : bool
         Should the variable be calculated for each policyholder or only once?
-    formula : function
+    _formula : function
         The formula to calculate the results. It is attached using the @assign decorator.
     settings : dict
         User settings. Model variable uses T_CALCULATION_MAX setting. Set in get_model_input().
@@ -215,7 +222,7 @@ class ModelVariable:
         self.name = name
         self.modelpoint = modelpoint
         self.recalc = recalc
-        self.formula = None
+        self._formula = None
         self.settings = None
         self.result = None
         self.children = []
@@ -237,6 +244,20 @@ class ModelVariable:
             return self.result[r][t]
 
         return self.formula(t)
+
+    @property
+    def formula(self):
+        return self._formula
+
+    @formula.setter
+    def formula(self, new_formula):
+        params = inspect.signature(new_formula).parameters
+
+        if not (len(params) == 1 and "t" in params.keys()):
+            raise CashflowModelError(f"Model variable formula must have only one parameter: t. "
+                                     f"Please check code for {new_formula.__name__}.")
+
+        self._formula = new_formula
 
     def clear(self):
         if self.recalc:
