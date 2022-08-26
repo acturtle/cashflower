@@ -1,3 +1,6 @@
+import re
+
+
 def get_cell(df, column, **kwargs):
     """Get a single cell value from a data frame.
 
@@ -134,3 +137,57 @@ def repeated_numbers(m, n):
 
     lst = flatten(lst)
     return lst
+
+
+def clean_formula_source(formula_source):
+    """Clean formula's source.
+
+    Prepares the formula's source to be analysed in terms of which function it calls.
+    Removes first line (function name), comments and whitespaces before brackets.
+
+    Parameters
+    ----------
+    formula_source : str
+        A function presented as a string.
+
+
+    Returns
+    -------
+    str
+        A function presented as a string without definition, comments and whitespaces before brackets.
+    """
+    # Get rid off function's definition
+    clean = re.sub("def.*?:\n", "\n", formula_source, count=1)
+
+    # Get rid off whitespaces before function's call
+    clean = re.sub("\s*\(", "(", clean)
+
+    # Get rid off comments
+    clean = re.sub("#.*\n", "\n", clean)
+    clean = re.sub("\"\"\".*?\"\"\"", "", clean)
+    clean = re.sub("\'\'\'.*?\'\'\'", "", clean)
+    return clean
+
+
+def list_called_funcs(formula_source, funcs):
+    """
+
+    Parameters
+    ----------
+    formula_source : str
+        A function's body presented a string.
+    funcs : list
+        List of functions' names to be checked if they are called in formula source.
+
+    Returns
+    -------
+    list
+        List of functions' names that are called within formula source.
+    """
+    called_funcs = []
+    for func in funcs:
+        search = re.search("\W" + func + "\(", formula_source)
+        is_called = bool(search)
+        if is_called:
+            called_funcs.append(func)
+    return called_funcs
