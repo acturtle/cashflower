@@ -1,6 +1,10 @@
 # Info
 
-Cashflower is a Python framework for actuarial cash flow models.
+Cashflower is an open-source Python framework for actuarial cash flow models.
+
+# Prerequisities
+
+Python version >=3.9
 
 # Usage
 
