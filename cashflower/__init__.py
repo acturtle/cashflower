@@ -266,7 +266,7 @@ class ModelVariable:
 
     def calculate(self):
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
-        self.result = [None] * self.modelpoint.size
+        self.result = [[None] * (t_calculation_max+1) for _ in range(self.modelpoint.size)]
 
         for r in range(self.modelpoint.size):
             self.modelpoint.record_num = r
