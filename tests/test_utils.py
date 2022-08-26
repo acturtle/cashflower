@@ -1,3 +1,4 @@
+import inspect
 import numpy as np
 import os
 import pandas as pd
@@ -69,3 +70,23 @@ class TestRepeatedNumbers(TestCase):
         assert repeated_numbers(3, 2) == [1, 1, 2, 2, 3, 3]
         assert repeated_numbers(2, 4) == [1, 1, 1, 1, 2, 2, 2, 2]
 
+
+class TestListCalledFuncs(TestCase):
+    def test_list_called_funcs(self):
+        def two():
+            return 2
+
+        def my_formula():
+            """This is a formula that doesn't call one()"""
+            '''Remember: no one()'''
+            three = 3
+            result = two  () + three  # I have not called one() here
+            return result
+
+        my_formula_source = inspect.getsource(my_formula)
+        result1 = list_called_funcs(my_formula_source, ["one", "two", "three"])
+        assert result1 == ["one"]
+
+        clean = clean_formula_source(my_formula_source)
+        result2 = list_called_funcs(clean, ["one", "two", "three"])
+        assert result2 == ["two"]

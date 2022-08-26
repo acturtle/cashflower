@@ -243,7 +243,8 @@ class ModelVariable:
         if r is not None:
             return self.result[r][t]
 
-        return self.formula(t)
+        # return self.formula(t)
+        return self.result[self.modelpoint.record_num][t]
 
     @property
     def formula(self):
@@ -273,11 +274,11 @@ class ModelVariable:
 
             # The try-except formula helps with autorecursive functions
             try:
-                self.result[r] = list(map(self.formula, range(t_calculation_max+1)))
+                for t in range(t_calculation_max+1):
+                    self.result[r][t] = self.formula(t)
             except RecursionError:
-                lst = list(map(self.formula, range(t_calculation_max, -1, -1)))
-                lst.reverse()
-                self.result[r] = lst
+                for t in range(t_calculation_max, -1, -1):
+                    self.result[r][t] = self.formula(t)
 
 
 class Model:
@@ -323,7 +324,10 @@ class Model:
         variable_names = [variable.name for variable in self.variables]
         for variable in self.variables:
             formula_source = inspect.getsource(variable.formula)
-            child_names = utils.list_used_words(formula_source, variable_names)
+            cleaned_formula_source = utils.clean_formula_source(formula_source)
+            child_names = utils.list_called_funcs(cleaned_formula_source, variable_names)
+
+            # Return objects instead of names
             for child_name in child_names:
                 if child_name != variable.name:
                     child = self.get_variable(child_name)
