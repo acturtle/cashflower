@@ -1,22 +1,21 @@
 import importlib
-import pandas as pd
 
 from unittest import TestCase
 
-from cashflower import assign, load_settings, get_model_input, Model, ModelVariable, ModelPoint
+from cashflower import *
 
 
 class TestAssign(TestCase):
     def test_assign(self):
         my_var = ModelVariable()
 
-        assert my_var.formula is None
+        assert my_var.assigned_formula is None
 
         @assign(my_var)
         def my_func(t):
             return t
 
-        assert my_var.formula == my_func
+        assert my_var.assigned_formula == my_func
 
 
 class TestLoadSettings(TestCase):
@@ -47,26 +46,6 @@ class TestLoadSettings(TestCase):
             "AGGREGATE": False,
             "OUTPUT_COLUMNS": ["a", "b", "c"],
         }
-
-
-class TestGetModelInput(TestCase):
-    def test_get_model_input(self):
-        modelpoint_module = importlib.import_module("tests.fix1.modelpoint")
-        model_module = importlib.import_module("tests.fix1.model")
-        settings = load_settings()
-        variables, modelpoints = get_model_input(modelpoint_module, model_module, settings)
-
-        var = variables[0]
-        mp = modelpoints[0]
-
-        assert isinstance(var, ModelVariable)
-        assert var.name == "projection_year"
-        assert var.settings == settings
-        assert var.modelpoint == mp
-
-        assert isinstance(mp, ModelPoint)
-        assert mp.name == "policy"
-        assert mp.settings == settings
 
 
 class TestModelPoint(TestCase):
@@ -107,7 +86,7 @@ class TestModelVariable(TestCase):
         def mv_formula(t):
             pass
 
-        assert mv.formula == mv_formula
+        assert mv.assigned_formula == mv_formula
 
     def test_model_variable_is_lower_when_fewer_grandchildren(self):
         mv = ModelVariable()
@@ -134,6 +113,8 @@ class TestModelVariable(TestCase):
         def mv_formula(t):
             return 2
 
+        mv.name = "mv"
+        mv.formula = mv.assigned_formula
         mv.calculate()
 
         assert mv.result == [[2, 2, 2, 2]]
@@ -142,37 +123,25 @@ class TestModelVariable(TestCase):
 
 
 class TestModel(TestCase):
-    def test_model(self):
-        modelpoint_module = importlib.import_module("tests.fix2.modelpoint")
-        model_module = importlib.import_module("tests.fix2.model")
-        settings = load_settings()
-        variables, modelpoints = get_model_input(modelpoint_module, model_module, settings)
+    def test_model_sets_grandchildren(self):
+        a = ModelVariable(name="a")
+        b = ModelVariable(name="b")
+        c = ModelVariable(name="c")
+        d = ModelVariable(name="d")
+        e = ModelVariable(name="e")
+        f = ModelVariable(name="f")
+        g = ModelVariable(name="g")
+
+        a.children = [b, c]
+        b.children = [d, e, f]
+        e.children = [g]
+
+        variables = [a, b, c, d, e, f]
+        modelpoints = []
+        settings = {}
         model = Model(variables, modelpoints, settings)
-        var_a, var_b, var_c = model.variables
-
-        model.set_children()
-        assert var_a.children == []
-        assert var_b.children == [var_a]
-        assert var_c.children == [var_b]
-
         model.set_grandchildren()
-        assert var_a.grandchildren == []
-        assert var_b.grandchildren == [var_a]
-        assert var_c.grandchildren == [var_b, var_a]
 
-        model.set_queue()
-        assert model.queue == [var_a, var_b, var_c]
-
-        model.set_empty_output()
-        assert model.empty_output["policy"].equals(pd.DataFrame(columns=["t", "r", "var_a", "var_b", "var_c"]))
-
-        model.calculate_all_policies()
-        t_max = model.settings.get("T_CALCULATION_MAX") + 1
-        output = pd.DataFrame({
-            "t": list(range(t_max)) * len(model.get_modelpoint("policy")),
-            "r": 1,
-            "var_a": 2,
-            "var_b": 4,
-            "var_c": 8,
-        })
-        assert model.output["policy"].reset_index(drop=True).equals(output.reset_index(drop=True))
+        assert a.grandchildren == [b, c, d, e, f, g]
+        assert b.grandchildren == [d, e, f, g]
+        assert e.grandchildren == [g]

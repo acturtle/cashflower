@@ -90,3 +90,23 @@ class TestListCalledFuncs(TestCase):
         clean = clean_formula_source(my_formula_source)
         result2 = list_called_funcs(clean, ["one", "two", "three"])
         assert result2 == ["two"]
+
+
+class TestIsRecursive(TestCase):
+    def test_is_recursive(self):
+        def my_func1(t):
+            return my_func1(t+1)
+
+        def my_func2(t):
+            return my_func2(t-1)
+
+        def my_func3(t):
+            return 2
+
+        cfs1 = clean_formula_source(inspect.getsource(my_func1))
+        cfs2 = clean_formula_source(inspect.getsource(my_func2))
+        cfs3 = clean_formula_source(inspect.getsource(my_func3))
+
+        assert is_recursive(cfs1, "my_func1") == "backward"
+        assert is_recursive(cfs2, "my_func2") == "forward"
+        assert is_recursive(cfs3, "my_func3") == "not_recursive"

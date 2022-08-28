@@ -191,3 +191,29 @@ def list_called_funcs(formula_source, funcs):
         if is_called:
             called_funcs.append(func)
     return called_funcs
+
+
+def is_recursive(formula_source, name):
+    """
+
+    Parameters
+    ----------
+    formula_source : str
+        A function's body presented a string.
+    name : str
+        Name of the function.
+
+    Returns
+    -------
+    str
+        Indication if a function is recursive and, if so, whether forward or backward.
+    """
+    search1 = re.search("\W" + name + "\(t\-1\)", formula_source)
+    if bool(search1):
+        return "forward"
+
+    search2 = re.search("\W" + name + "\(t\+1\)", formula_source)
+    if bool(search2):
+        return "backward"
+
+    return "not_recursive"

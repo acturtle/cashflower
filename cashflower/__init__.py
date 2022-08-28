@@ -30,7 +30,7 @@ def assign(var):
     """
     def wrapper(func):
         func = functools.cache(func)
-        var.formula = func
+        var.assigned_formula = func
         return func
     return wrapper
 
@@ -110,10 +110,21 @@ def get_model_input(modelpoint_module, model_module, settings):
     variables = []
     for name, variable in model_members:
         variable.name = name
+        if variable.assigned_formula is None:
+            raise CashflowModelError("A model variable exists without an assigned formula. Please check the model.")
+        variable.formula = variable.assigned_formula
         variable.settings = settings
         if variable.modelpoint is None:
             variable.modelpoint = first_modelpoint
         variables.append(variable)
+
+    # Ensure that model variables are not overwritten by formulas with the same name
+    overwritten = list(set(ModelVariable.instances) - set(variables))
+    if len(overwritten) > 0:
+        names = [item.assigned_formula.__name__ for item in overwritten]
+        names_str = ", ".join(names)
+        raise CashflowModelError(f"Ensure that model variable and formula have different names. "
+                                 f"Please check: {names_str}")
 
     return variables, modelpoints
 
@@ -203,8 +214,13 @@ class ModelVariable:
         User sets it directly in the model script, otherwise it is set to the first modelpoint in get_model_input().
     recalc : bool
         Should the variable be calculated for each policyholder or only once?
+    assigned_formula : function
+        Function attached using the @assign decorator.
     _formula : function
-        The formula to calculate the results. It is attached using the @assign decorator.
+        The formula to calculate the results. It takes definition from assigned_formula.
+        While setting, it checks if the formula is recursive.
+    recursive : str
+        States if the formula is recursive, possible values: forward, backward and not_recursive.
     settings : dict
         User settings. Model variable uses T_CALCULATION_MAX setting. Set in get_model_input().
     result : list
@@ -222,13 +238,17 @@ class ModelVariable:
         self.name = name
         self.modelpoint = modelpoint
         self.recalc = recalc
+        self.assigned_formula = None
         self._formula = None
+        self.recursive = None
         self.settings = None
         self.result = None
         self.children = []
         self.grandchildren = []
 
     def __repr__(self):
+        if self.name is None:
+            return "MV: NoName"
         return f"MV: {self.name}"
 
     def __lt__(self, other):
@@ -258,6 +278,9 @@ class ModelVariable:
             raise CashflowModelError(f"Model variable formula must have only one parameter: t. "
                                      f"Please check code for {new_formula.__name__}.")
 
+        formula_source = inspect.getsource(new_formula)
+        clean = utils.clean_formula_source(formula_source)
+        self.recursive = utils.is_recursive(clean, self.name)
         self._formula = new_formula
 
     def clear(self):
@@ -272,12 +295,11 @@ class ModelVariable:
             self.modelpoint.record_num = r
             self.clear()
 
-            # The try-except formula helps with autorecursive functions
-            try:
-                for t in range(t_calculation_max+1):
-                    self.result[r][t] = self.formula(t)
-            except RecursionError:
+            if self.recursive == "backward":
                 for t in range(t_calculation_max, -1, -1):
+                    self.result[r][t] = self.formula(t)
+            else:
+                for t in range(t_calculation_max+1):
                     self.result[r][t] = self.formula(t)
 
 
@@ -336,8 +358,11 @@ class Model:
     def set_grandchildren(self):
         for variable in self.variables:
             variable.grandchildren = list(variable.children)
-            for grandchild in variable.grandchildren:
+            i = 0
+            while i < len(variable.grandchildren):
+                grandchild = variable.grandchildren[i]
                 variable.grandchildren = utils.unique_extend(variable.grandchildren, grandchild.children)
+                i += 1
 
     def remove_from_grandchildren(self, removed_variable):
         for variable in self.variables:
