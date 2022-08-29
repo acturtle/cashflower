@@ -6,7 +6,7 @@ this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
 setup(
-    author="",
+    author="Zuzanna",
     description="Framework for actuarial cash flow models",
     include_package_data=True,
     install_requires=[
