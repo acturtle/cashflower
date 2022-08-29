@@ -177,7 +177,7 @@ class ModelPoint:
         return self.data.shape[0]
 
     def get(self, attribute):
-        return self.policy_record[attribute]
+        return self.policy_record[attribute].values[0]
 
     @property
     def policy_id(self):
