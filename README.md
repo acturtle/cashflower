@@ -28,7 +28,7 @@ create_model("wol")
 
 wol/modelpoint.py
 ```python
-policy = ModelPoint(name="policy", data=pd.read_csv("C:/my_data/policy.csv"))
+policy = ModelPoint(data=pd.read_csv("C:/my_data/policy.csv"))
 ```
 
 
@@ -58,8 +58,10 @@ def age_formula(t):
 
 @assign(death_prob)
 def death_prob_formula(t):
-    sex = policy.get("SEX")
-    if age(t) <= 100:
+    if age(t) == age(t-1):
+        return death_prob(t-1) 
+    elif age(t) <= 100:
+        sex = policy.get("SEX")
         yearly_rate = float(get_cell(assumption["mortality"], sex, AGE=age(t)))
         monthly_rate = (1 - (1 - yearly_rate)**(1/12))
         return monthly_rate
