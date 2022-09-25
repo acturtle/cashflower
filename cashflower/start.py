@@ -66,13 +66,17 @@ def get_model_input(modelpoint_module, model_module, settings):
     modelpoint_members = inspect.getmembers(modelpoint_module)
     modelpoint_members = [m for m in modelpoint_members if isinstance(m[1], ModelPoint)]
 
+    policy = None
     modelpoints = []
     for name, modelpoint in modelpoint_members:
         modelpoint.name = name
         modelpoint.settings = settings
         modelpoints.append(modelpoint)
+        if name == "policy":
+            policy = modelpoint
 
-    first_modelpoint = modelpoints[0]
+    if policy is None:
+        raise CashflowModelError("A model must have a modelpoint named 'policy'.")
 
     # Gather model variables
     model_members = inspect.getmembers(model_module)
@@ -86,7 +90,7 @@ def get_model_input(modelpoint_module, model_module, settings):
         variable.formula = variable.assigned_formula
         variable.settings = settings
         if variable.modelpoint is None:
-            variable.modelpoint = first_modelpoint
+            variable.modelpoint = policy
         variables.append(variable)
 
     # Ensure that model variables are not overwritten by formulas with the same name
