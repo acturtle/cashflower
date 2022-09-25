@@ -1,5 +1,5 @@
 settings = {
-    "AGGREGATE": False,
+    "AGGREGATE": True,
     "OUTPUT_COLUMNS": [],
     "POLICY_ID_COLUMN": "POLICY_ID",
     "SAVE_RUNTIME": False,
