@@ -3,6 +3,7 @@ import datetime
 import functools
 import inspect
 import os
+import time
 import pandas as pd
 
 from . import admin
@@ -56,11 +57,12 @@ def load_settings(settings=None):
         settings = dict()
 
     initial_settings = {
-        "POLICY_ID_COLUMN": "POLICY_ID",
-        "T_CALCULATION_MAX": 1440,
-        "T_OUTPUT_MAX": 1440,
         "AGGREGATE": False,
         "OUTPUT_COLUMNS": [],
+        "POLICY_ID_COLUMN": "POLICY_ID",
+        "SAVE_RUNTIME": False,
+        "T_CALCULATION_MAX": 1440,
+        "T_OUTPUT_MAX": 1440,
     }
 
     for key, value in settings.items():
@@ -225,6 +227,8 @@ class ModelVariable:
         User settings. Model variable uses T_CALCULATION_MAX setting. Set in get_model_input().
     result : list
         List of n lists with m elements where: n = num of records for policy, m = num of projection months.
+    runtime: float
+        The runtime of the modelvariable in the model run.
     children : list of model variables
         List of model variables that this variable is calling in its formula.
         Only relevant in the model context because model is linked to a group of variables.
@@ -243,6 +247,7 @@ class ModelVariable:
         self.recursive = None
         self.settings = None
         self.result = None
+        self.runtime = 0
         self.children = []
         self.grandchildren = []
 
@@ -288,6 +293,7 @@ class ModelVariable:
             self.formula.cache_clear()
 
     def calculate(self):
+        start = time.time()
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
         self.result = [[None] * (t_calculation_max+1) for _ in range(self.modelpoint.size)]
 
@@ -301,6 +307,9 @@ class ModelVariable:
             else:
                 for t in range(t_calculation_max+1):
                     self.result[r][t] = self.formula(t)
+
+        end = time.time()
+        self.runtime += end - start
 
 
 class Model:
@@ -446,6 +455,7 @@ class Model:
         self.output = output
 
     def run(self):
+        utils.print_log("Run started")
         output_columns = self.settings["OUTPUT_COLUMNS"]
         user_chose_columns = len(output_columns) > 0
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -469,3 +479,11 @@ class Model:
                 mp_output.to_csv(filepath, index=False, columns=columns)
             else:
                 mp_output.to_csv(filepath, index=False)
+
+        # Save runtime
+        if self.settings["SAVE_RUNTIME"]:
+            data = [(var.name, var.runtime) for var in self.variables]
+            runtime = pd.DataFrame(data, columns=["variable", "runtime"])
+            runtime.to_csv(f"output/{timestamp}_runtime.csv", index=False)
+
+        utils.print_log("Run finished")

@@ -1,4 +1,7 @@
 import importlib
+import pandas as pd
+import time
+
 
 from unittest import TestCase
 
@@ -120,6 +123,32 @@ class TestModelVariable(TestCase):
         assert mv.result == [[2, 2, 2, 2]]
         assert mv(1) == 2
         assert mv(2000) == 0
+
+    def test_model_variable_measures_runtime(self):
+        settings = {
+            "T_CALCULATION_MAX": 5,
+            "POLICY_ID_COLUMN": "POLICY_ID",
+        }
+
+        mp = ModelPoint(data=pd.DataFrame({"POLICY_ID": [1]}))
+        mp.settings = settings
+        mp.policy_id = 1
+        mp.record_num = 0
+
+        mv = ModelVariable(modelpoint=mp)
+        mv.name = "mv"
+        mv.settings = settings
+
+        @assign(mv)
+        def mv_formula(t):
+            time.sleep(3)
+            return 0
+
+        mv.formula = mv.assigned_formula
+
+        assert mv.runtime == 0
+        mv.calculate()
+        assert mv.runtime > 0
 
 
 class TestModel(TestCase):
