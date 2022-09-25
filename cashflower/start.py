@@ -48,7 +48,9 @@ def get_model_input(modelpoint_module, model_module, settings):
     (User doesn't have to assign a model point to a model variable if there is only one model point.)
 
     Performs checks:
+    - modelpoints have column for policy id (policy_id_column in settings)
     - model has a modelpoint named 'policy'
+    - policy has unique values in policy id column
 
     Parameters
     ----------
@@ -85,6 +87,9 @@ def get_model_input(modelpoint_module, model_module, settings):
 
     if policy is None:
         raise CashflowModelError("A model must have a modelpoint named 'policy'.")
+
+    if not policy.data[policy_id_column].is_unique:
+        raise CashflowModelError(f"The 'policy' modelpoint must have unique values in '{policy_id_column}' column.")
 
     # Gather model variables
     model_members = inspect.getmembers(model_module)
