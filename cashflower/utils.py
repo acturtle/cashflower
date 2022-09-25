@@ -163,7 +163,7 @@ def clean_formula_source(formula_source):
     clean = re.sub("def.*?:\n", "\n", formula_source, count=1)
 
     # Get rid off whitespaces before function's call
-    clean = re.sub("\s*\(", "(", clean)
+    clean = re.sub(r"\s*\(", "(", clean)
 
     # Get rid off comments
     clean = re.sub("#.*\n", "\n", clean)
@@ -189,7 +189,7 @@ def list_called_funcs(formula_source, funcs):
     """
     called_funcs = []
     for func in funcs:
-        search = re.search("\W" + func + "\(", formula_source)
+        search = re.search(r"\W" + func + r"\(", formula_source)
         is_called = bool(search)
         if is_called:
             called_funcs.append(func)
@@ -211,11 +211,11 @@ def is_recursive(formula_source, name):
     str
         Indication if a function is recursive and, if so, whether forward or backward.
     """
-    search1 = re.search("\W" + name + "\(t\-1\)", formula_source)
+    search1 = re.search(r"\W" + name + r"\(t\-1\)", formula_source)
     if bool(search1):
         return "forward"
 
-    search2 = re.search("\W" + name + "\(t\+1\)", formula_source)
+    search2 = re.search(r"\W" + name + r"\(t\+1\)", formula_source)
     if bool(search2):
         return "backward"
 
