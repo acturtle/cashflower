@@ -47,6 +47,9 @@ def get_model_input(modelpoint_module, model_module, settings):
     Assigns names to model variables and, if not assigned by user, also model points.
     (User doesn't have to assign a model point to a model variable if there is only one model point.)
 
+    Performs checks:
+    - model has a modelpoint named 'policy'
+
     Parameters
     ----------
     modelpoint_module : module
@@ -61,6 +64,7 @@ def get_model_input(modelpoint_module, model_module, settings):
     tuple
         Contains two lists - model variables and model points.
     """
+    policy_id_column = settings["POLICY_ID_COLUMN"]
 
     # Gather model points
     modelpoint_members = inspect.getmembers(modelpoint_module)
@@ -72,8 +76,12 @@ def get_model_input(modelpoint_module, model_module, settings):
         modelpoint.name = name
         modelpoint.settings = settings
         modelpoints.append(modelpoint)
+
         if name == "policy":
             policy = modelpoint
+
+        if policy_id_column not in modelpoint.data.columns:
+            raise CashflowModelError(f"There is no column '{policy_id_column}' in modelpoint '{name}'.")
 
     if policy is None:
         raise CashflowModelError("A model must have a modelpoint named 'policy'.")
