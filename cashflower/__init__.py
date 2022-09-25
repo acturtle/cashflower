@@ -126,13 +126,13 @@ class ModelVariable:
         The formula to calculate the results. It takes definition from assigned_formula.
         While setting, it checks if the formula is recursive.
     recursive : str
-        States if the formula is recursive, possible values: forward, backward and not_recursive.
+        States if the formula is recursive, possible values: 'forward', 'backward' and 'not_recursive'.
     settings : dict
         User settings. Model variable uses T_CALCULATION_MAX setting. Set in get_model_input().
     result : list
         List of n lists with m elements where: n = num of records for policy, m = num of projection months.
     runtime: float
-        The runtime of the modelvariable in the model run.
+        The runtime of the modelvariable in the model run (in seconds).
     children : list of model variables
         List of model variables that this variable is calling in its formula.
         Only relevant in the model context because model is linked to a group of variables.
@@ -205,7 +205,9 @@ class ModelVariable:
             self.modelpoint.record_num = r
             self.clear()
 
-            if self.recursive == "backward":
+            if self.recursive == "not_recursive":
+                self.result[r] = list(map(self.formula, range(t_calculation_max+1)))
+            elif self.recursive == "backward":
                 for t in range(t_calculation_max, -1, -1):
                     self.result[r][t] = self.formula(t)
             else:
