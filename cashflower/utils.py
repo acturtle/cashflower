@@ -1,6 +1,9 @@
 import re
 
 
+from datetime import datetime
+
+
 def get_cell(df, column, **kwargs):
     """Get a single cell value from a data frame.
 
@@ -217,3 +220,8 @@ def is_recursive(formula_source, name):
         return "backward"
 
     return "not_recursive"
+
+
+def print_log(msg):
+    now = datetime.now()
+    print(now.strftime("%H:%M:%S") + " | " + msg)
