@@ -97,13 +97,16 @@ def get_model_input(modelpoint_module, model_module, settings):
 
     variables = []
     for name, variable in model_members:
-        variable.name = name
         if variable.assigned_formula is None:
-            raise CashflowModelError("A model variable exists without an assigned formula. Please check the model.")
-        variable.formula = variable.assigned_formula
-        variable.settings = settings
+            raise CashflowModelError(f"The '{name}' variable has no formula. Please check the 'model.py' script.")
+
         if variable.modelpoint is None:
             variable.modelpoint = policy
+
+        variable.name = name
+        variable.settings = settings
+        variable.formula = variable.assigned_formula
+
         variables.append(variable)
 
     # Ensure that model variables are not overwritten by formulas with the same name
@@ -111,8 +114,8 @@ def get_model_input(modelpoint_module, model_module, settings):
     if len(overwritten) > 0:
         names = [item.assigned_formula.__name__ for item in overwritten]
         names_str = ", ".join(names)
-        raise CashflowModelError(f"Ensure that model variable and formula have different names. "
-                                 f"Please check: {names_str}")
+        raise CashflowModelError(f"The following variables are not correctly handled in the model:"
+                                 f"\n{names_str}")
 
     return variables, modelpoints
 
