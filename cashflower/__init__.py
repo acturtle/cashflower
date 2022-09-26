@@ -184,7 +184,7 @@ class ModelVariable:
         params = inspect.signature(new_formula).parameters
 
         if not (len(params) == 1 and "t" in params.keys()):
-            raise CashflowModelError(f"Model variable formula must have only one parameter: t. "
+            raise CashflowModelError(f"\nModel variable formula must have only one parameter: 't'. "
                                      f"Please check code for {new_formula.__name__}.")
 
         formula_source = inspect.getsource(new_formula)

@@ -83,13 +83,13 @@ def get_model_input(modelpoint_module, model_module, settings):
             policy = modelpoint
 
         if policy_id_column not in modelpoint.data.columns:
-            raise CashflowModelError(f"There is no column '{policy_id_column}' in modelpoint '{name}'.")
+            raise CashflowModelError(f"\nThere is no column '{policy_id_column}' in modelpoint '{name}'.")
 
     if policy is None:
-        raise CashflowModelError("A model must have a modelpoint named 'policy'.")
+        raise CashflowModelError("\nA model must have a modelpoint named 'policy'.")
 
     if not policy.data[policy_id_column].is_unique:
-        raise CashflowModelError(f"The 'policy' modelpoint must have unique values in '{policy_id_column}' column.")
+        raise CashflowModelError(f"\nThe 'policy' modelpoint must have unique values in '{policy_id_column}' column.")
 
     # Gather model variables
     model_members = inspect.getmembers(model_module)
@@ -98,7 +98,7 @@ def get_model_input(modelpoint_module, model_module, settings):
     variables = []
     for name, variable in model_members:
         if variable.assigned_formula is None:
-            raise CashflowModelError(f"The '{name}' variable has no formula. Please check the 'model.py' script.")
+            raise CashflowModelError(f"\nThe '{name}' variable has no formula. Please check the 'model.py' script.")
 
         if variable.modelpoint is None:
             variable.modelpoint = policy
@@ -112,9 +112,14 @@ def get_model_input(modelpoint_module, model_module, settings):
     # Ensure that model variables are not overwritten by formulas with the same name
     overwritten = list(set(ModelVariable.instances) - set(variables))
     if len(overwritten) > 0:
+        for item in overwritten:
+            if item.assigned_formula is None:
+                raise CashflowModelError("\nThere are two variables with the same name. "
+                                         "Please check the 'model.py' script.")
+
         names = [item.assigned_formula.__name__ for item in overwritten]
         names_str = ", ".join(names)
-        raise CashflowModelError(f"The following variables are not correctly handled in the model:"
+        raise CashflowModelError(f"\nThe following variables are not correctly handled in the model:"
                                  f"\n{names_str}")
 
     return variables, modelpoints
