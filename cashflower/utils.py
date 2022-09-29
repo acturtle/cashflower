@@ -165,6 +165,12 @@ def clean_formula_source(formula_source):
     # Get rid off whitespaces before function's call
     clean = re.sub(r"\s*\(", "(", clean)
 
+    # Get rid off whitespaces inside brackets
+    clean = re.sub("\(\s*", "(", clean)
+    clean = re.sub("\s*\)", ")", clean)
+    clean = re.sub("\(t\s*", "(t", clean)
+    clean = re.sub("\s*1\)", "1)", clean)
+
     # Get rid off comments
     clean = re.sub("#.*\n", "\n", clean)
     clean = re.sub("\"\"\".*?\"\"\"", "", clean)
