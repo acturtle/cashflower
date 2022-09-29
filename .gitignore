@@ -1,8 +1,11 @@
-.flake8
-.idea/
+# Sample models
 example/*
 mult_cov/*
 wol/*
+
+# Pycharm and static testing
+.flake8
+.idea/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
