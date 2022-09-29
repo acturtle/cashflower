@@ -95,7 +95,8 @@ class ModelPoint:
         self._policy_id = new_policy_id
         self.policy_data = self.data[self.data[policy_id_column] == new_policy_id]
         self.size = self.policy_data.shape[0]
-        self.record_num = 0
+        if self.size > 0:
+            self.record_num = 0
 
     @property
     def record_num(self):
@@ -173,7 +174,9 @@ class ModelVariable:
         if r is not None:
             return self.result[r][t]
 
-        # return self.formula(t)
+        if self.modelpoint.size == 0:
+            return None
+
         return self.result[self.modelpoint.record_num][t]
 
     @property
