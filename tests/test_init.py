@@ -1,11 +1,7 @@
-import importlib
-import pandas as pd
-import time
-
-
 from unittest import TestCase
 
 from cashflower import *
+from cashflower.start import load_settings
 
 
 class TestAssign(TestCase):
@@ -19,36 +15,6 @@ class TestAssign(TestCase):
             return t
 
         assert my_var.assigned_formula == my_func
-
-
-class TestLoadSettings(TestCase):
-    def test_load_settings(self):
-        default_settings = {
-            "POLICY_ID_COLUMN": "POLICY_ID",
-            "T_CALCULATION_MAX": 1440,
-            "T_OUTPUT_MAX": 1440,
-            "AGGREGATE": False,
-            "OUTPUT_COLUMNS": [],
-        }
-        assert load_settings() == default_settings
-
-        my_settings1 = {}
-        settings = load_settings(my_settings1)
-        assert settings == default_settings
-
-        my_settings2 = {
-            "POLICY_ID_COLUMN": "polnumber",
-            "T_CALCULATION_MAX": 100,
-            "OUTPUT_COLUMNS": ["a", "b", "c"],
-        }
-        settings = load_settings(my_settings2)
-        assert settings == {
-            "POLICY_ID_COLUMN": "polnumber",
-            "T_CALCULATION_MAX": 100,
-            "T_OUTPUT_MAX": 1440,
-            "AGGREGATE": False,
-            "OUTPUT_COLUMNS": ["a", "b", "c"],
-        }
 
 
 class TestModelPoint(TestCase):
@@ -126,7 +92,7 @@ class TestModelVariable(TestCase):
 
     def test_model_variable_measures_runtime(self):
         settings = {
-            "T_CALCULATION_MAX": 5,
+            "T_CALCULATION_MAX": 1,
             "POLICY_ID_COLUMN": "POLICY_ID",
         }
 
@@ -141,7 +107,7 @@ class TestModelVariable(TestCase):
 
         @assign(mv)
         def mv_formula(t):
-            time.sleep(3)
+            time.sleep(1)
             return 0
 
         mv.formula = mv.assigned_formula
