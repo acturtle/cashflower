@@ -119,7 +119,7 @@ def get_model_input(modelpoint_module, model_module, settings):
 
         names = [item.assigned_formula.__name__ for item in overwritten]
         names_str = ", ".join(names)
-        raise CashflowModelError(f"\nThe following variables are not correctly handled in the model:"
+        raise CashflowModelError(f"\nThe variables with the following formulas are not correctly handled in the model:"
                                  f"\n{names_str}")
 
     return variables, modelpoints
