@@ -160,15 +160,21 @@ def clean_formula_source(formula_source):
         A function presented as a string without definition, comments and whitespaces before brackets.
     """
     # Get rid off function's definition
-    clean = re.sub("def.*?:\n", "\n", formula_source, count=1)
+    clean = re.sub(r"def.*?:\n", "\n", formula_source, count=1)
 
     # Get rid off whitespaces before function's call
     clean = re.sub(r"\s*\(", "(", clean)
 
+    # Get rid off whitespaces inside brackets
+    clean = re.sub(r"\(\s*", "(", clean)
+    clean = re.sub(r"\s*\)", ")", clean)
+    clean = re.sub(r"\(t\s*", "(t", clean)
+    clean = re.sub(r"\s*1\)", "1)", clean)
+
     # Get rid off comments
-    clean = re.sub("#.*\n", "\n", clean)
-    clean = re.sub("\"\"\".*?\"\"\"", "", clean)
-    clean = re.sub("\'\'\'.*?\'\'\'", "", clean)
+    clean = re.sub(r"#.*\n", "\n", clean)
+    clean = re.sub(r"\"\"\".*?\"\"\"", "", clean)
+    clean = re.sub(r"\'\'\'.*?\'\'\'", "", clean)
     return clean
 
 
