@@ -85,6 +85,8 @@ def get_model_input(modelpoint_module, model_module, settings):
         if policy_id_column not in modelpoint.data.columns:
             raise CashflowModelError(f"\nThere is no column '{policy_id_column}' in modelpoint '{name}'.")
 
+        modelpoint.data[policy_id_column] = modelpoint.data[policy_id_column].astype(str)
+
     if policy is None:
         raise CashflowModelError("\nA model must have a modelpoint named 'policy'.")
 
