@@ -193,11 +193,11 @@ class ModelVariable:
         if not self.scalar:
             if not (len(params) == 1 and "t" in params.keys()):
                 raise CashflowModelError(f"\nModel variable formula must have only one parameter: 't'. "
-                                         f"Please check code for {new_formula.__name__}.")
+                                         f"Please check code for '{new_formula.__name__}'.")
         else:
             if not (len(params) == 0):
-                raise CashflowModelError(f"\nFormula for scalar model variable can't have any parameters."
-                                         f"Please check code for {new_formula.__name__}.")
+                raise CashflowModelError(f"\nFormula for scalar model variable can't have any parameters. "
+                                         f"Please check code for '{new_formula.__name__}'.")
 
         formula_source = inspect.getsource(new_formula)
         clean = utils.clean_formula_source(formula_source)
