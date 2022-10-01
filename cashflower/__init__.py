@@ -226,7 +226,7 @@ class ModelVariable:
                 else:
                     for t in range(t_calculation_max+1):
                         self.result[r][t] = self.formula(t)
-            else:  # dcalars are t-independent
+            else:  # scalars are t-independent
                 value = self.formula()
                 self.result[r] = [value] * (t_calculation_max + 1)
 
