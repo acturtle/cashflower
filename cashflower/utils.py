@@ -17,7 +17,7 @@ def get_cell(df, column, **kwargs):
 
     Returns
     -------
-    scalar
+    time_dep
     """
     for key, val in kwargs.items():
         df = df[df[key] == val]
