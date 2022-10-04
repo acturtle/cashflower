@@ -120,8 +120,10 @@ class ModelVariable:
     modelpoint : ModelPoint object
         Model point to which the variable is linked.
         User sets it directly in the model script, otherwise it is set to the first modelpoint in get_model_input().
-    recalc : bool
+    pol_dep : bool
         Should the variable be calculated for each policyholder or only once?
+    time_dep : bool
+        If true then the variable is independent from time
     assigned_formula : function
         Function attached using the @assign decorator.
     _formula : function
@@ -143,11 +145,12 @@ class ModelVariable:
     """
     instances = []
 
-    def __init__(self, name=None, modelpoint=None, recalc=True):
+    def __init__(self, name=None, modelpoint=None, pol_dep=True, time_dep=True):
         self.__class__.instances.append(self)
         self.name = name
         self.modelpoint = modelpoint
-        self.recalc = recalc
+        self.pol_dep = pol_dep
+        self.time_dep = time_dep
         self.assigned_formula = None
         self._formula = None
         self.recursive = None
@@ -187,9 +190,14 @@ class ModelVariable:
     def formula(self, new_formula):
         params = inspect.signature(new_formula).parameters
 
-        if not (len(params) == 1 and "t" in params.keys()):
-            raise CashflowModelError(f"\nModel variable formula must have only one parameter: 't'. "
-                                     f"Please check code for {new_formula.__name__}.")
+        if self.time_dep:
+            if not (len(params) == 1 and "t" in params.keys()):
+                raise CashflowModelError(f"\nModel variable formula must have only one parameter: 't'. "
+                                         f"Please check code for '{new_formula.__name__}'.")
+        else:
+            if not (len(params) == 0):
+                raise CashflowModelError(f"\nFormula for time_dep model variable can't have any parameters. "
+                                         f"Please check code for '{new_formula.__name__}'.")
 
         formula_source = inspect.getsource(new_formula)
         clean = utils.clean_formula_source(formula_source)
@@ -197,7 +205,7 @@ class ModelVariable:
         self._formula = new_formula
 
     def clear(self):
-        if self.recalc:
+        if self.pol_dep:
             self.formula.cache_clear()
 
     def calculate(self):
@@ -209,14 +217,18 @@ class ModelVariable:
             self.modelpoint.record_num = r
             self.clear()
 
-            if self.recursive == "not_recursive":
-                self.result[r] = list(map(self.formula, range(t_calculation_max+1)))
-            elif self.recursive == "backward":
-                for t in range(t_calculation_max, -1, -1):
-                    self.result[r][t] = self.formula(t)
+            if self.time_dep:
+                if self.recursive == "not_recursive":
+                    self.result[r] = list(map(self.formula, range(t_calculation_max+1)))
+                elif self.recursive == "backward":
+                    for t in range(t_calculation_max, -1, -1):
+                        self.result[r][t] = self.formula(t)
+                else:
+                    for t in range(t_calculation_max+1):
+                        self.result[r][t] = self.formula(t)
             else:
-                for t in range(t_calculation_max+1):
-                    self.result[r][t] = self.formula(t)
+                value = self.formula()
+                self.result[r] = [value] * (t_calculation_max + 1)
 
         end = time.time()
         self.runtime += end - start
