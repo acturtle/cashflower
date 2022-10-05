@@ -168,7 +168,7 @@ class ModelVariable:
     def __lt__(self, other):
         return len(self.grandchildren) < len(other.grandchildren)
 
-    def __call__(self, t, r=None):
+    def __call__(self, t=0, r=None):
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
         if t < 0 or t > t_calculation_max:
             return 0
