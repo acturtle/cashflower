@@ -41,7 +41,7 @@ assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv")
 
 ## Model
 
-wol/policy.py
+wol/model.py
 ```python
 age = ModelVariable(modelpoint=policy)
 death_prob = ModelVariable(modelpoint=policy)
