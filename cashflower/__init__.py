@@ -5,6 +5,7 @@ import inspect
 import os
 import time
 import pandas as pd
+import sys
 
 from . import utils
 
@@ -29,6 +30,24 @@ def assign(var):
         var.assigned_formula = func
         return func
     return wrapper
+
+
+def updt(total, progress):
+    """
+    Displays or updates a console progress bar.
+
+    Original source: https://stackoverflow.com/a/15860757/1391441
+    """
+    barLength, status = 20, ""
+    progress = float(progress) / float(total)
+    if progress >= 1.:
+        progress, status = 1, "\r\n"
+    block = int(round(barLength * progress))
+    text = "\r[{}] {:.0f}% {}".format(
+        "#" * block + "-" * (barLength - block), round(progress * 100, 0),
+        status)
+    sys.stdout.write(text)
+    sys.stdout.flush()
 
 
 class CashflowModelError(Exception):
@@ -359,8 +378,11 @@ class Model:
         policy_id_column = self.settings["POLICY_ID_COLUMN"]
         primary = self.get_modelpoint("policy")
 
+        n_pols = len(primary)
+        utils.print_log(f"Number of policies: {n_pols}")
+
         policy_outputs = []
-        for row in range(len(primary)):
+        for row in range(n_pols):
             policy_id = primary.data.iloc[row][policy_id_column]
 
             for modelpoint in self.modelpoints:
@@ -369,7 +391,9 @@ class Model:
             self.clear_variables()
             policy_output = self.calculate_one_policy()
             policy_outputs.append(policy_output)
+            updt(n_pols, row + 1)
 
+        utils.print_log("Finished policy calculations. Starting preparation of results...")
         for modelpoint in self.modelpoints:
             if aggregate:
                 output[modelpoint.name] = sum(policy_output[modelpoint.name] for policy_output in policy_outputs)
@@ -394,8 +418,10 @@ class Model:
         if not os.path.exists("output"):
             os.makedirs("output")
 
+        utils.print_log("Saving files...")
         for modelpoint in self.modelpoints:
             filepath = f"output/{timestamp}_{modelpoint.name}.csv"
+            utils.print_log(f"{filepath}")
 
             mp_output = self.output.get(modelpoint.name)
             if user_chose_columns:
