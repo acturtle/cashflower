@@ -168,7 +168,7 @@ class ModelVariable:
     def __lt__(self, other):
         return len(self.grandchildren) < len(other.grandchildren)
 
-    def __call__(self, t, r=None):
+    def __call__(self, t=0, r=None):
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
         if t < 0 or t > t_calculation_max:
             return 0
@@ -336,11 +336,14 @@ class Model:
         t_output_max = min(self.settings["T_OUTPUT_MAX"], self.settings["T_CALCULATION_MAX"])
 
         for var in self.queue:
-            var.calculate()
-            if aggregate:
-                policy_output[var.modelpoint.name][var.name] = utils.aggregate(var.result, n=t_output_max + 1)
-            else:
-                policy_output[var.modelpoint.name][var.name] = utils.flatten(var.result, n=t_output_max + 1)
+            try:
+                var.calculate()
+                if aggregate:
+                    policy_output[var.modelpoint.name][var.name] = utils.aggregate(var.result, n=t_output_max + 1)
+                else:
+                    policy_output[var.modelpoint.name][var.name] = utils.flatten(var.result, n=t_output_max + 1)
+            except:
+                raise CashflowModelError(f"Unable to evaluate variable {var.name}.")
 
         if not aggregate:
             for modelpoint in self.modelpoints:
