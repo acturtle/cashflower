@@ -228,7 +228,6 @@ class ModelVariable:
             self.formula.cache_clear()
 
     def calculate(self):
-        start = time.time()
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
         self.result = [[None] * (t_calculation_max+1) for _ in range(self.modelpoint.size)]
 
@@ -248,9 +247,6 @@ class ModelVariable:
             else:
                 value = self.formula()
                 self.result[r] = [value] * (t_calculation_max + 1)
-
-        end = time.time()
-        self.runtime += end - start
 
 
 class Model:
@@ -355,6 +351,7 @@ class Model:
         t_output_max = min(self.settings["T_OUTPUT_MAX"], self.settings["T_CALCULATION_MAX"])
 
         for var in self.queue:
+            start = time.time()
             try:
                 var.calculate()
                 if aggregate:
@@ -363,6 +360,8 @@ class Model:
                     policy_output[var.modelpoint.name][var.name] = utils.flatten(var.result, n=t_output_max + 1)
             except:
                 raise CashflowModelError(f"Unable to evaluate variable {var.name}.")
+            end = time.time()
+            var.runtime += end - start
 
         if not aggregate:
             for modelpoint in self.modelpoints:
@@ -393,7 +392,7 @@ class Model:
             policy_outputs.append(policy_output)
             updt(n_pols, row + 1)
 
-        utils.print_log("Finished policy calculations. Starting preparation of results...")
+        utils.print_log("Preparing results")
         for modelpoint in self.modelpoints:
             if aggregate:
                 output[modelpoint.name] = sum(policy_output[modelpoint.name] for policy_output in policy_outputs)
@@ -404,6 +403,7 @@ class Model:
         self.output = output
 
     def run(self):
+        start = time.time()
         utils.print_log("Run started")
         output_columns = self.settings["OUTPUT_COLUMNS"]
         user_chose_columns = len(output_columns) > 0
@@ -418,10 +418,10 @@ class Model:
         if not os.path.exists("output"):
             os.makedirs("output")
 
-        utils.print_log("Saving files...")
+        utils.print_log("Saving files:")
         for modelpoint in self.modelpoints:
             filepath = f"output/{timestamp}_{modelpoint.name}.csv"
-            utils.print_log(f"{filepath}")
+            print(f"           {filepath}")
 
             mp_output = self.output.get(modelpoint.name)
             if user_chose_columns:
@@ -436,5 +436,7 @@ class Model:
             data = [(var.name, var.runtime) for var in self.variables]
             runtime = pd.DataFrame(data, columns=["variable", "runtime"])
             runtime.to_csv(f"output/{timestamp}_runtime.csv", index=False)
+            print(f"           output/{timestamp}_runtime.csv")
 
-        utils.print_log("Run finished")
+        end = time.time()
+        utils.print_log(f"Finished. Elapsed time: {round(end-start, 2)} seconds.")
