@@ -132,5 +132,5 @@ def start(model_name, settings):
     modelpoint_module = importlib.import_module(model_name + ".modelpoint")
     model_module = importlib.import_module(model_name + ".model")
     variables, modelpoints = get_model_input(modelpoint_module, model_module, settings)
-    model = Model(variables, modelpoints, settings)
+    model = Model(model_name, variables, modelpoints, settings)
     model.run()
