@@ -257,6 +257,8 @@ class Model:
 
     Attributes
     ----------
+    name : str
+        Model's name
     variables : list
         List of model variables objects.
     modelpoints : list
@@ -270,7 +272,8 @@ class Model:
     output : dict
         Dict with key = modelpoints, values = data frames (columns for model variables).
     """
-    def __init__(self, variables, modelpoints, settings):
+    def __init__(self, name, variables, modelpoints, settings):
+        self.name = name
         self.variables = variables
         self.modelpoints = modelpoints
         self.settings = settings
@@ -404,7 +407,7 @@ class Model:
 
     def run(self):
         start = time.time()
-        utils.print_log("Run started")
+        utils.print_log(f"Start run for model '{self.name}'")
         output_columns = self.settings["OUTPUT_COLUMNS"]
         user_chose_columns = len(output_columns) > 0
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
