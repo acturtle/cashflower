@@ -73,25 +73,19 @@ def replace_in_file(_file, _from, _to):
         file.write(filedata)
 
 
-def flatten(lst, n=None):
+def flatten(lst):
     """Flatten a list of sublists.
 
     Parameters
     ----------
     lst : list
         List of sublists.
-    n : int
-        Optional number of elements to take from each of the sublists. All if not set.
 
     Returns
     -------
     list
     """
     flat_list = []
-
-    if n is not None:
-        lst = [sublist[:n] for sublist in lst]
-
     for sublist in lst:
         for item in sublist:
             flat_list.append(item)
@@ -99,25 +93,19 @@ def flatten(lst, n=None):
     return flat_list
 
 
-def aggregate(lst, n=None):
+def aggregate(lst):
     """Sums each n-th element of sublists.
 
     Parameters
     ----------
     lst : list
         List of subslists.
-    n : int
-        Optional number of elements to take from each of the sublists. All if not set.
 
     Returns
     -------
     list
     """
-    if n is not None:
-        lst = [sublist[:n] for sublist in lst]
-
-    aggregated_list = [sum(i) for i in zip(*lst)]
-    return aggregated_list
+    return [sum(i) for i in zip(*lst)]
 
 
 def repeated_numbers(m, n):

@@ -110,9 +110,12 @@ class ModelPoint:
 
     @policy_id.setter
     def policy_id(self, new_policy_id):
-        policy_id_column = self.settings["POLICY_ID_COLUMN"]
         self._policy_id = new_policy_id
-        self.policy_data = self.data[self.data[policy_id_column] == new_policy_id]
+
+        if new_policy_id not in self.data.index:
+            raise CashflowModelError(f"There is no policy id '{new_policy_id}' in modelpoint '{self.name}'.")
+
+        self.policy_data = self.data.loc[new_policy_id]
         self.size = self.policy_data.shape[0]
         if self.size > 0:
             self.record_num = 0
@@ -351,16 +354,22 @@ class Model:
     def calculate_one_policy(self):
         policy_output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
-        t_output_max = min(self.settings["T_OUTPUT_MAX"], self.settings["T_CALCULATION_MAX"])
+        t_calculation_max = self.settings["T_CALCULATION_MAX"]
+        t_output_max = min(self.settings["T_OUTPUT_MAX"], t_calculation_max)
 
         for var in self.queue:
             start = time.time()
             try:
+                # start = time.time()
                 var.calculate()
-                if aggregate:
-                    policy_output[var.modelpoint.name][var.name] = utils.aggregate(var.result, n=t_output_max + 1)
+                # end = time.time()
+                if var.modelpoint.size == 1:
+                    policy_output[var.modelpoint.name][var.name] = var.result[0]
+                elif aggregate:
+                    policy_output[var.modelpoint.name][var.name] = utils.aggregate(var.result)
                 else:
-                    policy_output[var.modelpoint.name][var.name] = utils.flatten(var.result, n=t_output_max + 1)
+                    policy_output[var.modelpoint.name][var.name] = utils.flatten(var.result)
+
             except:
                 raise CashflowModelError(f"Unable to evaluate variable {var.name}.")
             end = time.time()
@@ -368,8 +377,8 @@ class Model:
 
         if not aggregate:
             for modelpoint in self.modelpoints:
-                policy_output[modelpoint.name]["t"] = list(range(t_output_max + 1)) * modelpoint.size
-                policy_output[modelpoint.name]["r"] = utils.repeated_numbers(modelpoint.size, t_output_max + 1)
+                policy_output[modelpoint.name]["t"] = list(range(t_calculation_max + 1)) * modelpoint.size
+                policy_output[modelpoint.name]["r"] = utils.repeated_numbers(modelpoint.size, t_calculation_max + 1)
 
         return policy_output
 
@@ -377,7 +386,6 @@ class Model:
         output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
         t_output_max = min(self.settings["T_OUTPUT_MAX"], self.settings["T_CALCULATION_MAX"])
-        policy_id_column = self.settings["POLICY_ID_COLUMN"]
         primary = self.get_modelpoint("policy")
 
         n_pols = len(primary)
@@ -385,7 +393,7 @@ class Model:
 
         policy_outputs = []
         for row in range(n_pols):
-            policy_id = primary.data.iloc[row][policy_id_column]
+            policy_id = primary.data.index[row]
 
             for modelpoint in self.modelpoints:
                 modelpoint.policy_id = policy_id
@@ -398,10 +406,10 @@ class Model:
         utils.print_log("Preparing results")
         for modelpoint in self.modelpoints:
             if aggregate:
-                output[modelpoint.name] = sum(policy_output[modelpoint.name] for policy_output in policy_outputs)
+                output[modelpoint.name] = sum(policy_output[modelpoint.name][:t_output_max+1] for policy_output in policy_outputs)
                 output[modelpoint.name]["t"] = list(range(t_output_max+1))
             else:
-                output[modelpoint.name] = pd.concat(policy_output[modelpoint.name] for policy_output in policy_outputs)
+                output[modelpoint.name] = pd.concat(policy_output[modelpoint.name][:t_output_max+1] for policy_output in policy_outputs)
 
         self.output = output
 
@@ -424,7 +432,7 @@ class Model:
         utils.print_log("Saving files:")
         for modelpoint in self.modelpoints:
             filepath = f"output/{timestamp}_{modelpoint.name}.csv"
-            print(f"           {filepath}")
+            print(f"{' '*10} {filepath}")
 
             mp_output = self.output.get(modelpoint.name)
             if user_chose_columns:
@@ -439,7 +447,7 @@ class Model:
             data = [(var.name, var.runtime) for var in self.variables]
             runtime = pd.DataFrame(data, columns=["variable", "runtime"])
             runtime.to_csv(f"output/{timestamp}_runtime.csv", index=False)
-            print(f"           output/{timestamp}_runtime.csv")
+            print(f"{' '*10} output/{timestamp}_runtime.csv")
 
         end = time.time()
         utils.print_log(f"Finished. Elapsed time: {round(end-start, 2)} seconds.")
