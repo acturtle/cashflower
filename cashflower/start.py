@@ -79,19 +79,26 @@ def get_model_input(modelpoint_module, model_module, settings):
         modelpoint.settings = settings
         modelpoints.append(modelpoint)
 
-        if name == "policy":
-            policy = modelpoint
-
         if policy_id_column not in modelpoint.data.columns:
             raise CashflowModelError(f"\nThere is no column '{policy_id_column}' in modelpoint '{name}'.")
 
+        if name == "policy":
+            policy = modelpoint
+            if not policy.data[policy_id_column].is_unique:
+                raise CashflowModelError(
+                    f"\nThe 'policy' modelpoint must have unique values in '{policy_id_column}' column.")
+
+        # String ensures compatiblity of values
         modelpoint.data[policy_id_column] = modelpoint.data[policy_id_column].astype(str)
+
+        # User might want to use policy id in calculation
+        modelpoint.data[policy_id_column + "_duplicate"] = modelpoint.data[policy_id_column]
+        modelpoint.data = modelpoint.data.set_index(policy_id_column)
+        modelpoint.data[policy_id_column] = modelpoint.data[policy_id_column + "_duplicate"]
+        modelpoint.data = modelpoint.data.drop(columns=[policy_id_column + "_duplicate"])
 
     if policy is None:
         raise CashflowModelError("\nA model must have a modelpoint named 'policy'.")
-
-    if not policy.data[policy_id_column].is_unique:
-        raise CashflowModelError(f"\nThe 'policy' modelpoint must have unique values in '{policy_id_column}' column.")
 
     # Gather model variables
     model_members = inspect.getmembers(model_module)
