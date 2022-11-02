@@ -1,7 +1,6 @@
 from cashflower import assign, ModelVariable
 
-from {{ model }}.assumption import assumption
-from {{ model }}.modelpoint import policy
+from {{ model }}.input import assumption, policy, runplan
 
 
 projection_year = ModelVariable(modelpoint=policy)

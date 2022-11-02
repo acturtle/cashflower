@@ -54,22 +54,29 @@ class CashflowModelError(Exception):
     pass
 
 
-class RunPlan:
-    def __init__(self, data=None, version=1):
+class Runplan:
+    def __init__(self, data=None, version="1"):
         self.data = data
         self.version = version
         self.set_empty_data()
+        self.set_version()
+        self.set_index()
 
     def set_empty_data(self):
         if self.data is None:
-            self.data = pd.DataFrame({"version": 1})
+            self.data = pd.DataFrame({"version": "1"})
+
+    def set_version(self):
+        if "version" not in self.data.columns:
+            raise CashflowModelError("Runplan must have the 'version' column.")
+        else:
+            self.data["version"] = self.data["version"].astype(str)
 
     def set_index(self):
-        pass
+        self.data = self.data.set_index("version")
 
     def get(self, attribute):
-        pass
-        # return self.policy_record[attribute].values[0]
+        return self.data.loc[self.version][attribute]
 
 
 class ModelPoint:

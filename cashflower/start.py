@@ -2,7 +2,7 @@ import importlib
 import inspect
 
 
-from . import CashflowModelError, ModelVariable, ModelPoint, Model
+from . import CashflowModelError, Runplan, ModelVariable, ModelPoint, Model
 
 
 def load_settings(settings=None):
@@ -40,7 +40,7 @@ def load_settings(settings=None):
     return initial_settings
 
 
-def get_model_input(modelpoint_module, model_module, settings):
+def get_model_input(input_module, model_module, settings):
     """Prepare input for model.
 
     Gathers all model points and model variable instances.
@@ -54,7 +54,7 @@ def get_model_input(modelpoint_module, model_module, settings):
 
     Parameters
     ----------
-    modelpoint_module : module
+    input_module : module
         Module where user defines model points.
     model_module : module
         Module where user defines model variables.
@@ -68,9 +68,17 @@ def get_model_input(modelpoint_module, model_module, settings):
     """
     policy_id_column = settings["POLICY_ID_COLUMN"]
 
+    input_members = inspect.getmembers(input_module)
+
+    # Gather runplan
+    runplan = None
+    for name, item in input_members:
+        if isinstance(item, Runplan):
+            runplan = item
+            break
+
     # Gather model points
-    modelpoint_members = inspect.getmembers(modelpoint_module)
-    modelpoint_members = [m for m in modelpoint_members if isinstance(m[1], ModelPoint)]
+    modelpoint_members = [m for m in input_members if isinstance(m[1], ModelPoint)]
 
     policy = None
     modelpoints = []
@@ -78,13 +86,10 @@ def get_model_input(modelpoint_module, model_module, settings):
         modelpoint.name = name
         modelpoint.settings = settings
         modelpoints.append(modelpoint)
-
         if name == "policy":
             policy = modelpoint
-
         if policy_id_column not in modelpoint.data.columns:
             raise CashflowModelError(f"\nThere is no column '{policy_id_column}' in modelpoint '{name}'.")
-
         modelpoint.data[policy_id_column] = modelpoint.data[policy_id_column].astype(str)
 
     if policy is None:
@@ -108,7 +113,6 @@ def get_model_input(modelpoint_module, model_module, settings):
         variable.name = name
         variable.settings = settings
         variable.formula = variable.assigned_formula
-
         variables.append(variable)
 
     # Ensure that model variables are not overwritten by formulas with the same name
@@ -121,16 +125,18 @@ def get_model_input(modelpoint_module, model_module, settings):
 
         names = [item.assigned_formula.__name__ for item in overwritten]
         names_str = ", ".join(names)
-        raise CashflowModelError(f"\nThe variables with the following formulas are not correctly handled in the model:"
-                                 f"\n{names_str}")
+        msg = f"\nThe variables with the following formulas are not correctly handled in the model: \n{names_str}"
+        raise CashflowModelError(msg)
 
-    return variables, modelpoints
+    return runplan, modelpoints, variables
 
 
-def start(model_name, settings):
+def start(model_name, settings, argv):
     settings = load_settings(settings)
-    modelpoint_module = importlib.import_module(model_name + ".modelpoint")
+    input_module = importlib.import_module(model_name + ".input")
     model_module = importlib.import_module(model_name + ".model")
-    variables, modelpoints = get_model_input(modelpoint_module, model_module, settings)
+    runplan, modelpoints, variables = get_model_input(input_module, model_module, settings)
+    if runplan is not None and len(argv) > 1:
+        runplan.version = argv[1]
     model = Model(model_name, variables, modelpoints, settings)
     model.run()
