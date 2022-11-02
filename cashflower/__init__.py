@@ -54,6 +54,24 @@ class CashflowModelError(Exception):
     pass
 
 
+class RunPlan:
+    def __init__(self, data=None, version=1):
+        self.data = data
+        self.version = version
+        self.set_empty_data()
+
+    def set_empty_data(self):
+        if self.data is None:
+            self.data = pd.DataFrame({"version": 1})
+
+    def set_index(self):
+        pass
+
+    def get(self, attribute):
+        pass
+        # return self.policy_record[attribute].values[0]
+
+
 class ModelPoint:
     """Policyholders' data.
 
