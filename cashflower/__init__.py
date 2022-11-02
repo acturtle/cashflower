@@ -355,21 +355,17 @@ class Model:
         policy_output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
-        t_output_max = min(self.settings["T_OUTPUT_MAX"], t_calculation_max)
 
         for var in self.queue:
             start = time.time()
             try:
-                # start = time.time()
                 var.calculate()
-                # end = time.time()
                 if var.modelpoint.size == 1:
                     policy_output[var.modelpoint.name][var.name] = var.result[0]
                 elif aggregate:
                     policy_output[var.modelpoint.name][var.name] = utils.aggregate(var.result)
                 else:
                     policy_output[var.modelpoint.name][var.name] = utils.flatten(var.result)
-
             except:
                 raise CashflowModelError(f"Unable to evaluate variable {var.name}.")
             end = time.time()
