@@ -73,7 +73,7 @@ def replace_in_file(_file, _from, _to):
         file.write(filedata)
 
 
-def flatten(lst):
+def flatten(lst, n=None):
     """Flatten a list of sublists.
 
     Parameters
@@ -85,10 +85,13 @@ def flatten(lst):
     -------
     list
     """
+    if n is not None:
+        lst = [sublist[:n] for sublist in lst]
+
     return sum(lst, [])
 
 
-def aggregate(lst):
+def aggregate(lst, n=None):
     """Sums each n-th element of sublists.
 
     Parameters
@@ -100,6 +103,9 @@ def aggregate(lst):
     -------
     list
     """
+    if n is not None:
+        lst = [sublist[:n] for sublist in lst]
+
     return [sum(i) for i in zip(*lst)]
 
 
