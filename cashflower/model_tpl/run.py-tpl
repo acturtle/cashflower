@@ -1,6 +1,8 @@
+import sys
+
 from cashflower.start import start
 from {{ model }}.settings import settings
 
 
 if __name__ == "__main__":
-    start("{{ model }}", settings)
+    start("{{ model }}", settings, sys.argv)

@@ -26,14 +26,10 @@ create_model("wol")
 
 ## Input
 
-wol/modelpoint.py
+wol/input.py
 ```python
 policy = ModelPoint(data=pd.read_csv("C:/my_data/policy.csv"))
-```
 
-
-wol/assumptions.py
-```python
 assumption = dict()
 assumption["interest_rates"] = pd.read_csv("C:/my_data/interest_rates.csv")
 assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv")
