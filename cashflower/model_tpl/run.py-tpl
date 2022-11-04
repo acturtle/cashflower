@@ -1,6 +1,6 @@
 import sys
 
-from cashflower.start import start
+from cashflower import start
 from {{ model }}.settings import settings
 
 
