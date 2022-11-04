@@ -19,7 +19,7 @@ pip install cashflower
 
 python console
 ```python
-from cashflower.admin import create_model
+from cashflower import create_model
 
 create_model("wol")
 ```
@@ -32,7 +32,7 @@ policy = ModelPoint(data=pd.read_csv("C:/my_data/policy.csv"))
 
 assumption = dict()
 assumption["interest_rates"] = pd.read_csv("C:/my_data/interest_rates.csv")
-assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv")
+assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv", index_col="age")
 ```
 
 ## Model
@@ -58,7 +58,7 @@ def death_prob_formula(t):
         return death_prob(t-1) 
     elif age(t) <= 100:
         sex = policy.get("SEX")
-        yearly_rate = float(get_cell(assumption["mortality"], sex, AGE=age(t)))
+        yearly_rate = assumption["mortality"].loc[age(t)][sex]
         monthly_rate = (1 - (1 - yearly_rate)**(1/12))
         return monthly_rate
     else:
