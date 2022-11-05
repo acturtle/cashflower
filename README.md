@@ -71,6 +71,8 @@ Run `run.py`
 
 # Quick start
 
+Watch how to create a cash flow model on a YouTube video: 
+
 [![YouTube screenshot](https://img.youtube.com/vi/xuZaymWsUzw/0.jpg)](https://www.youtube.com/watch?v=xuZaymWsUzw)
 
 # Contribution
