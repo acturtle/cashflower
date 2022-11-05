@@ -69,6 +69,10 @@ def death_prob_formula(t):
 
 Run `run.py`
 
+# Quick start
+
+[![YouTube screenshot](https://img.youtube.com/vi/xuZaymWsUzw/0.jpg)](https://www.youtube.com/watch?v=xuZaymWsUzw)
+
 # Contribution
 
 The cashflower package is open-source. Everyone can use it and contribute to its development.
