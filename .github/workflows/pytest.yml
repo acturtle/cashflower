@@ -1,6 +1,9 @@
 name: pytest
 
-on: [push]
+on:
+  push:
+    branches:
+    - main
 
 jobs:
   lint-and-test:
