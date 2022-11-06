@@ -1,7 +1,6 @@
 from unittest import TestCase
 
-from cashflower import *
-from cashflower.start import load_settings
+from cashflower.cashflow import assign, ModelVariable, Model
 
 
 class TestAssign(TestCase):
