@@ -8,12 +8,6 @@ from unittest import TestCase
 from cashflower.utils import *
 
 
-class TestGetCell(TestCase):
-    def test_get_cell(self):
-        df = pd.DataFrame(np.arange(9).reshape((3, 3)), columns=list('abc'))
-        assert get_cell(df, column="b", a=3) == 4
-
-
 class TestUniqueAppend(TestCase):
     def test_unique_append(self):
         lst = [1, 2, 3]

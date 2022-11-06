@@ -248,3 +248,4 @@ def print_log(msg):
     """
     now = datetime.now()
     print(now.strftime("%H:%M:%S") + " | " + msg)
+
