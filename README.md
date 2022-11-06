@@ -1,3 +1,5 @@
+![status](https://github.com/acturtle/cashflower/actions/workflows/pytest.yml/badge.svg)
+
 # Info
 
 Cashflower is an open-source Python framework for actuarial cash flow models.
