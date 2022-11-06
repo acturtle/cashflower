@@ -176,7 +176,7 @@ class ModelPoint:
         if new_policy_id not in self.data.index:
             raise CashflowModelError(f"There is no policy id '{new_policy_id}' in modelpoint '{self.name}'.")
 
-        self.policy_data = self.data.loc[new_policy_id]
+        self.policy_data = self.data.loc[[new_policy_id]]
         self.size = self.policy_data.shape[0]
         self.record_num = 0
 

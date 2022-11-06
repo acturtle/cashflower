@@ -69,6 +69,12 @@ def death_prob_formula(t):
 
 Run `run.py`
 
+# Quick start
+
+Watch how to create a cash flow model on a YouTube video: 
+
+[![YouTube screenshot](https://img.youtube.com/vi/xuZaymWsUzw/0.jpg)](https://www.youtube.com/watch?v=xuZaymWsUzw)
+
 # Contribution
 
 The cashflower package is open-source. Everyone can use it and contribute to its development.
