@@ -25,4 +25,4 @@ jobs:
 
     - name: Automated tests
       run: |
-        pytest
+        python -m pytest
