@@ -1,4 +1,4 @@
-[![codecov](https://codecov.io/github/acturtle/cashflower/branch/develop/graph/badge.svg?token=1VA8Q65RUW)](https://codecov.io/github/acturtle/cashflower)
+[![codecov](https://codecov.io/gh/acturtle/cashflower/branch/develop/graph/badge.svg?token=1VA8Q65RUW)](https://codecov.io/gh/acturtle/cashflower)
 
 # Info
 
