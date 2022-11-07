@@ -24,9 +24,9 @@ jobs:
         python -m pip install -r requirements.txt
         python -m pip install -e .
 
-    - name: Automated tests
-      run: |
-        python -m pytest
+#    - name: Automated tests
+#      run: |
+#        python -m pytest
 
     - name: Generate coverage report
       run: |

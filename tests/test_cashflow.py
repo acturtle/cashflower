@@ -6,7 +6,6 @@ from cashflower.cashflow import assign, ModelVariable, Model
 class TestAssign(TestCase):
     def test_assign(self):
         my_var = ModelVariable()
-
         assert my_var.assigned_formula is None
 
         @assign(my_var)
@@ -14,6 +13,7 @@ class TestAssign(TestCase):
             return t
 
         assert my_var.assigned_formula == my_func
+        assert 1 == 2
 
 
 class TestModelVariable(TestCase):
