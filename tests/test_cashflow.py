@@ -13,7 +13,6 @@ class TestAssign(TestCase):
             return t
 
         assert my_var.assigned_formula == my_func
-        assert 1 == 2
 
 
 class TestModelVariable(TestCase):
