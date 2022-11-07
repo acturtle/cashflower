@@ -1,6 +1,8 @@
+import pandas as pd
+
 from unittest import TestCase
 
-from cashflower.cashflow import assign, ModelVariable, Model
+from cashflower.cashflow import *
 
 
 class TestAssign(TestCase):
@@ -13,6 +15,20 @@ class TestAssign(TestCase):
             return t
 
         assert my_var.assigned_formula == my_func
+
+
+class TestUpdt(TestCase):
+    def test_updt(self):
+        assert updt(100, 20) is None
+        assert updt(100, 110) is None
+
+
+class TestRunplan(TestCase):
+    def test_runplan(self):
+        runplan = Runplan(data=pd.DataFrame({
+            "version": [1, 2],
+            "value": [57, 89]
+        }))
 
 
 class TestModelVariable(TestCase):
