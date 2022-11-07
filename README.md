@@ -1,4 +1,4 @@
-![status](https://github.com/acturtle/cashflower/actions/workflows/pytest.yml/badge.svg)
+[![codecov](https://codecov.io/gh/acturtle/cashflower/branch/develop/graph/badge.svg?token=1VA8Q65RUW)](https://codecov.io/gh/acturtle/cashflower)
 
 # Info
 
