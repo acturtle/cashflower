@@ -1,0 +1,3 @@
+[run]
+include = ./cashflower/*
+omit    = ./tests/*
