@@ -1,4 +1,4 @@
-name: pytest
+name: Code Coverage
 
 on: [push]
 
@@ -27,7 +27,7 @@ jobs:
     - name: Generate coverage report
       run: |
         python -m pip install pytest-cov
-        pytest --cov=./ --cov-report=xml
+        pytest --cov
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
