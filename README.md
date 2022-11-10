@@ -1,3 +1,4 @@
+[![PyPI Latest Release](https://img.shields.io/pypi/v/cashflower.svg)](https://pypi.org/project/cashflower/)
 [![codecov](https://codecov.io/gh/acturtle/cashflower/branch/develop/graph/badge.svg?token=1VA8Q65RUW)](https://codecov.io/gh/acturtle/cashflower)
 
 # Info
