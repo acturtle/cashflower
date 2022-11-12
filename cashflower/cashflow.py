@@ -69,7 +69,7 @@ class Runplan:
     def set_empty_data(self):
         """Set minimal runplan if not provided by the user."""
         if self.data is None:
-            self.data = pd.DataFrame({"version": "1"})
+            self.data = pd.DataFrame({"version": ["1"]})
 
     def set_version_as_str(self):
         """Ensure that the 'version' column is a string."""
@@ -127,11 +127,11 @@ class ModelPoint:
 
     instances = []
 
-    def __init__(self, data):
+    def __init__(self, data, name=None, settings=None):
         self.__class__.instances.append(self)
         self.data = data
-        self.name = None
-        self.settings = None
+        self.name = name
+        self.settings = settings
         self._policy_id = None
         self._record_num = None
         self.policy_data = None
@@ -194,6 +194,34 @@ class ModelPoint:
         self._record_num = new_record_num
         self.policy_record = self.policy_data.iloc[[new_record_num]]
 
+    def initialize(self):
+        self.check_policy_id_col()
+        self.check_unique_keys()
+        self.set_index()
+        self.policy_id = self.data.iloc[0][self.settings["POLICY_ID_COLUMN"]]
+
+    def check_policy_id_col(self):
+        policy_id_column = self.settings["POLICY_ID_COLUMN"]
+        if policy_id_column not in self.data.columns:
+            raise CashflowModelError(f"\nThere is no column '{policy_id_column}' in modelpoint '{self.name}'.")
+        return True
+
+    def check_unique_keys(self):
+        policy_id_column = self.settings["POLICY_ID_COLUMN"]
+        if self.name == "policy":
+            if not self.data[policy_id_column].is_unique:
+                msg = f"\nThe 'policy' modelpoint must have unique values in '{policy_id_column}' column."
+                raise CashflowModelError(msg)
+        return True
+
+    def set_index(self):
+        policy_id_column = self.settings["POLICY_ID_COLUMN"]
+        self.data[policy_id_column] = self.data[policy_id_column].astype(str)
+        self.data[policy_id_column + "_duplicate"] = self.data[policy_id_column]
+        self.data = self.data.set_index(policy_id_column)
+        self.data[policy_id_column] = self.data[policy_id_column + "_duplicate"]
+        self.data = self.data.drop(columns=[policy_id_column + "_duplicate"])
+
 
 class ModelVariable:
     """Model variable of a cash flow model.
@@ -233,16 +261,16 @@ class ModelVariable:
     """
     instances = []
 
-    def __init__(self, name=None, modelpoint=None, pol_dep=True, time_dep=True):
+    def __init__(self, name=None, modelpoint=None, settings=None, pol_dep=True, time_dep=True):
         self.__class__.instances.append(self)
         self.name = name
         self.modelpoint = modelpoint
+        self.settings = settings
         self.pol_dep = pol_dep
         self.time_dep = time_dep
         self.assigned_formula = None
         self._formula = None
         self.recursive = None
-        self.settings = None
         self.result = None
         self.runtime = 0
         self.children = []
@@ -264,9 +292,6 @@ class ModelVariable:
         # User might call lower order variable from higher order variable and specify record (r)
         if r is not None:
             return self.result[r][t]
-
-        if self.modelpoint.size == 0:
-            return None
 
         return self.result[self.modelpoint.record_num][t]
 
@@ -329,6 +354,16 @@ class ModelVariable:
                 value = self.formula()
                 self.result[r] = [value] * (t_calculation_max + 1)
 
+    def initialize(self, policy=None):
+        if self.assigned_formula is None:
+            msg = f"\nThe '{self.name}' variable has no formula. Please check the 'model.py' script."
+            raise CashflowModelError(msg)
+
+        if self.modelpoint is None:
+            self.modelpoint = policy
+
+        self.formula = self.assigned_formula
+
 
 class Parameter:
     """Parameter of a cash flow model.
@@ -380,9 +415,6 @@ class Parameter:
         if r is not None:
             return self.result[r]
 
-        if self.modelpoint.size == 0:
-            return None
-
         return self.result[self.modelpoint.record_num]
 
     @property
@@ -413,6 +445,16 @@ class Parameter:
             self.modelpoint.record_num = r
             self.clear()
             self.result[r] = self.formula()
+
+    def initialize(self, policy=None):
+        if self.assigned_formula is None:
+            msg = f"\nThe '{self.name}' parameter has no formula. Please check the 'model.py' script."
+            raise CashflowModelError(msg)
+
+        if self.modelpoint is None:
+            self.modelpoint = policy
+
+        self.formula = self.assigned_formula
 
 
 class Model:
@@ -550,7 +592,7 @@ class Model:
         self.empty_output = empty_output
 
     def clear_components(self):
-        """Clear cash of all components. """
+        """Clear cache of all components."""
         for component in self.components:
             component.clear()
 
