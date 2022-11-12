@@ -320,30 +320,41 @@ class TestModel(TestCase):
         model.set_queue()
         assert model.queue == [c, b, a]
 
-    def test_set_empty_output(self):
+    def test_set_empty_output_when_aggregate(self):
         settings = load_settings()
 
         policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2, 3]}), name="policy")
         fund = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2, 2, 3]}), name="fund")
 
-        a = ModelVariable(name="a", modelpoint="policy")
-        b = Parameter(name="b", modelpoint="policy")
-        c = ModelVariable(name="c", modelpoint="fund")
+        a = ModelVariable(name="a", modelpoint=policy)
+        b = Parameter(name="b", modelpoint=policy)
+        c = ModelVariable(name="c", modelpoint=fund)
+
+        model = Model(None, [a, c], [b], [policy, fund], settings)
+        model.set_empty_output()
+
+        empty_output = {"policy": pd.DataFrame(columns=["t", "a"]), "fund": pd.DataFrame(columns=["t", "c"])}
+
+        assert_frame_equal(model.empty_output["policy"], empty_output["policy"])
+        assert_frame_equal(model.empty_output["fund"], empty_output["fund"])
+
+    def test_set_empty_output_when_individual(self):
+        settings = {"AGGREGATE": False}
+
+        policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2, 3]}), name="policy")
+        fund = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2, 2, 3]}), name="fund")
+
+        a = ModelVariable(name="a", modelpoint=policy)
+        b = Parameter(name="b", modelpoint=policy)
+        c = ModelVariable(name="c", modelpoint=fund)
 
         model = Model(None, [a, c], [b], [policy, fund], settings)
         model.set_empty_output()
 
         empty_output = {
-            "policy": pd.DataFrame({
-                "t": None,
-                "a": None,
-                "b": None
-            }),
-            "fund": pd.DataFrame(
-
-            ),
+            "policy": pd.DataFrame(columns=["t", "r", "a", "b"]),
+            "fund": pd.DataFrame(columns=["t", "r", "c"])
         }
 
-        df1 = pd.DataFrame({"a": [1]})
-        df2 = pd.DataFrame({"a": [3]})
-        assert_frame_equal(df1, df2)
+        assert_frame_equal(model.empty_output["policy"], empty_output["policy"])
+        assert_frame_equal(model.empty_output["fund"], empty_output["fund"])
