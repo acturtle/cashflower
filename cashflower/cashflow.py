@@ -665,6 +665,7 @@ class Model:
                 output[m.name] = pd.concat(policy_output[m.name] for policy_output in policy_outputs)
 
         self.output = output
+        return output
 
     def run(self):
         """Orchestrate all steps of the cash flow model run. """
@@ -705,3 +706,4 @@ class Model:
 
         end = time.time()
         utils.print_log(f"Finished. Elapsed time: {round(end-start, 2)} seconds.")
+        return timestamp

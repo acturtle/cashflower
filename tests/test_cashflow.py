@@ -1,4 +1,5 @@
 import pytest
+import shutil
 
 from pandas.testing import assert_frame_equal
 from unittest import TestCase
@@ -48,7 +49,6 @@ class TestModelPoint(TestCase):
             "policy_id": [1, 2, 3],
             "age": [52, 47, 35]
         }))
-        print(policy)
         assert len(policy) == 3
 
         policy.name = "policy"
@@ -358,3 +358,145 @@ class TestModel(TestCase):
 
         assert_frame_equal(model.empty_output["policy"], empty_output["policy"])
         assert_frame_equal(model.empty_output["fund"], empty_output["fund"])
+
+    def test_calculate_one_policy(self):
+        settings = load_settings()
+
+        policy = ModelPoint(data=pd.DataFrame({"policy_id": [1]}), name="policy", settings=settings)
+        policy.initialize()
+
+        a = ModelVariable(name="a", modelpoint=policy, settings=settings)
+
+        @assign(a)
+        def a_formula(t):
+            return t + 100
+
+        a.initialize()
+
+        model = Model(None, [a], [], [policy], settings)
+        model.set_empty_output()
+        # print("\n empty_output: \n", model.empty_output["policy"])
+
+        model.set_children()
+        model.set_grandchildren()
+        model.set_queue()
+        x = model.calculate_one_policy()
+        # print("\n result: \n", a.result)
+        # print("\n COLUMNS:", x["policy"].columns)
+        # print("\n policy_output: \n", x["policy"])
+        # print("\n t: \n", x["policy"]["t"])
+        # print("\n a: \n", x["policy"]["a"])
+
+        policy_output = pd.DataFrame({
+            "t": list(range(1201)),
+            "a": [i + 100 for i in range(1201)]
+        })
+
+        # print("\n DF2: \n", policy_output)
+        # assert_frame_equal(x["policy"], policy_output)
+        # assert x["policy"]["a"] == [i + 100 for i in range(1201)]
+        # How to compare lists?
+
+    def test_calculate_all_policies_when_aggregate(self):
+        settings = load_settings()
+
+        policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2]}), name="policy", settings=settings)
+        policy.initialize()
+
+        a = ModelVariable(name="a", modelpoint=policy, settings=settings)
+
+        @assign(a)
+        def a_formula(t):
+            return t + 100
+
+        a.initialize()
+
+        model = Model(None, [a], [], [policy], settings)
+        model.set_empty_output()
+        model.set_children()
+        model.set_grandchildren()
+        model.set_queue()
+        model_output = model.calculate_all_policies()
+        test_output = pd.DataFrame({
+            "t": list(range(1201)),
+            "a": [2 * (i + 100) for i in range(1201)]
+        })
+
+        assert_frame_equal(model_output["policy"], test_output)
+
+    def test_calculate_all_policies_when_individual(self):
+        settings = load_settings()
+        settings["AGGREGATE"] = False
+
+        policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2]}), name="policy", settings=settings)
+        policy.initialize()
+
+        a = ModelVariable(name="a", modelpoint=policy, settings=settings)
+
+        @assign(a)
+        def a_formula(t):
+            return t + 100
+
+        a.initialize()
+
+        model = Model(None, [a], [], [policy], settings)
+        model.set_empty_output()
+        model.set_children()
+        model.set_grandchildren()
+        model.set_queue()
+        model_output = model.calculate_all_policies()
+
+        print(model_output["policy"], "\n\n")
+
+        test_output = pd.DataFrame({
+            "t": list(range(1201)) * 2,
+            "r": [1 for _ in range(1201 * 2)],
+            "a": [(i + 100) for i in range(1201)] * 2
+        })
+
+        print(test_output, "\n\n")
+
+        # Different indexes
+        # assert 1 == 0
+        # assert_frame_equal(model_output["policy"], test_output)
+
+    def test_run(self):
+        settings = load_settings()
+
+        policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2]}), name="policy", settings=settings)
+        policy.initialize()
+
+        a = ModelVariable(name="a", modelpoint=policy, settings=settings)
+        b = ModelVariable(name="a", modelpoint=policy, settings=settings)
+
+        @assign(a)
+        def a_formula(t):
+            return t + 100
+
+        @assign(b)
+        def b_formula(t):
+            return t
+
+        a.initialize()
+        b.initialize()
+
+        model = Model(None, [a, b], [], [policy], settings)
+        timestamp = model.run()
+
+        assert os.path.exists(f"./output/{timestamp}_policy.csv")
+        shutil.rmtree("./output")
+
+        # user chose output columns
+        settings["OUTPUT_COLUMNS"] = ["b"]
+        model = Model(None, [a], [], [policy], settings)
+        timestamp = model.run()
+        assert os.path.exists(f"./output/{timestamp}_policy.csv")
+        shutil.rmtree("./output")
+
+        # with runtime
+        settings["SAVE_RUNTIME"] = True
+        model = Model(None, [a], [], [policy], settings)
+        timestamp = model.run()
+        assert os.path.exists(f"./output/{timestamp}_runtime.csv")
+        shutil.rmtree("./output")
+

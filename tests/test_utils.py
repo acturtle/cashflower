@@ -112,8 +112,3 @@ class TestIsRecursive(TestCase):
         assert is_recursive(cfs3, "my_func3") == "not_recursive"
         assert is_recursive(cfs4, "my_func4") == "backward"
         assert is_recursive(cfs5, "my_func5") == "forward"
-
-
-class TestPrinLog(TestCase):
-    def test_print_log(self):
-        assert print_log("my msg") is None
