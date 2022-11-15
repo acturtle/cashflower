@@ -83,6 +83,8 @@ def get_modelpoints(input_members, settings):
         modelpoint.settings = settings
         modelpoint.initialize()
         modelpoints.append(modelpoint)
+        if name == "policy":
+            policy = modelpoint
 
     if policy is None:
         raise CashflowModelError("\nA model must have a modelpoint named 'policy'.")
