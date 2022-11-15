@@ -1,7 +1,6 @@
 atomicwrites==1.4.1
 attrs==22.1.0
 bleach==5.0.1
--e git+https://github.com/acturtle/cashflower@84a14a5740227dae15a39bc0cc1b6eb91278f138#egg=cashflower
 certifi==2022.6.15
 charset-normalizer==2.1.0
 colorama==0.4.5
