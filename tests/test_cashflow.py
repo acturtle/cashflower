@@ -375,27 +375,22 @@ class TestModel(TestCase):
 
         model = Model(None, [a], [], [policy], settings)
         model.set_empty_output()
-        # print("\n empty_output: \n", model.empty_output["policy"])
 
         model.set_children()
         model.set_grandchildren()
         model.set_queue()
-        x = model.calculate_one_policy()
-        # print("\n result: \n", a.result)
-        # print("\n COLUMNS:", x["policy"].columns)
-        # print("\n policy_output: \n", x["policy"])
-        # print("\n t: \n", x["policy"]["t"])
-        # print("\n a: \n", x["policy"]["a"])
+        model_output = model.calculate_one_policy()
 
-        policy_output = pd.DataFrame({
+        manual_output = pd.DataFrame({
             "t": list(range(1201)),
             "a": [i + 100 for i in range(1201)]
         })
 
-        # print("\n DF2: \n", policy_output)
-        # assert_frame_equal(x["policy"], policy_output)
-        # assert x["policy"]["a"] == [i + 100 for i in range(1201)]
-        # How to compare lists?
+        actual = model_output["policy"]["a"]
+        expected = manual_output["a"]
+
+        assert len(actual) == len(expected)
+        assert all([a == b for a, b in zip(actual, expected)])
 
     def test_calculate_all_policies_when_aggregate(self):
         settings = load_settings()
