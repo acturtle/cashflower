@@ -118,7 +118,3 @@ This command will create the model's output.
 
 |
 
-Cash flow model overview
-------------------------
-
-
