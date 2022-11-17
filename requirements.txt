@@ -9,7 +9,6 @@ Babel==2.11.0
 backcall==0.2.0
 beautifulsoup4==4.11.1
 bleach==5.0.1
--e git+https://github.com/acturtle/cashflower@1cde7fceca8d47b826e15d1f017fbdd40738b1da#egg=cashflower
 certifi==2022.6.15
 cffi==1.15.1
 charset-normalizer==2.1.0

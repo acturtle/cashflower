@@ -227,6 +227,9 @@ def is_recursive(formula_source, name):
     -------
     string
     """
+    if name is None:
+        raise ValueError("Parameter 'name' can't be None.")
+
     search1 = re.search(r"\W" + name + r"\(t\-1\)", formula_source)
     if bool(search1):
         return "forward"
