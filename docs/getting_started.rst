@@ -118,8 +118,8 @@ This command will create the model's output.
 
 |
 
-Cash flow model overview
-------------------------
+Model overview
+--------------
 
 Actuarial models help to predict future cash flows of insurance products.
 
@@ -151,3 +151,67 @@ We can distinguish between two types of variables:
 * parameters - time-independent - variables that stay the same for the whole projection (e.g. gender of the policyholder).
 
 **Results** - the output of the calculation logic.
+
+|
+
+Time
+----
+
+Actuarial cash flow models try to predict the future. The results are put on a timeline with future dates.
+Time variable :code:`t` plays an import role.
+
+|
+
+**Timeline**
+
+Timeline starts at zero (:code:`t=0`) which is the valuation period.
+If the reporting period is the end of year 2021, then :code:`t=0` is 2021-12-31.
+
+The :code:`t` variable reflects certain **point** in time. The projections are monthly so:
+    * :code:`t=1` is 2022-01-31,
+    * :code:`t=2` is 2022-02-28,
+    * :code:`t=3` is 2022-03-31,
+    * ...
+
+.. image:: https://acturtle.com/static/img/20/timeline.webp
+
+|
+
+**Periods**
+
+Some components of the model concern **periods** rather than points in time.
+In these cases, the :code:`t` variable has a different meaning.
+
+.. WARNING::
+   The :code:`t` variable might mean a point in time as well as a period.
+
+For example, interest rates curve helps to calculate the value of money in time.
+If the monthly rate amounts to :code:`0.1%` then €100.00 at the end of February is worth €100.10 at the end of March.
+
+The assumption can be presented in the following way:
+
+=====  =====
+t      rate
+=====  =====
+...    ...
+3      0.001
+...    ...
+=====  =====
+
+The rate is applied to a third period.
+
+.. image:: https://acturtle.com/static/img/20/timeline-with-periods.webp
+
+|
+
+**Moment in month**
+
+By default, :code:`t` reflects the end of the month.
+If cash flows in different moments of the month, it can be reflected using discounting.
+
+.. TIP::
+   Use the right discounting if the cash flow does not happen at the end of the month.
+
+For example, there are premiums occurring **in the middle of** the month.
+
+Then use if interest rate is :code:`i`, use :code:`(1/(1+i))**(1/2)` for discounting.
