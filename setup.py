@@ -19,8 +19,9 @@ setup(
     project_urls={
         'Source': 'https://github.com/acturtle/cashflower',
         'Tracker': 'https://github.com/acturtle/cashflower/issues',
+        'Documentation': 'https://cashflower.readthedocs.io/en/latest/',
     },
     python_requires='>=3.9',
     url="https://github.com/acturtle/cashflower",
-    version="0.2.8",
+    version="0.2.11",
 )
