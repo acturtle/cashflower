@@ -4,11 +4,13 @@
    contain the root `toctree` directive.
 
 
-cashflower - actuarial models
-=============================
+cashflower documentation
+========================
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
    user_guide
+   tutorials
+   developer_guide
