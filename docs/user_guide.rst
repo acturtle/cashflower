@@ -7,4 +7,4 @@ User guide
    :caption: Contents:
 
    getting_started
-
+   input

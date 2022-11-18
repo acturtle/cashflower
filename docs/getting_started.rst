@@ -58,6 +58,8 @@ In the :code:`input.py` script, you can define your model points and assumptions
 .. code-block:: python
    :caption: wol/input.py
 
+    import pandas as pd
+
     policy = ModelPoint(data=pd.read_csv("C:/my_data/policy.csv"))
 
     assumption = dict()
@@ -74,6 +76,8 @@ The :code:`model.py` script contains the logic of the model. You can define mode
 
 .. code-block:: python
    :caption: wol/model.py
+
+    from cashflower import assign, ModelVariable
 
     age = ModelVariable(modelpoint=policy)
     death_prob = ModelVariable(modelpoint=policy)
