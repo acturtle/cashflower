@@ -13,18 +13,14 @@ from . import utils
 
 def assign(var):
     """Assign formula to an object.
-
-    The decorator should be used in the main model script to link variables/parameters and their forulas.
-    It also caches the function so that the results get remembered.
+    
+    The decorator links model components and their formulas.
+    The decorator also caches the function so that the results get remembered.
 
     Parameters
     ----------
     var : an object
-        Model variable or parameter to which formula is attached.
-
-    Returns
-    -------
-    decorator
+        Model component to which formula is attached.
     """
     def wrapper(func):
         func = functools.cache(func)
@@ -34,18 +30,16 @@ def assign(var):
 
 
 def updt(total, progress):
-    """
-    Displays or updates a console progress bar.
-
+    """Display or update a console progress bar.
     Original source: https://stackoverflow.com/a/15860757/1391441
     """
-    barLength, status = 20, ""
+    bar_length, status = 20, ""
     progress = float(progress) / float(total)
     if progress >= 1.:
         progress, status = 1, "\r\n"
-    block = int(round(barLength * progress))
+    block = int(round(bar_length * progress))
     text = "\r[{}] {:.0f}% {}".format(
-        "#" * block + "-" * (barLength - block), round(progress * 100, 0),
+        "#" * block + "-" * (bar_length - block), round(progress * 100, 0),
         status)
     sys.stdout.write(text)
     sys.stdout.flush()
@@ -56,33 +50,56 @@ class CashflowModelError(Exception):
 
 
 class Runplan:
+    """Runplan of the cash flow model.
+
+    Attributes
+    ----------
+    data : data frame
+        Data for runplan which must contain column named 'version'.
+    version : str
+        Current version to be evaluated.
+    """
     def __init__(self, data=None, version="1"):
         self.data = data
         self.version = version
         self.set_empty_data()
-        self.set_version()
+        self.set_version_as_str()
         self.set_index()
 
     def set_empty_data(self):
+        """Set minimal runplan if not provided by the user."""
         if self.data is None:
-            self.data = pd.DataFrame({"version": "1"})
+            self.data = pd.DataFrame({"version": ["1"]})
 
-    def set_version(self):
+    def set_version_as_str(self):
+        """Ensure that the 'version' column is a string."""
         if "version" not in self.data.columns:
             raise CashflowModelError("Runplan must have the 'version' column.")
         else:
             self.data["version"] = self.data["version"].astype(str)
 
     def set_index(self):
+        """Set 'version' column as an index of the data frame."""
         self.data = self.data.set_index("version")
 
     def get(self, attribute):
+        """Get a value from the runplan for the current version.
+
+        Parameters
+        ----------
+        attribute : str
+            Column name of the needed attribute.
+
+        Returns
+        -------
+        scalar
+        """
         return self.data.loc[self.version][attribute]
 
 
 class ModelPoint:
     """Policyholders' data.
-
+    
     The model point stores data on all policyholders and points to a specific policyholder
     for which model should be calculated.
 
@@ -110,11 +127,11 @@ class ModelPoint:
 
     instances = []
 
-    def __init__(self, data):
+    def __init__(self, data, name=None, settings=None):
         self.__class__.instances.append(self)
         self.data = data
-        self.name = None
-        self.settings = None
+        self.name = name
+        self.settings = settings
         self._policy_id = None
         self._record_num = None
         self.policy_data = None
@@ -128,14 +145,32 @@ class ModelPoint:
         return self.data.shape[0]
 
     def get(self, attribute):
+        """Get value from the modelpoint for the current policy id and record.
+
+        Parameters
+        ----------
+        attribute : str
+            Column name of the needed attribute.
+
+        Returns
+        -------
+        scalar
+        """
         return self.policy_record[attribute].values[0]
 
     @property
     def policy_id(self):
+        """Policy id of the currently evaluated policy. """
         return self._policy_id
 
     @policy_id.setter
     def policy_id(self, new_policy_id):
+        """Set model point's policy id.
+
+        Check if the policy id exists in the model point.
+        Set policy data and size (number of records).
+        Set record number back to zero.
+        """
         self._policy_id = new_policy_id
 
         if new_policy_id not in self.data.index:
@@ -143,35 +178,68 @@ class ModelPoint:
 
         self.policy_data = self.data.loc[[new_policy_id]]
         self.size = self.policy_data.shape[0]
-        if self.size > 0:
-            self.record_num = 0
+        self.record_num = 0
 
     @property
     def record_num(self):
+        """Record number for the policies with multiple records. """
         return self._record_num
 
     @record_num.setter
     def record_num(self, new_record_num):
+        """Set policy's record number (relevant for the policies with multiple records).
+
+        Set policy record (row of policy data for the currently evaluated record number).
+        """
         self._record_num = new_record_num
         self.policy_record = self.policy_data.iloc[[new_record_num]]
 
+    def initialize(self):
+        self.check_policy_id_col()
+        self.check_unique_keys()
+        self.set_index()
+        self.policy_id = self.data.iloc[0][self.settings["POLICY_ID_COLUMN"]]
+
+    def check_policy_id_col(self):
+        policy_id_column = self.settings["POLICY_ID_COLUMN"]
+        if policy_id_column not in self.data.columns:
+            raise CashflowModelError(f"\nThere is no column '{policy_id_column}' in modelpoint '{self.name}'.")
+        return True
+
+    def check_unique_keys(self):
+        policy_id_column = self.settings["POLICY_ID_COLUMN"]
+        if self.name == "policy":
+            if not self.data[policy_id_column].is_unique:
+                msg = f"\nThe 'policy' modelpoint must have unique values in '{policy_id_column}' column."
+                raise CashflowModelError(msg)
+        return True
+
+    def set_index(self):
+        policy_id_column = self.settings["POLICY_ID_COLUMN"]
+        self.data[policy_id_column] = self.data[policy_id_column].astype(str)
+        self.data[policy_id_column + "_duplicate"] = self.data[policy_id_column]
+        self.data = self.data.set_index(policy_id_column)
+        self.data[policy_id_column] = self.data[policy_id_column + "_duplicate"]
+        self.data = self.data.drop(columns=[policy_id_column + "_duplicate"])
+
 
 class ModelVariable:
-    """Variable of a cash flow model.
-
+    """Model variable of a cash flow model.
+    
+    Model variable returns numbers and is t-dependent.
     Model variable is linked to a modelpoint and calculates results based on the formula.
 
     Attributes
     ----------
     name : str
-        Name of the code variable which is set in get_model_input().
+        Name of the code variable.
     modelpoint : ModelPoint object
         Model point to which the variable is linked.
-        User sets it directly in the model script, otherwise it is set to the first modelpoint in get_model_input().
+        User sets it directly in the model script, otherwise it is set to the primary model point.
     pol_dep : bool
         Should the variable be calculated for each policyholder or only once?
     time_dep : bool
-        If true then the variable is independent from time
+        If true then the variable is independent from time.
     assigned_formula : function
         Function attached using the @assign decorator.
     _formula : function
@@ -180,11 +248,11 @@ class ModelVariable:
     recursive : str
         States if the formula is recursive, possible values: 'forward', 'backward' and 'not_recursive'.
     settings : dict
-        User settings. Model variable uses T_CALCULATION_MAX setting. Set in get_model_input().
+        User settings from 'settings.py'.
     result : list
         List of n lists with m elements where: n = num of records for policy, m = num of projection months.
     runtime: float
-        The runtime of the modelvariable in the model run (in seconds).
+        The runtime of the model variable in the model run (in seconds).
     children : list of model variables
         List of model variables that this variable is calling in its formula.
         Only relevant in the model context because model is linked to a group of variables.
@@ -193,16 +261,16 @@ class ModelVariable:
     """
     instances = []
 
-    def __init__(self, name=None, modelpoint=None, pol_dep=True, time_dep=True):
+    def __init__(self, name=None, modelpoint=None, settings=None, pol_dep=True, time_dep=True):
         self.__class__.instances.append(self)
         self.name = name
         self.modelpoint = modelpoint
+        self.settings = settings
         self.pol_dep = pol_dep
         self.time_dep = time_dep
         self.assigned_formula = None
         self._formula = None
         self.recursive = None
-        self.settings = None
         self.result = None
         self.runtime = 0
         self.children = []
@@ -225,38 +293,47 @@ class ModelVariable:
         if r is not None:
             return self.result[r][t]
 
-        if self.modelpoint.size == 0:
-            return None
-
         return self.result[self.modelpoint.record_num][t]
 
     @property
     def formula(self):
+        """Formula used to calculate result. """
         return self._formula
 
     @formula.setter
     def formula(self, new_formula):
+        """Set a formula to the model varaible.
+
+        Check if the formula has correct parameters.
+        Set if the formula is recursive (and how).
+        """
         params = inspect.signature(new_formula).parameters
 
+        # Model variables should have parameter 't'
         if self.time_dep:
             if not (len(params) == 1 and "t" in params.keys()):
-                raise CashflowModelError(f"\nModel variable formula must have only one parameter: 't'. "
-                                         f"Please check code for '{new_formula.__name__}'.")
+                msg = f"\nModel variable formula must have only one parameter: 't'. " \
+                      f"Please check code for '{new_formula.__name__}'."
+                raise CashflowModelError(msg)
         else:
             if not (len(params) == 0):
-                raise CashflowModelError(f"\nFormula for time_dep model variable can't have any parameters. "
-                                         f"Please check code for '{new_formula.__name__}'.")
+                msg = f"\nFormula for time_dep model variable can't have any parameters. " \
+                      f"Please check code for '{new_formula.__name__}'."
+                raise CashflowModelError(msg)
 
+        # The calculation varies if the model variable is recursive
         formula_source = inspect.getsource(new_formula)
         clean = utils.clean_formula_source(formula_source)
         self.recursive = utils.is_recursive(clean, self.name)
         self._formula = new_formula
 
     def clear(self):
+        """Clear formula's cache. """
         if self.pol_dep:
             self.formula.cache_clear()
 
     def calculate(self):
+        """Calculate result for all records of the policy. """
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
         self.result = [[None] * (t_calculation_max+1) for _ in range(self.modelpoint.size)]
 
@@ -277,8 +354,44 @@ class ModelVariable:
                 value = self.formula()
                 self.result[r] = [value] * (t_calculation_max + 1)
 
+    def initialize(self, policy=None):
+        if self.assigned_formula is None:
+            msg = f"\nThe '{self.name}' variable has no formula. Please check the 'model.py' script."
+            raise CashflowModelError(msg)
+
+        if self.modelpoint is None:
+            self.modelpoint = policy
+
+        self.formula = self.assigned_formula
+
 
 class Parameter:
+    """Parameter of a cash flow model.
+
+    Parameter can return either number or string and is t-independent.
+
+    Attributes
+    ----------
+    name : str
+        Name of the code variable.
+    modelpoint : ModelPoint object
+        Model point to which the variable is linked.
+        User sets it directly in the model script, otherwise it is set to the primary model point.
+    assigned_formula : function
+        Function attached using the @assign decorator.
+    _formula : function
+        The formula to calculate the results. It takes definition from assigned_formula.
+        While setting, it checks if the formula is recursive.
+    result : list
+        List of n lists with 1 element where: n = num of records for policy.
+    runtime: float
+        The runtime of the model variable in the model run (in seconds).
+    children : list of model variables
+        List of model variables that this variable is calling in its formula.
+        Only relevant in the model context because model is linked to a group of variables.
+    grandchildren : list of model variables
+        Children and their descendants (children, grandchildren, grandgrandchildren and so on...).
+    """
     def __init__(self, name=None, modelpoint=None):
         self.name = name
         self.modelpoint = modelpoint
@@ -302,17 +415,19 @@ class Parameter:
         if r is not None:
             return self.result[r]
 
-        if self.modelpoint.size == 0:
-            return None
-
         return self.result[self.modelpoint.record_num]
 
     @property
     def formula(self):
+        """Formula to calculate parameter's value. """
         return self._formula
 
     @formula.setter
     def formula(self, new_formula):
+        """Set a formula.
+
+        Check if formula doesn't have any parameters.
+        """
         params = inspect.signature(new_formula).parameters
         if not (len(params) == 0):
             msg = f"\nFormula can't have any parameters. Please check code for '{new_formula.__name__}'."
@@ -320,20 +435,33 @@ class Parameter:
         self._formula = new_formula
 
     def clear(self):
+        """Clear formula's cache. """
         self.formula.cache_clear()
 
     def calculate(self):
+        """Calculate parameter's value for all records in the policy. """
         self.result = [None] * self.modelpoint.size
         for r in range(self.modelpoint.size):
             self.modelpoint.record_num = r
             self.clear()
             self.result[r] = self.formula()
 
+    def initialize(self, policy=None):
+        if self.assigned_formula is None:
+            msg = f"\nThe '{self.name}' parameter has no formula. Please check the 'model.py' script."
+            raise CashflowModelError(msg)
+
+        if self.modelpoint is None:
+            self.modelpoint = policy
+
+        self.formula = self.assigned_formula
+
 
 class Model:
     """Actuarial cash flow model.
-
-    Model combines variables and modelpoints. Variables are ordered into a calculation queue.
+    
+    Model combines parameters, model variables and modelpoints.
+    Model components (parameters and variables) are ordered into a calculation queue.
     All variables are calculated for data of each policyholder in the modelpoints.
 
     Attributes
@@ -342,6 +470,8 @@ class Model:
         Model's name
     variables : list
         List of model variables objects.
+    parameters : list
+        List of parameters objects.
     modelpoints : list
         List of model point objects.
     settings : dict
@@ -365,21 +495,39 @@ class Model:
         self.output = None
 
     def get_component_by_name(self, name):
+        """Get a model component object by its name.
+
+        Parameters
+        ----------
+        name : str
+            Name of the model variable or parameter.
+
+        Returns
+        -------
+        object of class ModelVariable or Parameter
+        """
         for component in self.components:
             if component.name == name:
                 return component
 
-    def get_variable_by_name(self, name):
-        for variable in self.variables:
-            if variable.name == name:
-                return variable
-
     def get_modelpoint_by_name(self, name):
+        """Get a model point object by its name.
+
+        Parameters
+        ----------
+        name : str
+            Name of the model point.
+
+        Returns
+        -------
+        object of class ModelPoint
+        """
         for modelpoint in self.modelpoints:
             if modelpoint.name == name:
                 return modelpoint
 
     def set_children(self):
+        """Set children of the model components. """
         component_names = [component.name for component in self.components]
         for component in self.components:
             formula_source = inspect.getsource(component.formula)
@@ -393,6 +541,7 @@ class Model:
                     component.children.append(child)
 
     def set_grandchildren(self):
+        """Set grandchildren of model components. """
         for component in self.components:
             component.grandchildren = list(component.children)
             i = 0
@@ -402,11 +551,13 @@ class Model:
                 i += 1
 
     def remove_from_grandchildren(self, removed_component):
+        """Remove component from grandchildrens. """
         for component in self.components:
             if removed_component in component.grandchildren:
                 component.grandchildren.remove(removed_component)
 
     def set_queue(self):
+        """Set an ordrer in which model components should be evaluated. """
         queue = []
         components = sorted(self.components)
         while components:
@@ -418,6 +569,7 @@ class Model:
         self.queue = queue
 
     def set_empty_output(self):
+        """Create empty output to be populated with results. """
         empty_output = dict()
         aggregate = self.settings["AGGREGATE"]
 
@@ -440,10 +592,12 @@ class Model:
         self.empty_output = empty_output
 
     def clear_components(self):
+        """Clear cache of all components."""
         for component in self.components:
             component.clear()
 
     def calculate_one_policy(self):
+        """Calculate results for a policy currently indicated in the model point. """
         policy_output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
@@ -481,6 +635,7 @@ class Model:
         return policy_output
 
     def calculate_all_policies(self):
+        """Calculate results for all policies. """
         output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
         t_output_max = min(self.settings["T_OUTPUT_MAX"], self.settings["T_CALCULATION_MAX"])
@@ -510,8 +665,10 @@ class Model:
                 output[m.name] = pd.concat(policy_output[m.name] for policy_output in policy_outputs)
 
         self.output = output
+        return output
 
     def run(self):
+        """Orchestrate all steps of the cash flow model run. """
         start = time.time()
         utils.print_log(f"Start run for model '{self.name}'")
         output_columns = self.settings["OUTPUT_COLUMNS"]
@@ -549,3 +706,4 @@ class Model:
 
         end = time.time()
         utils.print_log(f"Finished. Elapsed time: {round(end-start, 2)} seconds.")
+        return timestamp

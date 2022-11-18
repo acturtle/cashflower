@@ -4,37 +4,21 @@ import re
 from datetime import datetime
 
 
-def get_cell(df, column, **kwargs):
-    """Get a single cell value from a data frame.
+def unique_append(lst, item):
+    """Append a unique item to a list.
 
     Parameters
     ----------
-    df : data frame
-    column : str
-        Column to get a cell from.
-    **kwargs
-        Keys are columns names which are filtered based on values.
+    lst : list
+        List to append item to.
+
+    item : scalar
+        Item to be appended to the list.
 
     Returns
     -------
-    time_dep
+    list
     """
-    for key, val in kwargs.items():
-        df = df[df[key] == val]
-
-    # Filtering should return one row from data frame
-    if df.shape[0] > 1:
-        print(df)
-        raise ValueError("get_cell() has returned multiple rows.")
-
-    if df.shape[0] == 0:
-        raise ValueError(f"get_cell() has returned 0 rows. \nParameters: {str(kwargs)}")
-
-    return df[column].values[0]
-
-
-def unique_append(lst, item):
-    """Append a unique item to a list."""
     output = lst.copy()
     if item not in lst:
         output.append(item)
@@ -42,7 +26,19 @@ def unique_append(lst, item):
 
 
 def unique_extend(lst1, lst2):
-    """Extend list with items of other list if they are unique."""
+    """Extend list with items of other list if they are unique.
+
+    Parameters
+    ----------
+    lst1 : list
+        List to be extended with items from lst2.
+    lst2 : list
+        List which items are uniquely appended to lst1.
+
+    Returns
+    -------
+    list
+    """
     output = lst1.copy()
     for item in lst2:
         if item not in lst1:
@@ -51,7 +47,20 @@ def unique_extend(lst1, lst2):
 
 
 def list_used_words(text, words):
-    """Choose words from a list that were used in a text."""
+    """Choose words from a list that were used in a text.
+
+    Parameters
+    ----------
+    text : string
+        Text in which the function looks for words.
+        
+    words : list
+        List of words to be looked for in the text.
+
+    Returns
+    -------
+    list
+    """
     used_words = []
     for word in words:
         if word in text:
@@ -60,7 +69,19 @@ def list_used_words(text, words):
 
 
 def replace_in_file(_file, _from, _to):
-    """Replace a word with other word in a file."""
+    """Replace a word with other word in a file.
+
+    Parameters
+    ----------
+    _file : str
+        Path to the file in which words are to be replaced.
+        
+    _from : str
+        Word that needs to be replaced.
+        
+    _to :
+        Word to be replaced with.
+    """
     # Read in the file
     with open(_file, "r") as file:
         filedata = file.read()
@@ -80,6 +101,8 @@ def flatten(lst, n=None):
     ----------
     lst : list
         List of sublists.
+    n : integer
+        (Optionally) number of items to use.
 
     Returns
     -------
@@ -98,6 +121,8 @@ def aggregate(lst, n=None):
     ----------
     lst : list
         List of subslists.
+    n : integer
+        (Optionally) number of items to use.
 
     Returns
     -------
@@ -133,7 +158,7 @@ def repeated_numbers(m, n):
 
 def clean_formula_source(formula_source):
     """Clean formula's source.
-
+    
     Prepares the formula's source to be analysed in terms of which function it calls.
     Removes first line (function name), comments and whitespaces before brackets.
 
@@ -142,11 +167,9 @@ def clean_formula_source(formula_source):
     formula_source : str
         A function presented as a string.
 
-
     Returns
     -------
-    str
-        A function presented as a string without definition, comments and whitespaces before brackets.
+    string
     """
     # Get rid off function's definition
     clean = re.sub(r"def.*?:\n", "\n", formula_source, count=1)
@@ -168,7 +191,7 @@ def clean_formula_source(formula_source):
 
 
 def list_called_funcs(formula_source, funcs):
-    """
+    """List functions called in the  formula.
 
     Parameters
     ----------
@@ -180,7 +203,6 @@ def list_called_funcs(formula_source, funcs):
     Returns
     -------
     list
-        List of functions' names that are called within formula source.
     """
     called_funcs = []
     for func in funcs:
@@ -192,7 +214,7 @@ def list_called_funcs(formula_source, funcs):
 
 
 def is_recursive(formula_source, name):
-    """
+    """Check if formula is recursive.
 
     Parameters
     ----------
@@ -203,9 +225,11 @@ def is_recursive(formula_source, name):
 
     Returns
     -------
-    str
-        Indication if a function is recursive and, if so, whether forward or backward.
+    string
     """
+    if name is None:
+        raise ValueError("Parameter 'name' can't be None.")
+
     search1 = re.search(r"\W" + name + r"\(t\-1\)", formula_source)
     if bool(search1):
         return "forward"
@@ -218,5 +242,13 @@ def is_recursive(formula_source, name):
 
 
 def print_log(msg):
+    """ Print a log message with timestamp.
+
+    Parameters
+    ----------
+    msg : string
+        Message to be displayed.
+    """
     now = datetime.now()
     print(now.strftime("%H:%M:%S") + " | " + msg)
+
