@@ -117,3 +117,37 @@ To calculate variables for model points, run :code:`run.py`.
 This command will create the model's output.
 
 |
+
+Cash flow model overview
+------------------------
+
+Actuarial models help to predict future cash flows of insurance products.
+
+The main components of an actuarial model are:
+    * model points (policy data),
+    * assumptions,
+    * run plan,
+    * model's components: model variables and parameters,
+    * results.
+
+.. image:: https://acturtle.com/static/img/17/cash-flow-model-overview.webp
+
+**Run plan** - run plan is a list of runs that we want to perform with the model.
+
+**Model points** - policyholders' data such as age, sex, premiums, coverage, etc.
+Model points can be split into separate files.
+For example, there might be separate files for fund and coverage data.
+
+**Assumptions** - actuarial models are calculated based on assumptions.
+Examples of underwriting assumptions include mortality, lapses or expenses.
+Market assumptions are, for example, interest rates curves.
+Assumptions are also product's parameters, such as fees or levels of guarantees.
+
+**Model** - actuarial model reminds a spider's web. There are many variables which dependent on each other.
+
+We can distinguish between two types of variables:
+
+* model variables - time-dependent - variables that depend on the projection's period (e.g. present value of premiums),
+* parameters - time-independent - variables that stay the same for the whole projection (e.g. gender of the policyholder).
+
+**Results** - the output of the calculation logic.
