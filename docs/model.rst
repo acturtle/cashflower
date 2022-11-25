@@ -53,15 +53,19 @@ The first step is to create a variable, which is an instance of the :code:`Model
 
     pv_premium = ModelVariable()
 
-Once the variable is created, use the decorator :code:`assign()` to link a formula to the variable.
+The second step is to use the decorator :code:`@assign()` to link a formula to the variable.
 
-:code:`assign()` take as an argument a model variable.
+:code:`@assign()` takes as an argument a model variable.
 
 ..  code-block:: python
 
     @assign(pv_premium)
 
-:code:`assign()` decorates the function with the parameter :code:`t`.
+|
+
+**Formula**
+
+For model variables, :code:`@assign()` decorates the function with the parameter :code:`t`.
 
 .. IMPORTANT::
     The formula of the model variable must have only one parameter :code:`t`.
@@ -95,12 +99,12 @@ Variables can be used in each other formulas.
     def b_formula(t):
         return a(t) + 3
 
-To use another variable, call an instance of :code:`ModelVariable` class for the given :code:`t`.
+To use another variable, call an instance of the :code:`ModelVariable` class for the given :code:`t`.
 
 .. IMPORTANT::
     To use results of :code:`a` variable, call :code:`a(t)` and **not** :code:`a_formula(t)`.
 
-A variable can also call itself for a different time. This functionality can be useful for discounting.
+A variable can also call **itself**. This functionality can be useful for discounting.
 
 ..  code-block:: python
     :caption: model.py
@@ -124,6 +128,10 @@ Model variable is associated with a model point.
 To link a model point with a model variable, use :code:`modelpoint` parameter of the :code:`ModelVariable` class.
 If a model point is not set explicitly, it will be set to :code:`policy` by default.
 
+|
+
+The default model point is :code:`policy`:
+
 ..  code-block:: python
 
     ModelVariable()
@@ -135,11 +143,6 @@ is equivalent to
     ModelVariable(modelpoint=policy)
 
 |
-
-If the model uses multiple model points, model variables can be linked to them.
-
-.. IMPORTANT::
-    To default model point is :code:`policy`.
 
 To use a different model point, it should be set to the :code:`modelpoint` parameter explicitly.
 
@@ -175,6 +178,8 @@ The :code:`get()` method will retrieve value from the currently evaluated policy
             return fund.get("fund_value")
         return fund_value(t-1) * 1.02
 
+|
+
 The model will create a separate output file for each of the model points:
 
 ..  code-block::
@@ -185,3 +190,54 @@ The model will create a separate output file for each of the model points:
         └── <timestamp>_fund.csv
 
 
+Parameter
+---------
+
+Parameter is the t-independent component of the model.
+
+**Create parameter**
+
+..  code-block:: python
+    :caption: model.py
+
+    from cashflower import assign, Parameter
+
+    premium = Parameter()
+
+    @assign(premium)
+    def premium_formula(t):
+        return policy.get("PREMIUM")
+
+There are two steps to define a parameter:
+    #. Create an instance of the :code:`Parameter` class.
+    #. Assign a formula to the variable.
+
+The first step is to create a variable, which is an instance of the :code:`Parameter` class.
+
+..  code-block:: python
+
+    premium = Parameter()
+
+The second step is to use the decorator :code:`@assign()` to link a formula to the variable.
+
+:code:`@assign()` takes as an argument a parameter.
+
+..  code-block:: python
+
+    @assign(premium)
+
+|
+
+**Formula**
+
+:code:`@assign()` decorates the function without any parameters.
+
+.. IMPORTANT::
+    The formula of the parameter can not have any parameters.
+
+The function contains the logic for the calculation.
+
+..  code-block:: python
+
+    def pv_premium_formula(t):
+        return pv_premium(t+1) * (1/1.05) + 100
