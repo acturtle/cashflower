@@ -187,26 +187,26 @@ class TestModelVariable(TestCase):
         assert mv.modelpoint == policy
 
 
-class TestParameter(TestCase):
-    def test_parameter(self):
-        Parameter()
+class TestConstant(TestCase):
+    def test_constant(self):
+        Constant()
 
-    def test_parameter_is_lower_when_fewer_grandchildren(self):
-        p1 = Parameter()
-        p2 = Parameter()
+    def test_constant_is_lower_when_fewer_grandchildren(self):
+        p1 = Constant()
+        p2 = Constant()
 
         p1.grandchildren = [1, 2, 3]
         p2.grandchildren = [4, 5]
         assert p1 > p2
 
-    def test_parameter_gets_called(self):
+    def test_constant_gets_called(self):
         policy = ModelPoint(
             data=pd.DataFrame({"policy_id": [1]}),
             name="policy",
             settings=load_settings()
         )
         policy.initialize()
-        p = Parameter(name="p", modelpoint=policy)
+        p = Constant(name="p", modelpoint=policy)
 
         @assign(p)
         def mv_formula():
@@ -216,8 +216,8 @@ class TestParameter(TestCase):
         p.calculate()
         assert p() == 10
 
-    def test_parameter_raises_error_when_formula_has_parameters(self):
-        p = Parameter()
+    def test_constant_raises_error_when_formula_has_parameters(self):
+        p = Constant()
 
         @assign(p)
         def mv_formula(x):
@@ -227,8 +227,8 @@ class TestParameter(TestCase):
         with pytest.raises(CashflowModelError):
             p.initialize()
 
-    def test_parameter_raises_error_when_no_asigned_formula(self):
-        p = Parameter()
+    def test_constant_raises_error_when_no_asigned_formula(self):
+        p = Constant()
         with pytest.raises(CashflowModelError):
             p.initialize()
 
@@ -236,7 +236,7 @@ class TestParameter(TestCase):
 class TestModel(TestCase):
     def test_get_component_by_name(self):
         m = ModelVariable(name="my-variable")
-        p = Parameter(name="my-parameter")
+        p = Constant(name="my-parameter")
         model = Model(None, [m], [p], None, None)
         assert model.get_component_by_name("my-variable") == m
         assert model.get_component_by_name("my-parameter") == p
@@ -249,7 +249,7 @@ class TestModel(TestCase):
     def test_model_sets_children(self):
         a = ModelVariable(name="a")
         b = ModelVariable(name="b")
-        c = Parameter(name="c")
+        c = Constant(name="c")
 
         @assign(a)
         def a_formula(t):
@@ -327,7 +327,7 @@ class TestModel(TestCase):
         fund = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2, 2, 3]}), name="fund")
 
         a = ModelVariable(name="a", modelpoint=policy)
-        b = Parameter(name="b", modelpoint=policy)
+        b = Constant(name="b", modelpoint=policy)
         c = ModelVariable(name="c", modelpoint=fund)
 
         model = Model(None, [a, c], [b], [policy, fund], settings)
@@ -345,7 +345,7 @@ class TestModel(TestCase):
         fund = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2, 2, 3]}), name="fund")
 
         a = ModelVariable(name="a", modelpoint=policy)
-        b = Parameter(name="b", modelpoint=policy)
+        b = Constant(name="b", modelpoint=policy)
         c = ModelVariable(name="c", modelpoint=fund)
 
         model = Model(None, [a, c], [b], [policy, fund], settings)
