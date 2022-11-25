@@ -304,7 +304,7 @@ class ModelVariable:
     def formula(self, new_formula):
         """Set a formula to the model varaible.
 
-        Check if the formula has correct parameters.
+        Check if the formula has correct constants.
         Set if the formula is recursive (and how).
         """
         params = inspect.signature(new_formula).parameters
@@ -317,7 +317,7 @@ class ModelVariable:
                 raise CashflowModelError(msg)
         else:
             if not (len(params) == 0):
-                msg = f"\nFormula for time_dep model variable can't have any parameters. " \
+                msg = f"\nFormula for time_dep model variable can't have any constants. " \
                       f"Please check code for '{new_formula.__name__}'."
                 raise CashflowModelError(msg)
 
@@ -426,11 +426,11 @@ class Constant:
     def formula(self, new_formula):
         """Set a formula.
 
-        Check if formula doesn't have any parameters.
+        Check if formula doesn't have any constants.
         """
         params = inspect.signature(new_formula).parameters
         if not (len(params) == 0):
-            msg = f"\nFormula can't have any parameters. Please check code for '{new_formula.__name__}'."
+            msg = f"\nFormula can't have any constants. Please check code for '{new_formula.__name__}'."
             raise CashflowModelError(msg)
         self._formula = new_formula
 
@@ -460,8 +460,8 @@ class Constant:
 class Model:
     """Actuarial cash flow model.
     
-    Model combines parameters, model variables and modelpoints.
-    Model components (parameters and variables) are ordered into a calculation queue.
+    Model combines constants, model variables and modelpoints.
+    Model components (constants and variables) are ordered into a calculation queue.
     All variables are calculated for data of each policyholder in the modelpoints.
 
     Attributes
@@ -470,8 +470,8 @@ class Model:
         Model's name
     variables : list
         List of model variables objects.
-    parameters : list
-        List of parameters objects.
+    constants : list
+        List of constants objects.
     modelpoints : list
         List of model point objects.
     settings : dict
@@ -483,13 +483,13 @@ class Model:
     output : dict
         Dict with key = modelpoints, values = data frames (columns for model variables).
     """
-    def __init__(self, name, variables, parameters, modelpoints, settings):
+    def __init__(self, name, variables, constants, modelpoints, settings):
         self.name = name
         self.variables = variables
-        self.parameters = parameters
+        self.constants = constants
         self.modelpoints = modelpoints
         self.settings = settings
-        self.components = variables + parameters
+        self.components = variables + constants
         self.queue = []
         self.empty_output = None
         self.output = None
@@ -581,7 +581,7 @@ class Model:
             if not aggregate:
                 empty_output[modelpoint.name]["r"] = None
 
-        # Aggregated output contains only variables, individual outputs contains variables and parameters
+        # Aggregated output contains only variables, individual outputs contains variables and constants
         if aggregate:
             for variable in self.variables:
                 empty_output[variable.modelpoint.name][variable.name] = None
