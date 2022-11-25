@@ -9,3 +9,4 @@ User guide
    getting_started
    input
    model
+   settings
