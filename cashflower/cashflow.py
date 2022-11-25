@@ -365,10 +365,10 @@ class ModelVariable:
         self.formula = self.assigned_formula
 
 
-class Parameter:
-    """Parameter of a cash flow model.
+class Constant:
+    """Constant of a cash flow model.
 
-    Parameter can return either number or string and is t-independent.
+    Constant can return either number or string and is t-independent.
 
     Attributes
     ----------
@@ -504,7 +504,7 @@ class Model:
 
         Returns
         -------
-        object of class ModelVariable or Parameter
+        object of class ModelVariable or Constant
         """
         for component in self.components:
             if component.name == name:
@@ -616,7 +616,7 @@ class Model:
                     else:
                         policy_output[c.modelpoint.name][c.name] = utils.flatten(c.result, t_output_max+1)
                 # Parameters are added only to individual output
-                if isinstance(c, Parameter) and not aggregate:
+                if isinstance(c, Constant) and not aggregate:
                     if c.modelpoint.size == 1:
                         policy_output[c.modelpoint.name][c.name] = c.result * (t_output_max+1)
                     else:

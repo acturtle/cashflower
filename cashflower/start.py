@@ -2,7 +2,7 @@ import importlib
 import inspect
 
 
-from . import CashflowModelError, ModelVariable, ModelPoint, Model, Parameter, Runplan
+from . import CashflowModelError, ModelVariable, ModelPoint, Model, Constant, Runplan
 
 
 def load_settings(settings=None):
@@ -146,9 +146,9 @@ def get_parameters(model_members, policy):
 
     Returns
     -------
-    List of Parameter objects.
+    List of Constant objects.
     """
-    parameter_members = [m for m in model_members if isinstance(m[1], Parameter)]
+    parameter_members = [m for m in model_members if isinstance(m[1], Constant)]
     parameters = []
     for name, parameter in parameter_members:
         parameter.name = name
