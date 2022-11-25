@@ -3,14 +3,14 @@ Model
 
 The logic of the model is defined in the :code:`model.py` script.
 
-The components of the model are :code:`ModelVariable` and :code:`Parameter`.
+The components of the model are :code:`ModelVariable` and :code:`Constant`.
 
 ..  code-block:: python
     :caption: model.py
 
-    from cashflower import assign, ModelVariable, Parameter
+    from cashflower import assign, ModelVariable, Constant
 
-    premium = Parameter()
+    premium = Constant()
     pv_premium = ModelVariable()
 
 
@@ -77,32 +77,133 @@ The function contains the logic for the calculation.
     def pv_premium_formula(t):
         return pv_premium(t+1) * (1/1.05) + 100
 
+Model variables return numeric values.
+
 |
 
-**Use other variable in calculation**
+Constant
+--------
 
-Variables can be used in each other formulas.
+Constant is a t-independent component of the model.
+
+**Create constant**
 
 ..  code-block:: python
     :caption: model.py
 
-    from cashflower import assign, ModelVariable
+    from cashflower import assign, Constant
 
-    a = ModelVariable()
+    premium = Constant()
+
+    @assign(premium)
+    def premium_formula(t):
+        return policy.get("PREMIUM")
+
+There are two steps to define a constant:
+    #. Create an instance of the :code:`Constant` class.
+    #. Assign a formula to the variable.
+
+The first step is to create a variable, which is an instance of the :code:`Constant` class.
+
+..  code-block:: python
+
+    premium = Constant()
+
+The second step is to use the decorator :code:`@assign()` to link a formula to the variable.
+
+:code:`@assign()` takes as an argument a parameter.
+
+..  code-block:: python
+
+    @assign(premium)
+
+|
+
+**Formula**
+
+For constants, :code:`@assign()` decorates the function without any parameters.
+
+.. IMPORTANT::
+    The formula of the constant can not have any parameters.
+
+The function contains the logic for the constant variable.
+
+..  code-block:: python
+
+    def premium_formula(t):
+        return policy.get("PREMIUM")
+
+Constants may return numeric and character values.
+
+|
+
+Comparison
+----------
+
+:code:`ModelVariable` and :code:`Constant` are the main components of the model.
+
+The components differ in two areas:
+
+* dependency on time,
+* output type.
+
+The table presents the differences:
+
+.. list-table::
+   :widths: 33 33 33
+   :header-rows: 1
+
+   * - Characteristic
+     - ModelVariable
+     - Constant
+   * - is time-dependent
+     - Yes
+     - No
+   * - returns numbers
+     - Yes
+     - Yes
+   * - returns strings
+     - No
+     - Yes
+
+
+|
+
+Calling variables
+-----------------
+
+Model components can be called in each other formulas.
+
+..  code-block:: python
+    :caption: model.py
+
+    from cashflower import assign, ModelVariable, Constant
+
+    a = Constant()
     b = ModelVariable()
+    c = ModelVariable()
+
 
     @assign(a)
-    def a_formula(t):
-        return 10 * t
+    def a_formula():
+        return 100
+
 
     @assign(b)
     def b_formula(t):
-        return a(t) + 3
+        return 3*t + a()
 
-To use another variable, call an instance of the :code:`ModelVariable` class for the given :code:`t`.
+
+    @assign(c)
+    def c_formula(t):
+        return b(t) + 1
+
+To use another variable, call an instance of the :code:`ModelVariable` or :code:`Constant` class.
+
+If you are calling a model variable, pass an argument :code:`t`.
 
 .. IMPORTANT::
-    To use results of :code:`a` variable, call :code:`a(t)` and **not** :code:`a_formula(t)`.
+    To use results of :code:`a`, call :code:`a()` and **not** :code:`a_formula()`.
 
 A variable can also call **itself**. This functionality can be useful for discounting.
 
@@ -111,21 +212,22 @@ A variable can also call **itself**. This functionality can be useful for discou
 
     from cashflower import assign, ModelVariable
 
-    c = ModelVariable()
+    d = ModelVariable()
 
-    @assign(c)
-    def c_formula(t):
+    @assign(d)
+    def d_formula(t):
         if t == 1200:
             return 100
-        return c(t+1) * (1/1.05)
+        return d(t+1) * (1/1.05)
 
 |
 
-**Variable linked to a model point**
+Link to model point
+-------------------
 
-Model variable is associated with a model point.
+Model variables and constants are associated with a model point.
 
-To link a model point with a model variable, use :code:`modelpoint` parameter of the :code:`ModelVariable` class.
+To link a model point with a model component, use the :code:`modelpoint` parameter of the class.
 If a model point is not set explicitly, it will be set to :code:`policy` by default.
 
 |
@@ -189,55 +291,4 @@ The model will create a separate output file for each of the model points:
         ├── <timestamp>_policy.csv
         └── <timestamp>_fund.csv
 
-
-Parameter
----------
-
-Parameter is the t-independent component of the model.
-
-**Create parameter**
-
-..  code-block:: python
-    :caption: model.py
-
-    from cashflower import assign, Parameter
-
-    premium = Parameter()
-
-    @assign(premium)
-    def premium_formula(t):
-        return policy.get("PREMIUM")
-
-There are two steps to define a parameter:
-    #. Create an instance of the :code:`Parameter` class.
-    #. Assign a formula to the variable.
-
-The first step is to create a variable, which is an instance of the :code:`Parameter` class.
-
-..  code-block:: python
-
-    premium = Parameter()
-
-The second step is to use the decorator :code:`@assign()` to link a formula to the variable.
-
-:code:`@assign()` takes as an argument a parameter.
-
-..  code-block:: python
-
-    @assign(premium)
-
-|
-
-**Formula**
-
-:code:`@assign()` decorates the function without any parameters.
-
-.. IMPORTANT::
-    The formula of the parameter can not have any parameters.
-
-The function contains the logic for the calculation.
-
-..  code-block:: python
-
-    def pv_premium_formula(t):
-        return pv_premium(t+1) * (1/1.05) + 100
+The output files will contain results for model components linked to an associated model point.
