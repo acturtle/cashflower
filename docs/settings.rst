@@ -186,3 +186,14 @@ The default value for the :code:`POLICY_ID_COLUMN` setting is :code:`policy_id`.
 
 The model point must have have a column with this name.
 
+..  code-block:: python
+    :caption: input.py
+
+    from cashflower import ModelPoint
+
+    policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2]}))
+
+.. WARNING::
+   Column names are case-sensitive. :code:`policy_id` is not :code:`POLICY_ID`.
+
+
