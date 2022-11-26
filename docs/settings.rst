@@ -282,3 +282,59 @@ The file contains the number of seconds the model needed to evaluate each of the
     c,7.1
 
 The file can help to find variables that are the evaluated the longest and to optimize them.
+
+|
+
+Maximal calculation time
+------------------------
+
+The :code:`T_CALCULATION_MAX` is the maximal month of the calculation.
+
+The model will calculate results for all time periods from :code:`0` to :code:`T_CALCULATION_MAX`.
+
+By default, the setting is set to :code:`1200` months (:code:`100` years).
+
+|
+
+Maximal output time
+-------------------
+
+The :code:`T_OUTPUT_MAX` is the maximal month in the output file.
+
+By default, the model will save results for :code:`1200` months.
+
+..  code-block:: python
+    :caption: settings.py
+
+    settings = {
+        ...
+        "T_OUTPUT_MAX": 1200,
+        ...
+    }
+
+If the setting gets changed, then the number of rows in the output file will change.
+
+..  code-block:: python
+    :caption: settings.py
+
+    settings = {
+        ...
+        "T_OUTPUT_MAX": 3,
+        ...
+    }
+
+The file saves only results for the first 3 months.
+
+..  code-block::
+    :caption: <timestamp>_fund.csv
+
+    t,fund_value
+    0,27000.0
+    1,27054.0
+    2,27108.11
+    3,27162.32
+
+:code:`T_OUTPUT_MAX` can't be greater than :code:`T_CALCULATION_MAX`.
+
+.. WARNING::
+    :code:`T_OUTPUT_MAX` will always output :code:`min(T_OUTPUT_MAX, T_CALCULATION_MAX)` periods.
