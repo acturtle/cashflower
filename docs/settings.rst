@@ -75,5 +75,114 @@ Aggregated results make sense for some but not for all variables.
 You can choose the relevant output columns in the :code:`OUTPUT_COLUMNS` setting.
 
 .. WARNING::
-   For some variables, aggregated result may not make sense.
+   Aggregated results for some variables may not make sense.
+
+|
+
+Output columns
+--------------
+
+By default, the model outputs all variables.
+If you do not need all of them, provide the list of variables that should be in the output.
+
+The default value of the :code:`OUTPUT_COLUMNS` setting is the empty list (:code:`[]`).
+All variables are saved in the output.
+
+..  code-block:: python
+    :caption: settings.py
+
+    settings = {
+        ...
+        "OUTPUT_COLUMNS": [],
+        ...
+    }
+
+If the model has 3 variables, all of them will be in the output.
+
+..  code-block:: python
+    :caption: model.py
+
+    from cashflower import assign, ModelVariable
+
+    a = ModelVariable()
+    b = ModelVariable()
+    c = ModelVariable()
+
+    @assign(a)
+    def a_formula(t):
+        return 1*t
+
+    @assign(b)
+    def b_formula(t):
+        return 2*t
+
+    @assign(c)
+    def c_formula(t):
+        return 3*t
+
+The result contains all columns.
+
+..  code-block::
+    :caption: <timestamp>_policy.csv
+
+    t,r,a,b,c
+    0,1,0,0,0
+    1,1,1,2,3
+    2,1,2,4,6
+    3,1,3,6,9
+    0,1,0,0,0
+    1,1,1,2,3
+    2,1,2,4,6
+    3,1,3,6,9
+
+The user can choose a subset of columns.
+
+
+..  code-block:: python
+    :caption: settings.py
+
+    settings = {
+        ...
+        "OUTPUT_COLUMNS": ["a", "c"],
+        ...
+    }
+
+Only the chosen columns are in the output.
+
+..  code-block::
+    :caption: <timestamp>_policy.csv
+
+    t,r,a,c
+    0,1,0,0
+    1,1,1,3
+    2,1,2,6
+    3,1,3,9
+    0,1,0,0
+    1,1,1,3
+    2,1,2,6
+    3,1,3,9
+
+|
+
+Policy ID column
+----------------
+
+Each model point must have a column with a key column used for identification of policyholders.
+This column is also used to connect records in case of multiple model point.
+
+By default, the column must be named :code:`policy_id`.
+The value can be changed using the :code:`POLICY_ID_COLUMN` setting.
+
+The default value for the :code:`POLICY_ID_COLUMN` setting is :code:`policy_id`.
+
+..  code-block:: python
+    :caption: settings.py
+
+    settings = {
+        ...
+        "POLICY_ID_COLUMN": "policy_id",
+        ...
+    }
+
+The model point must have have a column with this name.
 
