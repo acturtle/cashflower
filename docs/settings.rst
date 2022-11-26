@@ -173,6 +173,11 @@ This column is also used to connect records in case of multiple model point.
 By default, the column must be named :code:`policy_id`.
 The value can be changed using the :code:`POLICY_ID_COLUMN` setting.
 
+.. WARNING::
+   Column names are case-sensitive. :code:`policy_id` is not :code:`POLICY_ID`.
+
+|
+
 The default value for the :code:`POLICY_ID_COLUMN` setting is :code:`policy_id`.
 
 ..  code-block:: python
@@ -184,7 +189,7 @@ The default value for the :code:`POLICY_ID_COLUMN` setting is :code:`policy_id`.
         ...
     }
 
-The model point must have have a column with this name.
+The model point must have a column with this name.
 
 ..  code-block:: python
     :caption: input.py
@@ -193,7 +198,87 @@ The model point must have have a column with this name.
 
     policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2]}))
 
-.. WARNING::
-   Column names are case-sensitive. :code:`policy_id` is not :code:`POLICY_ID`.
+|
+
+The key column might have other name.
+
+..  code-block:: python
+    :caption: settings.py
+
+    settings = {
+        ...
+        "POLICY_ID_COLUMN": "policy_number",
+        ...
+    }
+
+The model point must have a column with this name.
+
+..  code-block:: python
+    :caption: input.py
+
+    from cashflower import ModelPoint
+
+    policy = ModelPoint(data=pd.DataFrame({"policy_number": [1, 2]}))
+
+|
+
+Save runtime
+------------
+
+The :code:`SAVE_RUNTIME` setting is a flag if the model should save information on the runtime of variables.
+
+|
+
+By default, the setting has a value :code:`False`.
+
+..  code-block:: python
+    :caption: settings.py
+
+    settings = {
+        ...
+        "SAVE_RUNTIME": False,
+        ...
+    }
+
+No additional output is created.
+
+..  code-block::
+
+    .
+    └── output/
+        └── <timestamp>_policy.csv
+
+|
+
+If set to :code:`True`, the model will additionally output the file with the runtime of each variable.
+
+..  code-block:: python
+    :caption: settings.py
+
+    settings = {
+        ...
+        "SAVE_RUNTIME": True,
+        ...
+    }
 
 
+The file is called :code:`<timestamp>_runtime.csv`.
+
+..  code-block::
+
+    .
+    └── output/
+        └── <timestamp>_policy.csv
+        └── <timestamp>_runtime.csv
+
+The file contains the number of seconds the model needed to evaluate each of the variables.
+
+..  code-block::
+    :caption: <timestamp>_runtime.csv
+
+    component,runtime
+    a,5.4
+    b,2.7
+    c,7.1
+
+The file can help to find variables that are the evaluated the longest and to optimize them.
