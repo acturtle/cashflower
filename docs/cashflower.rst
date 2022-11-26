@@ -1,5 +1,5 @@
-cashflower package
-==================
+API reference
+=============
 
 Submodules
 ----------
@@ -32,14 +32,6 @@ cashflower.utils module
 -----------------------
 
 .. automodule:: cashflower.utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: cashflower
    :members:
    :undoc-members:
    :show-inheritance:
