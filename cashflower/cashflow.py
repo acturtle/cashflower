@@ -238,8 +238,6 @@ class ModelVariable:
         User sets it directly in the model script, otherwise it is set to the primary model point.
     pol_dep : bool
         Should the variable be calculated for each policyholder or only once?
-    time_dep : bool
-        If true then the variable is independent from time.
     assigned_formula : function
         Function attached using the @assign decorator.
     _formula : function
@@ -261,13 +259,12 @@ class ModelVariable:
     """
     instances = []
 
-    def __init__(self, name=None, modelpoint=None, settings=None, pol_dep=True, time_dep=True):
+    def __init__(self, name=None, modelpoint=None, settings=None, pol_dep=True):
         self.__class__.instances.append(self)
         self.name = name
         self.modelpoint = modelpoint
         self.settings = settings
         self.pol_dep = pol_dep
-        self.time_dep = time_dep
         self.assigned_formula = None
         self._formula = None
         self.recursive = None
@@ -310,16 +307,10 @@ class ModelVariable:
         params = inspect.signature(new_formula).parameters
 
         # Model variables should have parameter 't'
-        if self.time_dep:
-            if not (len(params) == 1 and "t" in params.keys()):
-                msg = f"\nModel variable formula must have only one parameter: 't'. " \
-                      f"Please check code for '{new_formula.__name__}'."
-                raise CashflowModelError(msg)
-        else:
-            if not (len(params) == 0):
-                msg = f"\nFormula for time_dep model variable can't have any constants. " \
-                      f"Please check code for '{new_formula.__name__}'."
-                raise CashflowModelError(msg)
+        if not (len(params) == 1 and "t" in params.keys()):
+            msg = f"\nModel variable formula must have only one parameter: 't'. " \
+                  f"Please check code for '{new_formula.__name__}'."
+            raise CashflowModelError(msg)
 
         # The calculation varies if the model variable is recursive
         formula_source = inspect.getsource(new_formula)
@@ -341,18 +332,14 @@ class ModelVariable:
             self.modelpoint.record_num = r
             self.clear()
 
-            if self.time_dep:
-                if self.recursive == "not_recursive":
-                    self.result[r] = list(map(self.formula, range(t_calculation_max+1)))
-                elif self.recursive == "backward":
-                    for t in range(t_calculation_max, -1, -1):
-                        self.result[r][t] = self.formula(t)
-                else:
-                    for t in range(t_calculation_max+1):
-                        self.result[r][t] = self.formula(t)
+            if self.recursive == "not_recursive":
+                self.result[r] = list(map(self.formula, range(t_calculation_max+1)))
+            elif self.recursive == "backward":
+                for t in range(t_calculation_max, -1, -1):
+                    self.result[r][t] = self.formula(t)
             else:
-                value = self.formula()
-                self.result[r] = [value] * (t_calculation_max + 1)
+                for t in range(t_calculation_max+1):
+                    self.result[r][t] = self.formula(t)
 
     def initialize(self, policy=None):
         if self.assigned_formula is None:
