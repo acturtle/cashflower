@@ -10,3 +10,4 @@ User guide
    input
    model
    settings
+   run
