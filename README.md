@@ -1,6 +1,6 @@
 [![PyPI Latest Release](https://img.shields.io/pypi/v/cashflower.svg)](https://pypi.org/project/cashflower/)
 [![codecov](https://codecov.io/gh/acturtle/cashflower/branch/main/graph/badge.svg?token=1VA8Q65RUW)](https://codecov.io/gh/acturtle/cashflower)
-[![Documentation Status](https://readthedocs.org/projects/cashflower/badge/](https://cashflower.readthedocs.io/en/latest/)
+[![Documentation Status](https://readthedocs.org/projects/cashflower/badge/)](https://cashflower.readthedocs.io/en/latest/)
 
 # Info
 
