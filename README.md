@@ -89,4 +89,4 @@ GitHub repository:
 
 Documentation:
 
-[https://cashflower.readthedocs.io/en/latest](https://cashflower.readthedocs.io/en/latest)
+[https://cashflower.acturtle.com](https://cashflower.acturtle.com)
