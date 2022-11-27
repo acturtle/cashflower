@@ -12,3 +12,4 @@ cashflower documentation
    :caption: Contents:
 
    user_guide
+   developer_guide
