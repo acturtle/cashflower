@@ -1,7 +1,6 @@
 alabaster==0.7.12
 Babel==2.11.0
 beautifulsoup4==4.11.1
-cashflower==0.2.8
 certifi==2022.9.24
 charset-normalizer==2.1.1
 colorama==0.4.6
