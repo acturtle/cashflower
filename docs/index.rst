@@ -8,7 +8,7 @@ cashflower documentation
 ========================
 
 .. toctree::
-   :maxdepth: -1
+   :maxdepth: 2
    :caption: Contents:
 
    user_guide

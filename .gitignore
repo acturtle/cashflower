@@ -1,8 +1,9 @@
 # Sample models
 example/*
-example2/*
+examples/example2/*
 mult_cov/*
 wol/*
+examples/*
 
 # Pycharm and static testing
 .flake8

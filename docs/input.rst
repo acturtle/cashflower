@@ -96,6 +96,35 @@ Data on these funds are stored in the :code:`fund` model point.
 
 Model points link with each other by the :code:`policy_id` column.
 
+|
+
+**Read from a model point**
+
+To read from a model point, use the :code:`get()` method of the :code:`ModelPoint` class.
+
+..  code-block:: python
+
+        policy.get("age")
+
+
+The model variable will read the data for the record which is currently evaluated.
+
+..  code-block:: python
+    :caption: model.py
+
+    from cashflower import assign, ModelVariable
+    from example.input import assumption, policy
+
+    mortality_rate = ModelVariable()
+
+
+    @assign(mortality_rate)
+    def mortality_rate_formula(t):
+        age = policy.get("age")
+        sex = policy.get("sex")
+        return assumption["mortality"].loc[age, sex]["rate"]
+
+
 
 Assumptions
 -----------

@@ -238,8 +238,6 @@ class ModelVariable:
         User sets it directly in the model script, otherwise it is set to the primary model point.
     pol_dep : bool
         Should the variable be calculated for each policyholder or only once?
-    time_dep : bool
-        If true then the variable is independent from time.
     assigned_formula : function
         Function attached using the @assign decorator.
     _formula : function
@@ -261,13 +259,12 @@ class ModelVariable:
     """
     instances = []
 
-    def __init__(self, name=None, modelpoint=None, settings=None, pol_dep=True, time_dep=True):
+    def __init__(self, name=None, modelpoint=None, settings=None, pol_dep=True):
         self.__class__.instances.append(self)
         self.name = name
         self.modelpoint = modelpoint
         self.settings = settings
         self.pol_dep = pol_dep
-        self.time_dep = time_dep
         self.assigned_formula = None
         self._formula = None
         self.recursive = None
@@ -302,7 +299,7 @@ class ModelVariable:
 
     @formula.setter
     def formula(self, new_formula):
-        """Set a formula to the model varaible.
+        """Set a formula to the model variable.
 
         Check if the formula has correct parameters.
         Set if the formula is recursive (and how).
@@ -310,16 +307,10 @@ class ModelVariable:
         params = inspect.signature(new_formula).parameters
 
         # Model variables should have parameter 't'
-        if self.time_dep:
-            if not (len(params) == 1 and "t" in params.keys()):
-                msg = f"\nModel variable formula must have only one parameter: 't'. " \
-                      f"Please check code for '{new_formula.__name__}'."
-                raise CashflowModelError(msg)
-        else:
-            if not (len(params) == 0):
-                msg = f"\nFormula for time_dep model variable can't have any parameters. " \
-                      f"Please check code for '{new_formula.__name__}'."
-                raise CashflowModelError(msg)
+        if not (len(params) == 1 and "t" in params.keys()):
+            msg = f"\nModel variable formula must have only one parameter: 't'. " \
+                  f"Please check code for '{new_formula.__name__}'."
+            raise CashflowModelError(msg)
 
         # The calculation varies if the model variable is recursive
         formula_source = inspect.getsource(new_formula)
@@ -341,18 +332,14 @@ class ModelVariable:
             self.modelpoint.record_num = r
             self.clear()
 
-            if self.time_dep:
-                if self.recursive == "not_recursive":
-                    self.result[r] = list(map(self.formula, range(t_calculation_max+1)))
-                elif self.recursive == "backward":
-                    for t in range(t_calculation_max, -1, -1):
-                        self.result[r][t] = self.formula(t)
-                else:
-                    for t in range(t_calculation_max+1):
-                        self.result[r][t] = self.formula(t)
+            if self.recursive == "not_recursive":
+                self.result[r] = list(map(self.formula, range(t_calculation_max+1)))
+            elif self.recursive == "backward":
+                for t in range(t_calculation_max, -1, -1):
+                    self.result[r][t] = self.formula(t)
             else:
-                value = self.formula()
-                self.result[r] = [value] * (t_calculation_max + 1)
+                for t in range(t_calculation_max+1):
+                    self.result[r][t] = self.formula(t)
 
     def initialize(self, policy=None):
         if self.assigned_formula is None:
@@ -365,10 +352,10 @@ class ModelVariable:
         self.formula = self.assigned_formula
 
 
-class Parameter:
-    """Parameter of a cash flow model.
+class Constant:
+    """Constant of a cash flow model.
 
-    Parameter can return either number or string and is t-independent.
+    Constant can return either number or string and is t-independent.
 
     Attributes
     ----------
@@ -419,7 +406,7 @@ class Parameter:
 
     @property
     def formula(self):
-        """Formula to calculate parameter's value. """
+        """Formula to calculate constant's value. """
         return self._formula
 
     @formula.setter
@@ -460,8 +447,8 @@ class Parameter:
 class Model:
     """Actuarial cash flow model.
     
-    Model combines parameters, model variables and modelpoints.
-    Model components (parameters and variables) are ordered into a calculation queue.
+    Model combines constants, model variables and modelpoints.
+    Model components (constants and variables) are ordered into a calculation queue.
     All variables are calculated for data of each policyholder in the modelpoints.
 
     Attributes
@@ -470,8 +457,8 @@ class Model:
         Model's name
     variables : list
         List of model variables objects.
-    parameters : list
-        List of parameters objects.
+    constants : list
+        List of constants objects.
     modelpoints : list
         List of model point objects.
     settings : dict
@@ -483,13 +470,13 @@ class Model:
     output : dict
         Dict with key = modelpoints, values = data frames (columns for model variables).
     """
-    def __init__(self, name, variables, parameters, modelpoints, settings):
+    def __init__(self, name, variables, constants, modelpoints, settings):
         self.name = name
         self.variables = variables
-        self.parameters = parameters
+        self.constants = constants
         self.modelpoints = modelpoints
         self.settings = settings
-        self.components = variables + parameters
+        self.components = variables + constants
         self.queue = []
         self.empty_output = None
         self.output = None
@@ -504,7 +491,7 @@ class Model:
 
         Returns
         -------
-        object of class ModelVariable or Parameter
+        object of class ModelVariable or Constant
         """
         for component in self.components:
             if component.name == name:
@@ -581,7 +568,7 @@ class Model:
             if not aggregate:
                 empty_output[modelpoint.name]["r"] = None
 
-        # Aggregated output contains only variables, individual outputs contains variables and parameters
+        # Aggregated output contains only variables, individual outputs contains variables and constants
         if aggregate:
             for variable in self.variables:
                 empty_output[variable.modelpoint.name][variable.name] = None
@@ -616,7 +603,7 @@ class Model:
                     else:
                         policy_output[c.modelpoint.name][c.name] = utils.flatten(c.result, t_output_max+1)
                 # Parameters are added only to individual output
-                if isinstance(c, Parameter) and not aggregate:
+                if isinstance(c, Constant) and not aggregate:
                     if c.modelpoint.size == 1:
                         policy_output[c.modelpoint.name][c.name] = c.result * (t_output_max+1)
                     else:

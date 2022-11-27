@@ -2,7 +2,7 @@ import importlib
 import inspect
 
 
-from . import CashflowModelError, ModelVariable, ModelPoint, Model, Parameter, Runplan
+from . import CashflowModelError, ModelVariable, ModelPoint, Model, Constant, Runplan
 
 
 def load_settings(settings=None):
@@ -133,8 +133,8 @@ def get_variables(model_members, policy, settings):
     return variables
 
 
-def get_parameters(model_members, policy):
-    """Get parameters from input.py script.
+def get_constants(model_members, policy):
+    """Get constants from input.py script.
 
     Parameters
     ----------
@@ -146,15 +146,15 @@ def get_parameters(model_members, policy):
 
     Returns
     -------
-    List of Parameter objects.
+    List of Constant objects.
     """
-    parameter_members = [m for m in model_members if isinstance(m[1], Parameter)]
-    parameters = []
-    for name, parameter in parameter_members:
-        parameter.name = name
-        parameter.initialize(policy)
-        parameters.append(parameter)
-    return parameters
+    constant_members = [m for m in model_members if isinstance(m[1], Constant)]
+    constants = []
+    for name, constant in constant_members:
+        constant.name = name
+        constant.initialize(policy)
+        constants.append(constant)
+    return constants
 
 
 def start(model_name, settings, argv):
@@ -180,14 +180,14 @@ def start(model_name, settings, argv):
     runplan = get_runplan(input_members)
     modelpoints, policy = get_modelpoints(input_members, settings)
 
-    # model.py contains model variables and parameters
+    # model.py contains model variables and constants
     model_members = inspect.getmembers(model_module)
     variables = get_variables(model_members, policy, settings)
-    parameters = get_parameters(model_members, policy)
+    constants = get_constants(model_members, policy)
 
     # User can provide runplan version in CLI command
     if runplan is not None and len(argv) > 1:
         runplan.version = argv[1]
 
-    model = Model(model_name, variables, parameters, modelpoints, settings)
+    model = Model(model_name, variables, constants, modelpoints, settings)
     model.run()
