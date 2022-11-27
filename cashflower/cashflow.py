@@ -299,9 +299,9 @@ class ModelVariable:
 
     @formula.setter
     def formula(self, new_formula):
-        """Set a formula to the model varaible.
+        """Set a formula to the model variable.
 
-        Check if the formula has correct constants.
+        Check if the formula has correct parameters.
         Set if the formula is recursive (and how).
         """
         params = inspect.signature(new_formula).parameters
@@ -406,18 +406,18 @@ class Constant:
 
     @property
     def formula(self):
-        """Formula to calculate parameter's value. """
+        """Formula to calculate constant's value. """
         return self._formula
 
     @formula.setter
     def formula(self, new_formula):
         """Set a formula.
 
-        Check if formula doesn't have any constants.
+        Check if formula doesn't have any parameters.
         """
         params = inspect.signature(new_formula).parameters
         if not (len(params) == 0):
-            msg = f"\nFormula can't have any constants. Please check code for '{new_formula.__name__}'."
+            msg = f"\nFormula can't have any parameters. Please check code for '{new_formula.__name__}'."
             raise CashflowModelError(msg)
         self._formula = new_formula
 
