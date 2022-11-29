@@ -8,7 +8,7 @@ runplan = Runplan(data=pd.DataFrame({"version": [1]}))
 
 policy = ModelPoint(data=pd.DataFrame({
     "policy_id": ["a", "b"],
-    "age": [65, 30],
+    "age": [65, 50],
     "sex": ["female", "male"],
     "payment": [1750, 1000]
 }))

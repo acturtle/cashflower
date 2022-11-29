@@ -4,5 +4,5 @@ settings = {
     "POLICY_ID_COLUMN": "policy_id",
     "SAVE_RUNTIME": False,
     "T_CALCULATION_MAX": 1200,
-    "T_OUTPUT_MAX": 12,
+    "T_OUTPUT_MAX": 13,
 }

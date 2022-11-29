@@ -31,9 +31,10 @@ def death_prob_formula(t):
     if age(t) == age(t-1):
         return death_prob(t-1)
     elif age(t) <= 100:
-        yearly_rate = float(assumption["mortality"].loc[age(t)][sex])
+        yearly_rate = assumption["mortality"].loc[age(t)][sex]
         monthly_rate = (1 - (1 - yearly_rate)**(1/12))
-        return monthly_rate
+        # return monthly_rate
+        return round(monthly_rate, 6)
     else:
         return 1
 
@@ -43,7 +44,8 @@ def survival_rate_formula(t):
     if t == 0:
         return 1 - death_prob(t)
     else:
-        return survival_rate(t-1) * (1 - death_prob(t))
+        # return survival_rate(t-1) * (1 - death_prob(t))
+        return round(survival_rate(t-1) * (1 - death_prob(t)), 6)
 
 
 @assign(projection_year)
@@ -73,25 +75,30 @@ def yearly_forward_rate_formula(t):
     elif t % 12 != 1:
         return yearly_forward_rate(t-1)
     else:
-        return ((1+yearly_spot_rate(t))**projection_year(t))/((1+yearly_spot_rate(t-1))**projection_year(t-1)) - 1
+        # return ((1+yearly_spot_rate(t))**projection_year(t))/((1+yearly_spot_rate(t-1))**projection_year(t-1)) - 1
+        return round(((1+yearly_spot_rate(t))**projection_year(t))/((1+yearly_spot_rate(t-1))**projection_year(t-1)) - 1, 6)
 
 
 @assign(forward_rate)
 def forward_rate_formula(t):
-    return (1+yearly_forward_rate(t))**(1/12)-1
+    # return (1+yearly_forward_rate(t))**(1/12)-1
+    return round((1+yearly_forward_rate(t))**(1/12)-1, 6)
 
 
 @assign(discount_rate)
 def discount_rate_formula(t):
-    return 1/(1+forward_rate(t))
+    # return 1/(1+forward_rate(t))
+    return round(1/(1+forward_rate(t)), 6)
 
 
 @assign(expected_payment)
 def expected_payment_formula(t):
     payment = policy.get("payment")
-    return payment * survival_rate(t-1)
+    # return payment * survival_rate(t-1)
+    return round(payment * survival_rate(t-1), 2)
 
 
 @assign(pv_expected_payment)
 def pv_expected_payment_formula(t):
-    return expected_payment(t) + pv_expected_payment(t+1) * discount_rate(t+1)
+    # return expected_payment(t) + pv_expected_payment(t+1) * discount_rate(t+1)
+    return round(expected_payment(t) + pv_expected_payment(t+1) * discount_rate(t+1), 2)
