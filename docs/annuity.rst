@@ -1,12 +1,18 @@
 Annuity
 =======
 
+In an annuity, the policyholder pays a lump sum at the beginning.
+The insurance company pays a payment until the death of the policyholder.
+
+An example of an annuity is a pension. An employee puts aside part of an income each month until the retirement.
+This money is converted into payments paid until the death.
+
 Solution
 --------
 
-See the full solution below and a more detailed explanation later on.
-
 In this model, we calculate the present value of annuity payments.
+
+See the full solution below and a more detailed explanation later on.
 
 ..  code-block:: python
     :caption: model.py
@@ -112,8 +118,13 @@ In this model, we calculate the present value of annuity payments.
 
 |
 
+Description
+-----------
+
+|
+
 Input
------
+^^^^^
 
 In model points, there are two policies.
 
@@ -193,7 +204,7 @@ Interest rates are dependent on the projection year.
 |
 
 Model
------
+^^^^^
 
 **age**
 
@@ -367,7 +378,7 @@ The present value of expected payments is the value of all future payments as of
 |
 
 Results
--------
+^^^^^^^
 
 To run the model, source :code:`run.py`.
 
