@@ -1,5 +1,5 @@
-API reference
-=============
+cashflower
+==========
 
 .. toctree::
    :maxdepth: 4

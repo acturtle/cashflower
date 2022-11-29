@@ -14,4 +14,4 @@ cashflower documentation
    user_guide
    tutorials
    developer_guide
-   modules
+   cashflower
