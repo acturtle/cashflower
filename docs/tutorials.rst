@@ -6,3 +6,4 @@ Tutorials
    :caption: Contents:
 
    annuity
+   whole_life
