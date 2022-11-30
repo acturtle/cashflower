@@ -121,6 +121,15 @@ See the full solution below and a more detailed explanation later on.
 Description
 -----------
 
+Create model :code:`annuity`.
+
+..  code-block:: python
+    :caption: python console
+
+    from cashflower import create_model
+
+    create_model("annuity")
+
 |
 
 Input
