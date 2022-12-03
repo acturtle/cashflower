@@ -83,6 +83,85 @@ Model variables return numeric values.
 
 |
 
+Policy independent
+^^^^^^^^^^^^^^^^^^
+
+The model variables are recalculated for each of the policyholders.
+The default value for the :code:`pol_dep` (policy dependent) parameter of :code:`ModelVariable` is :code:`True`.
+
+If the results for the given variable are the same for all policyholders, the parameter :code:`pol_dep` should be set
+to :code:`False`. This setting helps to decrease the runtime of the model.
+
+|
+
+Variable A: policyholder-dependent
+
+..  code-block:: python
+
+    ModelVariable()
+
+or
+
+..  code-block:: python
+
+    ModelVariable(pol_dep=True)
+
+Variable B: policyholder-independent
+
+..  code-block:: python
+
+    ModelVariable(pol_dep=False)
+
+|
+
+**Comparison**
+
+.. image:: https://acturtle.com/static/img/31/graph.png
+   :align: center
+
+In the above image we see that:
+
+* A - variable changes for each of the policyholders,
+* B - variable has the same results for all policyholders.
+
+|
+
+**Example**
+
+Variables:
+
+* :code:`pv_premiums` - the present value of premiums differs by policyholder,
+* :code:`calendar_month` - calendar month is the same for all policyholders.
+
+..  code-block:: python
+    :caption: model.py
+
+    pv_premiums = ModelVariable()
+    calendar_month = ModelVariable(pol_dep=False)
+
+
+    @assign(pv_premiums)
+    def pv_premiums_formula(t):
+        v = 1/(1+0.001)
+        return premium(t) + pv_premiums(t+1) * v
+
+
+    @assign(calendar_month)
+    def calendar_month_formula(t):
+        valuation_month = 6
+        if t == 0:
+            return valuation_month
+        elif calendar_month(t - 1) % 12 == 1:
+            return 1
+        else:
+            return calendar_month(t - 1) + 1
+
+
+Calendar month can have the :code:`pol_dep` attribute set to :code:`False` because the results are the same for all
+policyholders.
+
+|
+
 Constant
 --------
 
