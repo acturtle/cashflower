@@ -30,7 +30,8 @@ Model variable
 
 Model variable is the main building block of the actuarial cash flow model.
 
-**Create model variable**
+Create model variable
+^^^^^^^^^^^^^^^^^^^^^
 
 ..  code-block:: python
     :caption: model.py
@@ -63,7 +64,8 @@ The second step is to use the decorator :code:`@assign()` to link a formula to t
 
 |
 
-**Formula**
+Formula
+^^^^^^^
 
 For model variables, :code:`@assign()` decorates the function with the parameter :code:`t`.
 
@@ -86,7 +88,8 @@ Constant
 
 Constant is a t-independent component of the model.
 
-**Create constant**
+Create constant
+^^^^^^^^^^^^^^^
 
 ..  code-block:: python
     :caption: model.py
@@ -119,7 +122,8 @@ The second step is to use the decorator :code:`@assign()` to link a formula to t
 
 |
 
-**Formula**
+Formula
+^^^^^^^
 
 For constants, :code:`@assign()` decorates the function without any parameters.
 
@@ -165,7 +169,6 @@ The table presents the differences:
    * - returns strings
      - No
      - Yes
-
 
 |
 

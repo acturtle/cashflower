@@ -26,7 +26,8 @@ The cash flow model will calculate results for each of the policies in the model
 
 |
 
-**Create model point**
+Create model point
+^^^^^^^^^^^^^^^^^^
 
 The data for the model point might be stored in a csv file.
 
@@ -65,7 +66,8 @@ The column name can be changed in the :code:`settings.py`.
 
 |
 
-**Multiple model points**
+Multiple model points
+^^^^^^^^^^^^^^^^^^^^^
 
 The model can have multiple model points. The :code:`policy` model point must have one record per policyholder.
 The other model points might have multiple records for each policyholder.
@@ -98,7 +100,8 @@ Model points link with each other by the :code:`policy_id` column.
 
 |
 
-**Read from a model point**
+Read from a model point
+^^^^^^^^^^^^^^^^^^^^^^^
 
 To read from a model point, use the :code:`get()` method of the :code:`ModelPoint` class.
 
