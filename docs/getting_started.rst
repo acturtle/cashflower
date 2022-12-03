@@ -8,13 +8,15 @@ Cashflower is an open-source Python framework for actuarial cash flow models.
 
 |
 
-**Prerequisities**
+Prerequisities
+^^^^^^^^^^^^^^
 
 To use cashflower, you need Python version :code:`>=3.9`.
 
 |
 
-**Installation**
+Installation
+^^^^^^^^^^^^
 
 Cashflower is available on python Package Index (PyPI). You can install it with the :code:`pip` tool.
 
@@ -25,7 +27,8 @@ Cashflower is available on python Package Index (PyPI). You can install it with 
 
 |
 
-**Create model**
+Create model
+^^^^^^^^^^^^
 
 Start your project with creating a new model. You can create multiple models for each product that you work on.
 Pass on the name when creating the model, e.g. :code:`wol`.
@@ -51,7 +54,8 @@ The initial structure consists of the :code:`input.py`, :code:`model.py`, :code:
 
 |
 
-**Input**
+Input
+^^^^^
 
 In the :code:`input.py` script, you can define your model points and assumptions.
 
@@ -70,7 +74,8 @@ Model points base on the :code:`ModelPoint` class and assumptions have a form of
 
 |
 
-**Model**
+Model
+^^^^^
 
 The :code:`model.py` script contains the logic of the model. You can define model variables and assign formulas to them.
 
@@ -108,7 +113,8 @@ The variables defined in :code:`model.py` will be evaluated and saved in the out
 
 |
 
-**Calculate**
+Calculate
+^^^^^^^^^
 
 To calculate variables for model points, run :code:`run.py`.
 
@@ -166,7 +172,8 @@ Time variable :code:`t` plays an import role.
 
 |
 
-**Timeline**
+Timeline
+^^^^^^^^
 
 Timeline starts at zero (:code:`t=0`) which is the valuation period.
 If the reporting period is the end of year 2021, then :code:`t=0` is 2021-12-31.
@@ -181,7 +188,8 @@ The :code:`t` variable reflects certain **point** in time. The projections are m
 
 |
 
-**Periods**
+Periods
+^^^^^^^
 
 Some components of the model concern **periods** rather than points in time.
 In these cases, the :code:`t` variable has a different meaning.
@@ -208,7 +216,8 @@ The rate is applied to a third period.
 
 |
 
-**Moment in month**
+Moment in month
+^^^^^^^^^^^^^^^
 
 By default, :code:`t` reflects the end of the month.
 If cash flows in different moments of the month, it can be reflected using discounting.
