@@ -220,6 +220,70 @@ Constants may return numeric and character values.
 
 |
 
+Time independent
+^^^^^^^^^^^^^^^^
+
+Time-independent variables have the same result for t=0, t=1, t=2, ...
+
+The :code:`Constant` class can be used to code time-independent model components.
+Instances of this class can hold numeric and character results.
+
+|
+
+Variable A: time-dependent
+
+..  code-block:: python
+
+    ModelVariable()
+
+Variable B: time-independent
+
+..  code-block:: python
+
+    Constant()
+
+|
+
+**Comparison**
+
+.. image:: https://acturtle.com/static/img/34/graph.png
+   :align: center
+
+In the above image we see that:
+
+* A - variable has different results for periods,
+* B - variable has the same result for all periods.
+
+|
+
+**Example**
+
+Variables:
+
+* :code:`pv_premiums` - the present value of premiums differs by time,
+* :code:`premium` - premium is the same for all periods.
+
+
+..  code-block:: python
+    :caption: model.py
+
+    pv_premiums = ModelVariable()
+    premium = Constant()
+
+    @assign(pv_premiums)
+    def pv_premiums_formula(t):
+        v = 1/(1+0.001)
+        return premium(t) + pv_premiums(t+1) * v
+
+    @assign(premium)
+    def premium_formula():
+        return policy.get("PREMIUM")
+
+Premium can be coded as an instance of the :code:`Constant` class because it is time-independent.
+Its formula does not require the :code:`t` parameter.
+
+|
+
 Comparison
 ----------
 
