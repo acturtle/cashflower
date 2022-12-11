@@ -352,6 +352,9 @@ class ModelVariable:
 
         self.formula = self.assigned_formula
 
+    def in_output(self, output_columns):
+        return output_columns == [] or self.name in output_columns
+
 
 class Constant:
     """Constant of a cash flow model.
@@ -443,6 +446,9 @@ class Constant:
             self.modelpoint = policy
 
         self.formula = self.assigned_formula
+
+    def in_output(self, output_columns):
+        return output_columns == [] or self.name in output_columns
 
 
 class Model:
@@ -560,6 +566,7 @@ class Model:
         """Create empty output to be populated with results. """
         empty_output = dict()
         aggregate = self.settings["AGGREGATE"]
+        output_columns = self.settings["OUTPUT_COLUMNS"]
 
         # Each modelpoint has a separate output file
         for modelpoint in self.modelpoints:
@@ -572,11 +579,13 @@ class Model:
         # Aggregated output contains only variables
         # Individual output contains all components (variables and constants)
         if aggregate:
-            for variable in self.variables:
-                empty_output[variable.modelpoint.name][variable.name] = None
+            output_variables = [v for v in self.variables if v.in_output(output_columns)]
+            for output_variable in output_variables:
+                empty_output[output_variable.modelpoint.name][output_variable.name] = None
         else:
-            for component in self.components:
-                empty_output[component.modelpoint.name][component.name] = None
+            output_components = [c for c in self.components if c.in_output(output_columns)]
+            for output_component in output_components:
+                empty_output[output_component.modelpoint.name][output_component.name] = None
 
         self.empty_output = empty_output
 
@@ -597,6 +606,7 @@ class Model:
         aggregate = self.settings["AGGREGATE"]
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
         t_output_max = min(self.settings["T_OUTPUT_MAX"], t_calculation_max)
+        output_columns = self.settings["OUTPUT_COLUMNS"]
 
         for c in self.queue:
             start = time.time()
@@ -605,16 +615,17 @@ class Model:
             except:
                 raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
             else:
-                # Variables are always in the output
-                if isinstance(c, ModelVariable):
-                    if aggregate:
-                        policy_output[c.modelpoint.name][c.name] = sum(c.result[:, :t_output_max+1])
-                    else:
-                        policy_output[c.modelpoint.name][c.name] = c.result[:, :t_output_max+1].flatten()
+                if c.in_output(output_columns):
+                    # Variables are always in the output
+                    if isinstance(c, ModelVariable):
+                        if aggregate:
+                            policy_output[c.modelpoint.name][c.name] = sum(c.result[:, :t_output_max+1])
+                        else:
+                            policy_output[c.modelpoint.name][c.name] = c.result[:, :t_output_max+1].flatten()
 
-                # Constants are added only to individual output
-                if isinstance(c, Constant) and not aggregate:
-                    policy_output[c.modelpoint.name][c.name] = np.repeat(c.result, t_output_max+1)
+                    # Constants are added only to individual output
+                    if isinstance(c, Constant) and not aggregate:
+                        policy_output[c.modelpoint.name][c.name] = np.repeat(c.result, t_output_max+1)
             c.runtime += time.time() - start
 
         # Add time and record number to the individual output
