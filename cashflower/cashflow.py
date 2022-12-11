@@ -602,7 +602,9 @@ class Model:
             start = time.time()
             try:
                 c.calculate()
-
+            except:
+                raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
+            else:
                 # Variables are always in the output
                 if isinstance(c, ModelVariable):
                     if aggregate:
@@ -613,19 +615,15 @@ class Model:
                 # Constants are added only to individual output
                 if isinstance(c, Constant) and not aggregate:
                     policy_output[c.modelpoint.name][c.name] = np.repeat(c.result, t_output_max+1)
-            except:
-                raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
-            end = time.time()
-            c.runtime += end - start
+            c.runtime += time.time() - start
 
         # Add time and record number to the individual output
         if not aggregate:
             for modelpoint in self.modelpoints:
-                policy_output[modelpoint.name]["t"] = list(range(t_output_max+1)) * modelpoint.size
+                policy_output[modelpoint.name]["t"] = np.tile(np.arange(t_output_max+1), modelpoint.size)
                 policy_output[modelpoint.name]["r"] = np.repeat(np.arange(1, modelpoint.size+1), t_output_max+1)
 
         updt(n_pols, row + 1)
-
         return policy_output
 
     def calculate_all_policies(self):
@@ -645,7 +643,7 @@ class Model:
         for m in self.modelpoints:
             if aggregate:
                 output[m.name] = sum(policy_output[m.name] for policy_output in policy_outputs)
-                output[m.name]["t"] = list(range(t_output_max+1))
+                output[m.name]["t"] = np.arange(t_output_max+1)
             else:
                 output[m.name] = pd.concat(policy_output[m.name] for policy_output in policy_outputs)
 
