@@ -327,7 +327,7 @@ class ModelVariable:
     def calculate(self):
         """Calculate result for all records of the policy. """
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
-        self.result = np.zeros((self.modelpoint.size, t_calculation_max+1), dtype=float)
+        self.result = np.empty((self.modelpoint.size, t_calculation_max+1), dtype=float)
 
         for r in range(self.modelpoint.size):
             self.modelpoint.record_num = r
