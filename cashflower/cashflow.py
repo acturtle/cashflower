@@ -605,12 +605,12 @@ class Model:
                     else:
                         policy_output[c.modelpoint.name][c.name] = c.result[:, :t_output_max+1].flatten()
 
-                # Parameters are added only to individual output
+                # Constants are added only to individual output
                 if isinstance(c, Constant) and not aggregate:
                     if c.modelpoint.size == 1:
                         policy_output[c.modelpoint.name][c.name] = c.result * (t_output_max+1)
                     else:
-                        policy_output[c.modelpoint.name][c.name] = [r for r in c.result for _ in range(t_output_max+1)]
+                        policy_output[c.modelpoint.name][c.name] = np.repeat(c.result, t_output_max+1)
             except:
                 raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
             end = time.time()
