@@ -569,7 +569,8 @@ class Model:
             if not aggregate:
                 empty_output[modelpoint.name]["r"] = None
 
-        # Aggregated output contains only variables, individual outputs contains variables and constants
+        # Aggregated output contains only variables
+        # Individual output contains variables and constants
         if aggregate:
             for variable in self.variables:
                 empty_output[variable.modelpoint.name][variable.name] = None
@@ -598,11 +599,12 @@ class Model:
                 # Variables are always in the output
                 if isinstance(c, ModelVariable):
                     if c.modelpoint.size == 1:
-                        policy_output[c.modelpoint.name][c.name] = c.result[0][:t_output_max+1]
+                        policy_output[c.modelpoint.name][c.name] = c.result[0, :t_output_max+1]
                     elif aggregate:
-                        policy_output[c.modelpoint.name][c.name] = utils.aggregate(c.result, t_output_max+1)
+                        policy_output[c.modelpoint.name][c.name] = sum(c.result[:, :t_output_max+1])
                     else:
-                        policy_output[c.modelpoint.name][c.name] = utils.flatten(c.result, t_output_max+1)
+                        policy_output[c.modelpoint.name][c.name] = c.result[:, :t_output_max+1].flatten()
+
                 # Parameters are added only to individual output
                 if isinstance(c, Constant) and not aggregate:
                     if c.modelpoint.size == 1:
@@ -618,7 +620,7 @@ class Model:
         if not aggregate:
             for modelpoint in self.modelpoints:
                 policy_output[modelpoint.name]["t"] = list(range(t_output_max+1)) * modelpoint.size
-                policy_output[modelpoint.name]["r"] = utils.repeated_numbers(modelpoint.size, t_output_max+1)
+                policy_output[modelpoint.name]["r"] = np.repeat(np.arange(1, modelpoint.size+1), t_output_max+1)
 
         return policy_output
 
