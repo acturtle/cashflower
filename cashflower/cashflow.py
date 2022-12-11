@@ -585,8 +585,15 @@ class Model:
         for component in self.components:
             component.clear()
 
-    def calculate_one_policy(self):
+    def calculate_one_policy(self, row, n_pols, primary):
         """Calculate results for a policy currently indicated in the model point. """
+        policy_id = primary.data.index[row]
+
+        for m in self.modelpoints:
+            m.policy_id = policy_id
+
+        self.clear_components()
+
         policy_output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
@@ -622,6 +629,8 @@ class Model:
                 policy_output[modelpoint.name]["t"] = list(range(t_output_max+1)) * modelpoint.size
                 policy_output[modelpoint.name]["r"] = np.repeat(np.arange(1, modelpoint.size+1), t_output_max+1)
 
+        updt(n_pols, row + 1)
+
         return policy_output
 
     def calculate_all_policies(self):
@@ -634,17 +643,8 @@ class Model:
         n_pols = len(primary)
         utils.print_log(f"Number of policies: {n_pols}")
 
-        policy_outputs = []
-        for row in range(n_pols):
-            policy_id = primary.data.index[row]
-
-            for m in self.modelpoints:
-                m.policy_id = policy_id
-
-            self.clear_components()
-            policy_output = self.calculate_one_policy()
-            policy_outputs.append(policy_output)
-            updt(n_pols, row + 1)
+        calculate = functools.partial(self.calculate_one_policy, n_pols=n_pols, primary=primary)
+        policy_outputs = [*map(calculate, range(n_pols))]
 
         utils.print_log("Preparing results")
         for m in self.modelpoints:
