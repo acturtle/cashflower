@@ -588,9 +588,8 @@ class Model:
     def calculate_one_policy(self, row, n_pols, primary):
         """Calculate results for a policy currently indicated in the model point. """
         policy_id = primary.data.index[row]
-
-        for m in self.modelpoints:
-            m.policy_id = policy_id
+        for modelpoint in self.modelpoints:
+            modelpoint.policy_id = policy_id
 
         self.clear_components()
 
@@ -603,21 +602,17 @@ class Model:
             start = time.time()
             try:
                 c.calculate()
+
                 # Variables are always in the output
                 if isinstance(c, ModelVariable):
-                    if c.modelpoint.size == 1:
-                        policy_output[c.modelpoint.name][c.name] = c.result[0, :t_output_max+1]
-                    elif aggregate:
+                    if aggregate:
                         policy_output[c.modelpoint.name][c.name] = sum(c.result[:, :t_output_max+1])
                     else:
                         policy_output[c.modelpoint.name][c.name] = c.result[:, :t_output_max+1].flatten()
 
                 # Constants are added only to individual output
                 if isinstance(c, Constant) and not aggregate:
-                    if c.modelpoint.size == 1:
-                        policy_output[c.modelpoint.name][c.name] = c.result * (t_output_max+1)
-                    else:
-                        policy_output[c.modelpoint.name][c.name] = np.repeat(c.result, t_output_max+1)
+                    policy_output[c.modelpoint.name][c.name] = np.repeat(c.result, t_output_max+1)
             except:
                 raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
             end = time.time()
