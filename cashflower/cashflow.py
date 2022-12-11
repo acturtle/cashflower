@@ -570,7 +570,7 @@ class Model:
                 empty_output[modelpoint.name]["r"] = None
 
         # Aggregated output contains only variables
-        # Individual output contains variables and constants
+        # Individual output contains all components (variables and constants)
         if aggregate:
             for variable in self.variables:
                 empty_output[variable.modelpoint.name][variable.name] = None
