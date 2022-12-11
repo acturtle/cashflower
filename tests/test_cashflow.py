@@ -417,7 +417,7 @@ class TestModel(TestCase):
             "a": [2 * (i + 100) for i in range(1201)]
         })
 
-        assert_frame_equal(model_output["policy"], test_output)
+        assert_frame_equal(model_output["policy"], test_output, check_dtype=False)
 
     def test_calculate_all_policies_when_individual(self):
         settings = load_settings()
