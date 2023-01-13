@@ -95,6 +95,8 @@ class Runplan:
         -------
         scalar
         """
+        if attribute not in self.data.columns:
+            raise CashflowModelError(f"There is no column '{attribute}' in the runplan.")
         return self.data.loc[self.version][attribute]
 
 
