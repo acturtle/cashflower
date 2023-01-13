@@ -2,6 +2,7 @@ import copy
 import datetime
 import functools
 import inspect
+import numpy as np
 import os
 import time
 import pandas as pd
@@ -326,20 +327,20 @@ class ModelVariable:
     def calculate(self):
         """Calculate result for all records of the policy. """
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
-        self.result = [[None] * (t_calculation_max+1) for _ in range(self.modelpoint.size)]
+        self.result = np.empty((self.modelpoint.size, t_calculation_max+1), dtype=float)
 
         for r in range(self.modelpoint.size):
             self.modelpoint.record_num = r
             self.clear()
 
             if self.recursive == "not_recursive":
-                self.result[r] = list(map(self.formula, range(t_calculation_max+1)))
+                self.result[r, :] = [*map(self.formula, range(t_calculation_max+1))]
             elif self.recursive == "backward":
                 for t in range(t_calculation_max, -1, -1):
-                    self.result[r][t] = self.formula(t)
+                    self.result[r, t] = self.formula(t)
             else:
                 for t in range(t_calculation_max+1):
-                    self.result[r][t] = self.formula(t)
+                    self.result[r, t] = self.formula(t)
 
     def initialize(self, policy=None):
         if self.assigned_formula is None:
@@ -350,6 +351,9 @@ class ModelVariable:
             self.modelpoint = policy
 
         self.formula = self.assigned_formula
+
+    def in_output(self, output_columns):
+        return output_columns == [] or self.name in output_columns
 
 
 class Constant:
@@ -442,6 +446,9 @@ class Constant:
             self.modelpoint = policy
 
         self.formula = self.assigned_formula
+
+    def in_output(self, output_columns):
+        return output_columns == [] or self.name in output_columns
 
 
 class Model:
@@ -559,6 +566,7 @@ class Model:
         """Create empty output to be populated with results. """
         empty_output = dict()
         aggregate = self.settings["AGGREGATE"]
+        output_columns = self.settings["OUTPUT_COLUMNS"]
 
         # Each modelpoint has a separate output file
         for modelpoint in self.modelpoints:
@@ -568,13 +576,16 @@ class Model:
             if not aggregate:
                 empty_output[modelpoint.name]["r"] = None
 
-        # Aggregated output contains only variables, individual outputs contains variables and constants
+        # Aggregated output contains only variables
+        # Individual output contains all components (variables and constants)
         if aggregate:
-            for variable in self.variables:
-                empty_output[variable.modelpoint.name][variable.name] = None
+            output_variables = [v for v in self.variables if v.in_output(output_columns)]
+            for output_variable in output_variables:
+                empty_output[output_variable.modelpoint.name][output_variable.name] = None
         else:
-            for component in self.components:
-                empty_output[component.modelpoint.name][component.name] = None
+            output_components = [c for c in self.components if c.in_output(output_columns)]
+            for output_component in output_components:
+                empty_output[output_component.modelpoint.name][output_component.name] = None
 
         self.empty_output = empty_output
 
@@ -583,42 +594,47 @@ class Model:
         for component in self.components:
             component.clear()
 
-    def calculate_one_policy(self):
+    def calculate_one_policy(self, row, n_pols, primary):
         """Calculate results for a policy currently indicated in the model point. """
+        policy_id = primary.data.index[row]
+        for modelpoint in self.modelpoints:
+            modelpoint.policy_id = policy_id
+
+        self.clear_components()
+
         policy_output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
         t_output_max = min(self.settings["T_OUTPUT_MAX"], t_calculation_max)
+        output_columns = self.settings["OUTPUT_COLUMNS"]
 
         for c in self.queue:
             start = time.time()
             try:
                 c.calculate()
-                # Variables are always in the output
-                if isinstance(c, ModelVariable):
-                    if c.modelpoint.size == 1:
-                        policy_output[c.modelpoint.name][c.name] = c.result[0][:t_output_max+1]
-                    elif aggregate:
-                        policy_output[c.modelpoint.name][c.name] = utils.aggregate(c.result, t_output_max+1)
-                    else:
-                        policy_output[c.modelpoint.name][c.name] = utils.flatten(c.result, t_output_max+1)
-                # Parameters are added only to individual output
-                if isinstance(c, Constant) and not aggregate:
-                    if c.modelpoint.size == 1:
-                        policy_output[c.modelpoint.name][c.name] = c.result * (t_output_max+1)
-                    else:
-                        policy_output[c.modelpoint.name][c.name] = [r for r in c.result for _ in range(t_output_max+1)]
             except:
                 raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
-            end = time.time()
-            c.runtime += end - start
+            else:
+                if c.in_output(output_columns):
+                    # Variables are always in the output
+                    if isinstance(c, ModelVariable):
+                        if aggregate:
+                            policy_output[c.modelpoint.name][c.name] = sum(c.result[:, :t_output_max+1])
+                        else:
+                            policy_output[c.modelpoint.name][c.name] = c.result[:, :t_output_max+1].flatten()
+
+                    # Constants are added only to individual output
+                    if isinstance(c, Constant) and not aggregate:
+                        policy_output[c.modelpoint.name][c.name] = np.repeat(c.result, t_output_max+1)
+            c.runtime += time.time() - start
 
         # Add time and record number to the individual output
         if not aggregate:
             for modelpoint in self.modelpoints:
-                policy_output[modelpoint.name]["t"] = list(range(t_output_max+1)) * modelpoint.size
-                policy_output[modelpoint.name]["r"] = utils.repeated_numbers(modelpoint.size, t_output_max+1)
+                policy_output[modelpoint.name]["t"] = np.tile(np.arange(t_output_max+1), modelpoint.size)
+                policy_output[modelpoint.name]["r"] = np.repeat(np.arange(1, modelpoint.size+1), t_output_max+1)
 
+        updt(n_pols, row + 1)
         return policy_output
 
     def calculate_all_policies(self):
@@ -631,23 +647,14 @@ class Model:
         n_pols = len(primary)
         utils.print_log(f"Number of policies: {n_pols}")
 
-        policy_outputs = []
-        for row in range(n_pols):
-            policy_id = primary.data.index[row]
-
-            for m in self.modelpoints:
-                m.policy_id = policy_id
-
-            self.clear_components()
-            policy_output = self.calculate_one_policy()
-            policy_outputs.append(policy_output)
-            updt(n_pols, row + 1)
+        calculate = functools.partial(self.calculate_one_policy, n_pols=n_pols, primary=primary)
+        policy_outputs = [*map(calculate, range(n_pols))]
 
         utils.print_log("Preparing results")
         for m in self.modelpoints:
             if aggregate:
                 output[m.name] = sum(policy_output[m.name] for policy_output in policy_outputs)
-                output[m.name]["t"] = list(range(t_output_max+1))
+                output[m.name]["t"] = np.arange(t_output_max+1)
             else:
                 output[m.name] = pd.concat(policy_output[m.name] for policy_output in policy_outputs)
 
@@ -692,5 +699,5 @@ class Model:
             print(f"{' '*10} output/{timestamp}_runtime.csv")
 
         end = time.time()
-        utils.print_log(f"Finished. Elapsed time: {round(end-start, 2)} seconds.")
+        utils.print_log(f"Finished. Elapsed time: {datetime.timedelta(seconds=round(end-start))}.")
         return timestamp

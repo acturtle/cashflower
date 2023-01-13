@@ -339,7 +339,8 @@ class TestModel(TestCase):
         assert_frame_equal(model.empty_output["fund"], empty_output["fund"])
 
     def test_set_empty_output_when_individual(self):
-        settings = {"AGGREGATE": False}
+        settings = load_settings()
+        settings["AGGREGATE"] = False
 
         policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2, 3]}), name="policy")
         fund = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2, 2, 3]}), name="fund")
@@ -358,39 +359,6 @@ class TestModel(TestCase):
 
         assert_frame_equal(model.empty_output["policy"], empty_output["policy"])
         assert_frame_equal(model.empty_output["fund"], empty_output["fund"])
-
-    def test_calculate_one_policy(self):
-        settings = load_settings()
-
-        policy = ModelPoint(data=pd.DataFrame({"policy_id": [1]}), name="policy", settings=settings)
-        policy.initialize()
-
-        a = ModelVariable(name="a", modelpoint=policy, settings=settings)
-
-        @assign(a)
-        def a_formula(t):
-            return t + 100
-
-        a.initialize()
-
-        model = Model(None, [a], [], [policy], settings)
-        model.set_empty_output()
-
-        model.set_children()
-        model.set_grandchildren()
-        model.set_queue()
-        model_output = model.calculate_one_policy()
-
-        manual_output = pd.DataFrame({
-            "t": list(range(1201)),
-            "a": [i + 100 for i in range(1201)]
-        })
-
-        actual = model_output["policy"]["a"]
-        expected = manual_output["a"]
-
-        assert len(actual) == len(expected)
-        assert all([a == b for a, b in zip(actual, expected)])
 
     def test_calculate_all_policies_when_aggregate(self):
         settings = load_settings()
@@ -417,7 +385,7 @@ class TestModel(TestCase):
             "a": [2 * (i + 100) for i in range(1201)]
         })
 
-        assert_frame_equal(model_output["policy"], test_output)
+        assert_frame_equal(model_output["policy"], test_output, check_dtype=False)
 
     def test_calculate_all_policies_when_individual(self):
         settings = load_settings()

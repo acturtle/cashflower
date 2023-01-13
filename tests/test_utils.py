@@ -44,25 +44,6 @@ class TestReplaceInFile(TestCase):
         os.remove(filename)
 
 
-class TestFlatten(TestCase):
-    def test_flatten(self):
-        assert flatten([[1, 2, 3], [4, 5, 6]]) == [1, 2, 3, 4, 5, 6]
-        assert flatten([[1, 2], [3, 4], [5, 6]]) == [1, 2, 3, 4, 5, 6]
-        assert flatten([[1, 2, 3], [4, 5, 6]], n=2) == [1, 2, 4, 5]
-
-
-class TestAggregate(TestCase):
-    def test_aggregate(self):
-        assert aggregate([[1, 2, 3], [4, 5, 6]]) == [5, 7, 9]
-        assert aggregate([[1, 2, 3], [4, 5, 6]], n=2) == [5, 7]
-
-
-class TestRepeatedNumbers(TestCase):
-    def test_repeated_numbers(self):
-        assert repeated_numbers(3, 2) == [1, 1, 2, 2, 3, 3]
-        assert repeated_numbers(2, 4) == [1, 1, 1, 1, 2, 2, 2, 2]
-
-
 class TestListCalledFuncs(TestCase):
     def test_list_called_funcs(self):
         def two():
