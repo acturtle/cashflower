@@ -1,9 +1,8 @@
-# Sample models
+# Example model for ad-hoc tests
 example/*
-examples/example2/*
-mult_cov/*
-wol/*
-examples/*
+
+# Outputs of tutorials
+tutorials/**/output/
 
 # Pycharm and static testing
 .flake8

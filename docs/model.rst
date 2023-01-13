@@ -30,7 +30,8 @@ Model variable
 
 Model variable is the main building block of the actuarial cash flow model.
 
-**Create model variable**
+Create model variable
+^^^^^^^^^^^^^^^^^^^^^
 
 ..  code-block:: python
     :caption: model.py
@@ -63,7 +64,8 @@ The second step is to use the decorator :code:`@assign()` to link a formula to t
 
 |
 
-**Formula**
+Formula
+^^^^^^^
 
 For model variables, :code:`@assign()` decorates the function with the parameter :code:`t`.
 
@@ -81,12 +83,92 @@ Model variables return numeric values.
 
 |
 
+Policy independent
+^^^^^^^^^^^^^^^^^^
+
+The model variables are recalculated for each of the policyholders.
+The default value for the :code:`pol_dep` (policy dependent) parameter of :code:`ModelVariable` is :code:`True`.
+
+If the results for the given variable are the same for all policyholders, the parameter :code:`pol_dep` should be set
+to :code:`False`. This setting helps to decrease the runtime of the model.
+
+|
+
+Variable A: policyholder-dependent
+
+..  code-block:: python
+
+    ModelVariable()
+
+or
+
+..  code-block:: python
+
+    ModelVariable(pol_dep=True)
+
+Variable B: policyholder-independent
+
+..  code-block:: python
+
+    ModelVariable(pol_dep=False)
+
+|
+
+**Comparison**
+
+.. image:: https://acturtle.com/static/img/31/graph.png
+   :align: center
+
+In the above image we see that:
+
+* A - variable changes for each of the policyholders,
+* B - variable has the same results for all policyholders.
+
+|
+
+**Example**
+
+Variables:
+
+* :code:`pv_premiums` - the present value of premiums differs by policyholder,
+* :code:`calendar_month` - calendar month is the same for all policyholders.
+
+..  code-block:: python
+    :caption: model.py
+
+    pv_premiums = ModelVariable()
+    calendar_month = ModelVariable(pol_dep=False)
+
+
+    @assign(pv_premiums)
+    def pv_premiums_formula(t):
+        v = 1/(1+0.001)
+        return premium(t) + pv_premiums(t+1) * v
+
+
+    @assign(calendar_month)
+    def calendar_month_formula(t):
+        valuation_month = 6
+        if t == 0:
+            return valuation_month
+        elif calendar_month(t - 1) % 12 == 1:
+            return 1
+        else:
+            return calendar_month(t - 1) + 1
+
+
+Calendar month can have the :code:`pol_dep` attribute set to :code:`False` because the results are the same for all
+policyholders.
+
+|
+
 Constant
 --------
 
 Constant is a t-independent component of the model.
 
-**Create constant**
+Create constant
+^^^^^^^^^^^^^^^
 
 ..  code-block:: python
     :caption: model.py
@@ -119,7 +201,8 @@ The second step is to use the decorator :code:`@assign()` to link a formula to t
 
 |
 
-**Formula**
+Formula
+^^^^^^^
 
 For constants, :code:`@assign()` decorates the function without any parameters.
 
@@ -134,6 +217,70 @@ The function contains the logic for the constant variable.
         return policy.get("PREMIUM")
 
 Constants may return numeric and character values.
+
+|
+
+Time independent
+^^^^^^^^^^^^^^^^
+
+Time-independent variables have the same result for t=0, t=1, t=2, ...
+
+The :code:`Constant` class can be used to code time-independent model components.
+Instances of this class can hold numeric and character results.
+
+|
+
+Variable A: time-dependent
+
+..  code-block:: python
+
+    ModelVariable()
+
+Variable B: time-independent
+
+..  code-block:: python
+
+    Constant()
+
+|
+
+**Comparison**
+
+.. image:: https://acturtle.com/static/img/34/graph.png
+   :align: center
+
+In the above image we see that:
+
+* A - variable has different results for periods,
+* B - variable has the same result for all periods.
+
+|
+
+**Example**
+
+Variables:
+
+* :code:`pv_premiums` - the present value of premiums differs by time,
+* :code:`premium` - premium is the same for all periods.
+
+
+..  code-block:: python
+    :caption: model.py
+
+    pv_premiums = ModelVariable()
+    premium = Constant()
+
+    @assign(pv_premiums)
+    def pv_premiums_formula(t):
+        v = 1/(1+0.001)
+        return premium(t) + pv_premiums(t+1) * v
+
+    @assign(premium)
+    def premium_formula():
+        return policy.get("PREMIUM")
+
+Premium can be coded as an instance of the :code:`Constant` class because it is time-independent.
+Its formula does not require the :code:`t` parameter.
 
 |
 
@@ -165,7 +312,6 @@ The table presents the differences:
    * - returns strings
      - No
      - Yes
-
 
 |
 
