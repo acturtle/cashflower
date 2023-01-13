@@ -406,7 +406,11 @@ class Constant:
     def __call__(self, r=None):
         # User might call lower order variable from higher order variable and specify record (r)
         if r is not None:
-            return self.result[r]
+            try:
+                return self.result[r]
+            except IndexError:
+                raise CashflowModelError(f"Unable to evaluate the '{self.name}' constant. "
+                                         f"Tip: don't call constants with the time parameter.")
 
         return self.result[self.modelpoint.record_num]
 
