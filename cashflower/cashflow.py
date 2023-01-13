@@ -699,5 +699,5 @@ class Model:
             print(f"{' '*10} output/{timestamp}_runtime.csv")
 
         end = time.time()
-        utils.print_log(f"Finished. Elapsed time: {round(end-start, 2)} seconds.")
+        utils.print_log(f"Finished. Elapsed time: {datetime.timedelta(seconds=round(end-start))}.")
         return timestamp
