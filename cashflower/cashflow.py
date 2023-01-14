@@ -62,10 +62,20 @@ class Runplan:
     """
     def __init__(self, data=None, version="1"):
         self.data = data
-        self.version = version
         self.set_empty_data()
+        self._version = version
         self.set_version_as_str()
         self.set_index()
+
+    @property
+    def version(self):
+        return self._version
+
+    @version.setter
+    def version(self, new_version):
+        if new_version not in self.data.index:
+            raise CashflowModelError(f"There is no version '{new_version}' in the Runplan.")
+        self._version = new_version
 
     def set_empty_data(self):
         """Set minimal runplan if not provided by the user."""
