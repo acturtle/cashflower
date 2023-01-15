@@ -57,7 +57,7 @@ class Runplan:
     ----------
     data : data frame
         Data for runplan which must contain column named 'version'.
-    version : str
+    _version : str
         Current version to be evaluated.
     """
     def __init__(self, data=None, version="1"):
@@ -407,8 +407,8 @@ class Constant:
 
     def __repr__(self):
         if self.name is None:
-            return "P: NoName"
-        return f"P: {self.name}"
+            return "C: NoName"
+        return f"C: {self.name}"
 
     def __lt__(self, other):
         return len(self.grandchildren) < len(other.grandchildren)
