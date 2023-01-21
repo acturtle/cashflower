@@ -6,5 +6,4 @@ Tutorials
    :caption: Contents:
 
    time
-   annuity
-   whole_life
+   life_insurance
