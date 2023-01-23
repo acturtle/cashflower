@@ -1,9 +1,6 @@
 import pandas as pd
 
-from cashflower import Runplan, ModelPoint
-
-
-runplan = Runplan(data=pd.DataFrame({"version": [1]}))
+from cashflower import ModelPoint
 
 
 policy = ModelPoint(data=pd.DataFrame({
@@ -11,6 +8,3 @@ policy = ModelPoint(data=pd.DataFrame({
     "sum_assured": [100_000],
     "remaining_term": [36],
 }))
-
-assumption = dict()
-# assumption["mortality"] = pd.read_csv("")
