@@ -25,12 +25,12 @@ python console
 ```python
 from cashflower import create_model
 
-create_model("wol")
+create_model("my_model")
 ```
 
 ## Input
 
-wol/input.py
+my_model/input.py
 ```python
 policy = ModelPoint(data=pd.read_csv("C:/my_data/policy.csv"))
 
@@ -41,7 +41,7 @@ assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv", index_col="age
 
 ## Model
 
-wol/model.py
+my_model/model.py
 ```python
 age = ModelVariable(modelpoint=policy)
 death_prob = ModelVariable(modelpoint=policy)

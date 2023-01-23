@@ -203,3 +203,41 @@ Runplan is a list of runs which models should perform.
         "version": [1, 2, 3],
         "shock": [0, 0.05, -0.05]
     }))
+
+You can use different run versions, to calculate different scenarios.
+
+To get data from runplan, use:
+
+..  code-block:: python
+
+    runplan.get("my-column")
+
+For example:
+
+..  code-block:: python
+    :caption: model.py
+
+    import pandas as pd
+    from example.input import policy, runplan
+
+    mortality_rate = ModelVariable(modelpoint=policy)
+    shocked_mortality_rate = ModelVariable(modelpoint=policy)
+
+    @assign(mortality_rate)
+    def mortality_rate_formula(t):
+        ...
+
+    @assign(shocked_mortality_rate)
+    def shocked_mortality_rate_formula(t):
+        return mortality_rate(t) * (1+runplan.get("shock"))
+
+To run model with the chosen version, source the :code:`run.py` and add the version number.
+
+For example, to run the model with the version :code:`2` , use:
+
+..  code-block::
+    :caption: terminal
+
+    python run.py 2
+
+The model will take data from runplan for the version 2.

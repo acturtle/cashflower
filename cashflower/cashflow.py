@@ -57,15 +57,25 @@ class Runplan:
     ----------
     data : data frame
         Data for runplan which must contain column named 'version'.
-    version : str
+    _version : str
         Current version to be evaluated.
     """
     def __init__(self, data=None, version="1"):
         self.data = data
-        self.version = version
         self.set_empty_data()
+        self._version = version
         self.set_version_as_str()
         self.set_index()
+
+    @property
+    def version(self):
+        return self._version
+
+    @version.setter
+    def version(self, new_version):
+        if new_version not in self.data.index:
+            raise CashflowModelError(f"There is no version '{new_version}' in the Runplan.")
+        self._version = new_version
 
     def set_empty_data(self):
         """Set minimal runplan if not provided by the user."""
@@ -95,6 +105,8 @@ class Runplan:
         -------
         scalar
         """
+        if attribute not in self.data.columns:
+            raise CashflowModelError(f"There is no column '{attribute}' in the runplan.")
         return self.data.loc[self.version][attribute]
 
 
@@ -395,8 +407,8 @@ class Constant:
 
     def __repr__(self):
         if self.name is None:
-            return "P: NoName"
-        return f"P: {self.name}"
+            return "C: NoName"
+        return f"C: {self.name}"
 
     def __lt__(self, other):
         return len(self.grandchildren) < len(other.grandchildren)
@@ -404,7 +416,11 @@ class Constant:
     def __call__(self, r=None):
         # User might call lower order variable from higher order variable and specify record (r)
         if r is not None:
-            return self.result[r]
+            try:
+                return self.result[r]
+            except IndexError:
+                raise CashflowModelError(f"Unable to evaluate the '{self.name}' constant. "
+                                         f"Tip: don't call constants with the time parameter.")
 
         return self.result[self.modelpoint.record_num]
 

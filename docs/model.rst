@@ -199,6 +199,14 @@ The second step is to use the decorator :code:`@assign()` to link a formula to t
 
     @assign(premium)
 
+
+Constants can be numbers or strings. Strings can not be summed up so constants can not be part of the aggregated output.
+
+Constants are part of the model output only if the model outputs individual results.
+
+.. IMPORTANT::
+    Constants are part of the output report only if the :code:`AGGREGATE` setting is set to :code:`False`.
+
 |
 
 Formula
