@@ -94,68 +94,6 @@ def replace_in_file(_file, _from, _to):
         file.write(filedata)
 
 
-def flatten(lst, n=None):
-    """Flatten a list of sublists.
-
-    Parameters
-    ----------
-    lst : list
-        List of sublists.
-    n : integer
-        (Optionally) number of items to use.
-
-    Returns
-    -------
-    list
-    """
-    if n is not None:
-        lst = [sublist[:n] for sublist in lst]
-
-    return sum(lst, [])
-
-
-def aggregate(lst, n=None):
-    """Sums each n-th element of sublists.
-
-    Parameters
-    ----------
-    lst : list
-        List of subslists.
-    n : integer
-        (Optionally) number of items to use.
-
-    Returns
-    -------
-    list
-    """
-    if n is not None:
-        lst = [sublist[:n] for sublist in lst]
-
-    return [sum(i) for i in zip(*lst)]
-
-
-def repeated_numbers(m, n):
-    """Create a list of repeated consecutive numbers.
-
-    Parameters
-    ----------
-    m : int
-        The upper bound of the range of numbers.
-    n : int
-        Number of times each number is repeated.
-
-    Returns
-    -------
-    list
-    """
-    lst = []
-    for i in range(1, m + 1):
-        lst.append([i] * n)
-
-    lst = flatten(lst)
-    return lst
-
-
 def clean_formula_source(formula_source):
     """Clean formula's source.
     

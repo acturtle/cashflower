@@ -5,5 +5,6 @@ Tutorials
    :maxdepth: 2
    :caption: Contents:
 
+   time
+   life_insurance
    annuity
-   whole_life

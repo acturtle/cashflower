@@ -64,13 +64,21 @@ In the :code:`input.py` script, you can define your model points and assumptions
 
     import pandas as pd
 
+    from cashflower import Runplan, ModelPoint
+
+    runplan = Runplan(data=pd.DataFrame({
+        "version": [1],
+        "valuation_year": [2022],
+        "valuation_month": [12]
+    }))
+
     policy = ModelPoint(data=pd.read_csv("C:/my_data/policy.csv"))
 
     assumption = dict()
     assumption["interest_rates"] = pd.read_csv("C:/my_data/interest_rates.csv")
     assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv", index_col="age")
 
-Model points base on the :code:`ModelPoint` class and assumptions have a form of a dictionary.
+Runplan bases on the :code:`Runplan` class, model points base on the :code:`ModelPoint` class and assumptions have a form of a dictionary.
 
 |
 
@@ -116,7 +124,7 @@ The variables defined in :code:`model.py` will be evaluated and saved in the out
 Calculate
 ^^^^^^^^^
 
-To calculate variables for model points, run :code:`run.py`.
+To calculate the model, run :code:`run.py`.
 
 ..  code-block::
     :caption: terminal
@@ -137,7 +145,7 @@ The main components of an actuarial model are:
     * model points (policy data),
     * assumptions,
     * run plan,
-    * model's components: model variables and parameters,
+    * model's components: model variables and constants,
     * results.
 
 .. image:: https://acturtle.com/static/img/17/cash-flow-model-overview.webp
@@ -158,7 +166,7 @@ Assumptions are also product's parameters, such as fees or levels of guarantees.
 We can distinguish between two types of variables:
 
 * model variables - time-dependent - variables that depend on the projection's period (e.g. present value of premiums),
-* parameters - time-independent - variables that stay the same for the whole projection (e.g. gender of the policyholder).
+* constants - time-independent - variables that stay the same for the whole projection (e.g. gender of the policyholder).
 
 **Results** - the output of the calculation logic.
 
