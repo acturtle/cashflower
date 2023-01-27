@@ -520,12 +520,7 @@ class Model:
             formula_source = inspect.getsource(component.formula)
             cleaned_formula_source = utils.clean_formula_source(formula_source)
             child_names = utils.list_called_funcs(cleaned_formula_source, component_names)
-
-            # Return objects instead of names
-            for child_name in child_names:
-                if child_name != component.name:
-                    child = self.get_component_by_name(child_name)
-                    component.children.append(child)
+            component.children = [self.get_component_by_name(n) for n in child_names if n != component.name]
 
     def set_grandchildren(self):
         """Set grandchildren of model components. """
