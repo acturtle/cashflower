@@ -342,8 +342,8 @@ class ModelVariable:
         self.result = np.empty((self.modelpoint.size, t_calculation_max+1), dtype=float)
 
         for r in range(self.modelpoint.size):
-            self.modelpoint.record_num = r
             self.clear()
+            self.modelpoint.record_num = r
 
             if self.recursive == "not_recursive":
                 self.result[r, :] = [*map(self.formula, range(t_calculation_max+1))]
@@ -449,8 +449,8 @@ class Constant:
         """Calculate parameter's value for all records in the policy. """
         self.result = [None] * self.modelpoint.size
         for r in range(self.modelpoint.size):
-            self.modelpoint.record_num = r
             self.clear()
+            self.modelpoint.record_num = r
             self.result[r] = self.formula()
 
     def initialize(self, policy=None):
@@ -543,12 +543,7 @@ class Model:
             formula_source = inspect.getsource(component.formula)
             cleaned_formula_source = utils.clean_formula_source(formula_source)
             child_names = utils.list_called_funcs(cleaned_formula_source, component_names)
-
-            # Return objects instead of names
-            for child_name in child_names:
-                if child_name != component.name:
-                    child = self.get_component_by_name(child_name)
-                    component.children.append(child)
+            component.children = [self.get_component_by_name(n) for n in child_names if n != component.name]
 
     def set_grandchildren(self):
         """Set grandchildren of model components. """
@@ -605,18 +600,11 @@ class Model:
 
         self.empty_output = empty_output
 
-    def clear_components(self):
-        """Clear cache of all components."""
-        for component in self.components:
-            component.clear()
-
     def calculate_one_policy(self, row, n_pols, primary):
         """Calculate results for a policy currently indicated in the model point. """
         policy_id = primary.data.index[row]
         for modelpoint in self.modelpoints:
             modelpoint.policy_id = policy_id
-
-        self.clear_components()
 
         policy_output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
