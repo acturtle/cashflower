@@ -2,8 +2,6 @@ from cashflower import assign, ModelVariable
 
 from tutorials.annuity.deferred.input import policy
 
-projection_year = ModelVariable(modelpoint=policy)
-
 
 INTEREST_RATE = 0.005
 DEATH_PROB = 0.003

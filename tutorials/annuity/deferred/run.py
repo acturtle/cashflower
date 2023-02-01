@@ -5,4 +5,4 @@ from tutorials.annuity.deferred.settings import settings
 
 
 if __name__ == "__main__":
-    start("deferred", settings, sys.argv)
+    start("tutorials.annuity.deferred", settings, sys.argv)
