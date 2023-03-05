@@ -251,6 +251,8 @@ class ModelVariable:
         User sets it directly in the model script, otherwise it is set to the primary model point.
     pol_dep : bool
         Should the variable be calculated for each policyholder or only once?
+    calc_array : bool
+        Is the calculation arrayized?
     assigned_formula : function
         Function attached using the @assign decorator.
     _formula : function
@@ -260,7 +262,7 @@ class ModelVariable:
         States if the formula is recursive, possible values: 'forward', 'backward' and 'not_recursive'.
     settings : dict
         User settings from 'settings.py'.
-    result : list
+    result : numpy array
         List of n lists with m elements where: n = num of records for policy, m = num of projection months.
     runtime: float
         The runtime of the model variable in the model run (in seconds).
@@ -272,12 +274,13 @@ class ModelVariable:
     """
     instances = []
 
-    def __init__(self, name=None, modelpoint=None, settings=None, pol_dep=True):
+    def __init__(self, name=None, modelpoint=None, settings=None, pol_dep=True, calc_array=False):
         self.__class__.instances.append(self)
         self.name = name
         self.modelpoint = modelpoint
         self.settings = settings
         self.pol_dep = pol_dep
+        self.calc_array = calc_array
         self.assigned_formula = None
         self._formula = None
         self.recursive = None
@@ -294,16 +297,18 @@ class ModelVariable:
     def __lt__(self, other):
         return len(self.grandchildren) < len(other.grandchildren)
 
-    def __call__(self, t=0, r=None):
-        t_calculation_max = self.settings["T_CALCULATION_MAX"]
-        if t < 0 or t > t_calculation_max:
+    def __call__(self, t=None, r=None):
+        if t is None:
+            return self.result[self.modelpoint.record_num, :]
+
+        if t < 0 or t > self.settings["T_CALCULATION_MAX"]:
             return 0
 
         # User might call lower order variable from higher order variable and specify record (r)
         if r is not None:
-            return self.result[r][t]
+            return self.result[r, t]
 
-        return self.result[self.modelpoint.record_num][t]
+        return self.result[self.modelpoint.record_num, t]
 
     @property
     def formula(self):
@@ -320,10 +325,16 @@ class ModelVariable:
         params = inspect.signature(new_formula).parameters
 
         # Model variables should have parameter 't'
-        if not (len(params) == 1 and "t" in params.keys()):
-            msg = f"\nModel variable formula must have only one parameter: 't'. " \
-                  f"Please check code for '{new_formula.__name__}'."
-            raise CashflowModelError(msg)
+        if not self.calc_array:
+            if not (len(params) == 1 and "t" in params.keys()):
+                msg = f"\nModel variable formula must have only one parameter: 't'. " \
+                      f"Please check code for '{new_formula.__name__}'."
+                raise CashflowModelError(msg)
+        else:
+            if not (len(params) == 0):
+                msg = f"\nFormula for model variable with calc_array can't have any parameters. " \
+                      f"Please check code for '{new_formula.__name__}'."
+                raise CashflowModelError(msg)
 
         # The calculation varies if the model variable is recursive
         formula_source = inspect.getsource(new_formula)
@@ -345,17 +356,23 @@ class ModelVariable:
             self.clear()
             self.modelpoint.record_num = r
 
-            # not recursive
-            if self.recursive == 0:
-                self.result[r, :] = [*map(self.formula, range(t_calculation_max+1))]
-            # recursive forward
-            elif self.recursive == 1:
-                for t in range(t_calculation_max+1):
-                    self.result[r, t] = self.formula(t)
-            # recursive backward
+            # Formula returns an array
+            if self.calc_array:
+                self.result[r, :] = self.formula()
+
+            # Formula returns value for each time separately
             else:
-                for t in range(t_calculation_max, -1, -1):
-                    self.result[r, t] = self.formula(t)
+                # not recursive
+                if self.recursive == 0:
+                    self.result[r, :] = [*map(self.formula, range(t_calculation_max+1))]
+                # recursive forward
+                elif self.recursive == 1:
+                    for t in range(t_calculation_max+1):
+                        self.result[r, t] = self.formula(t)
+                # recursive backward
+                else:
+                    for t in range(t_calculation_max, -1, -1):
+                        self.result[r, t] = self.formula(t)
 
     def initialize(self, policy=None):
         if self.assigned_formula is None:
