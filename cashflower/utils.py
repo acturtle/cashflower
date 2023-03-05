@@ -193,6 +193,9 @@ def print_log(msg):
 
 def split_to_ranges(n, num_ranges):
     """n = 20, num_ranges = 3 --> (0, 6), (6, 12), (12, 20)"""
+    if n < num_ranges:
+        return [(0, n)]
+
     range_size = n // num_ranges
     # remainding items are added to the last range
     remainder = n - num_ranges * range_size
@@ -204,7 +207,4 @@ def split_to_ranges(n, num_ranges):
             add_items = remainder
         range_tuple = (range_size * i, range_size * (i + 1) + add_items)
         output[i] = range_tuple
-
-    # TODO: what if n < num_ranges?
-
     return output

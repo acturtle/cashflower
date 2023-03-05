@@ -513,7 +513,7 @@ class Model:
     output : dict
         Dict with key = modelpoints, values = data frames (columns for model variables).
     """
-    def __init__(self, name, variables, constants, modelpoints, settings):
+    def __init__(self, name, variables, constants, modelpoints, settings, part=None, cpu_count=None):
         self.name = name
         self.variables = variables
         self.constants = constants
@@ -523,6 +523,8 @@ class Model:
         self.queue = []
         self.empty_output = None
         self.output = None
+        self.part = part
+        self.cpu_count = cpu_count
 
     def get_component_by_name(self, name):
         """Get a model component object by its name.
@@ -661,7 +663,7 @@ class Model:
         updt(n_pols, row + 1)
         return policy_output
 
-    def calculate_all_policies(self):
+    def calculate_all_policies(self, range_start=None, range_end=None):
         """Calculate results for all policies. """
         output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
@@ -672,7 +674,11 @@ class Model:
         utils.print_log(f"Number of policies: {n_pols}")
 
         calculate = functools.partial(self.calculate_one_policy, n_pols=n_pols, primary=primary)
-        policy_outputs = [*map(calculate, range(n_pols))]
+
+        if range_start is None:
+            policy_outputs = [*map(calculate, range(n_pols))]
+        else:
+            policy_outputs = [*map(calculate, range(range_start, range_end))]
 
         utils.print_log("Preparing results")
         for m in self.modelpoints:
@@ -687,6 +693,7 @@ class Model:
 
     def run(self):
         """Orchestrate all steps of the cash flow model run. """
+        # Settings
         start = time.time()
         utils.print_log(f"Start run for model '{self.name}'")
         output_columns = self.settings["OUTPUT_COLUMNS"]
@@ -697,31 +704,40 @@ class Model:
         self.set_children()
         self.set_grandchildren()
         self.set_queue()
-        self.calculate_all_policies()
 
-        if not os.path.exists("output"):
-            os.makedirs("output")
+        # Subset modelpoints for multiprocessing
+        primary = self.get_modelpoint_by_name("policy")
+        primary_ranges = utils.split_to_ranges(primary.data.shape[0], self.cpu_count)
+        primary_range = primary_ranges[self.part]
 
-        utils.print_log("Saving files:")
-        for modelpoint in self.modelpoints:
-            filepath = f"output/{timestamp}_{modelpoint.name}.csv"
-            print(f"{' '*10} {filepath}")
+        # Calculate all policies or subset in case of multiprocessing
+        self.calculate_all_policies(range_start=primary_range[0], range_end=primary_range[1])
 
-            mp_output = self.output.get(modelpoint.name)
-            if user_chose_columns:
-                output_columns.extend(["t", "r"])
-                columns = mp_output.columns.intersection(output_columns)
-                mp_output.to_csv(filepath, index=False, columns=columns)
-            else:
-                mp_output.to_csv(filepath, index=False)
+        # if not os.path.exists("output"):
+        #     os.makedirs("output")
+        #
+        # utils.print_log("Saving files:")
+        # for modelpoint in self.modelpoints:
+        #     filepath = f"output/{timestamp}_{modelpoint.name}.csv"
+        #     print(f"{' '*10} {filepath}")
+        #
+        #     mp_output = self.output.get(modelpoint.name)
+        #     if user_chose_columns:
+        #         output_columns.extend(["t", "r"])
+        #         columns = mp_output.columns.intersection(output_columns)
+        #         mp_output.to_csv(filepath, index=False, columns=columns)
+        #     else:
+        #         mp_output.to_csv(filepath, index=False)
+        #
+        # # Save runtime
+        # if self.settings["SAVE_RUNTIME"]:
+        #     data = [(c.name, c.runtime) for c in self.components]
+        #     runtime = pd.DataFrame(data, columns=["component", "runtime"])
+        #     runtime.to_csv(f"output/{timestamp}_runtime.csv", index=False)
+        #     print(f"{' '*10} output/{timestamp}_runtime.csv")
+        #
+        # end = time.time()
+        # utils.print_log(f"Finished. Elapsed time: {datetime.timedelta(seconds=round(end-start))}.")
+        # return timestamp
 
-        # Save runtime
-        if self.settings["SAVE_RUNTIME"]:
-            data = [(c.name, c.runtime) for c in self.components]
-            runtime = pd.DataFrame(data, columns=["component", "runtime"])
-            runtime.to_csv(f"output/{timestamp}_runtime.csv", index=False)
-            print(f"{' '*10} output/{timestamp}_runtime.csv")
-
-        end = time.time()
-        utils.print_log(f"Finished. Elapsed time: {datetime.timedelta(seconds=round(end-start))}.")
-        return timestamp
+        return self.output
