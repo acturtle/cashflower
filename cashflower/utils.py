@@ -153,6 +153,9 @@ def list_called_funcs(formula_source, funcs):
 
 def is_recursive(formula_source, name):
     """Check if formula is recursive.
+    0 = not_recursive
+    1 = forward (t-1)
+    2 = backward (t+1)
 
     Parameters
     ----------
@@ -163,20 +166,17 @@ def is_recursive(formula_source, name):
 
     Returns
     -------
-    string
+    integer
     """
-    if name is None:
-        raise ValueError("Parameter 'name' can't be None.")
-
     search1 = re.search(r"\W" + name + r"\(t\-1\)", formula_source)
     if bool(search1):
-        return "forward"
+        return 1
 
     search2 = re.search(r"\W" + name + r"\(t\+1\)", formula_source)
     if bool(search2):
-        return "backward"
+        return 2
 
-    return "not_recursive"
+    return 0
 
 
 def print_log(msg):

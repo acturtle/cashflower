@@ -345,13 +345,16 @@ class ModelVariable:
             self.clear()
             self.modelpoint.record_num = r
 
-            if self.recursive == "not_recursive":
+            # not recursive
+            if self.recursive == 0:
                 self.result[r, :] = [*map(self.formula, range(t_calculation_max+1))]
-            elif self.recursive == "backward":
-                for t in range(t_calculation_max, -1, -1):
-                    self.result[r, t] = self.formula(t)
-            else:
+            # recursive forward
+            elif self.recursive == 1:
                 for t in range(t_calculation_max+1):
+                    self.result[r, t] = self.formula(t)
+            # recursive backward
+            else:
+                for t in range(t_calculation_max, -1, -1):
                     self.result[r, t] = self.formula(t)
 
     def initialize(self, policy=None):
