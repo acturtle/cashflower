@@ -190,3 +190,21 @@ def print_log(msg):
     now = datetime.now()
     print(now.strftime("%H:%M:%S") + " | " + msg)
 
+
+def split_to_ranges(n, num_ranges):
+    """n = 20, num_ranges = 3 --> (0, 6), (6, 12), (12, 20)"""
+    range_size = n // num_ranges
+    # remainding items are added to the last range
+    remainder = n - num_ranges * range_size
+
+    output = [None] * num_ranges
+    add_items = 0
+    for i in range(num_ranges):
+        if i == num_ranges-1:
+            add_items = remainder
+        range_tuple = (range_size * i, range_size * (i + 1) + add_items)
+        output[i] = range_tuple
+
+    # TODO: what if n < num_ranges?
+
+    return output
