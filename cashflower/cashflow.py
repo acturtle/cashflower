@@ -290,8 +290,6 @@ class ModelVariable:
         self.grandchildren = []
 
     def __repr__(self):
-        if self.name is None:
-            return "MV: NoName"
         return f"MV: {self.name}"
 
     def __lt__(self, other):
@@ -513,7 +511,7 @@ class Model:
     output : dict
         Dict with key = modelpoints, values = data frames (columns for model variables).
     """
-    def __init__(self, name, variables, constants, modelpoints, settings, part=None, cpu_count=None):
+    def __init__(self, name, variables, constants, modelpoints, settings, cpu_count=None):
         self.name = name
         self.variables = variables
         self.constants = constants
@@ -523,7 +521,6 @@ class Model:
         self.queue = []
         self.empty_output = None
         self.output = None
-        self.part = part
         self.cpu_count = cpu_count
 
     def get_component_by_name(self, name):
@@ -691,7 +688,7 @@ class Model:
         self.output = output
         return output
 
-    def run(self):
+    def run(self, part=None):
         """Orchestrate all steps of the cash flow model run. """
         # Settings
         start = time.time()
@@ -708,7 +705,7 @@ class Model:
         # Subset modelpoints for multiprocessing
         primary = self.get_modelpoint_by_name("policy")
         primary_ranges = utils.split_to_ranges(primary.data.shape[0], self.cpu_count)
-        primary_range = primary_ranges[self.part]
+        primary_range = primary_ranges[part]
 
         # Calculate all policies or subset in case of multiprocessing
         self.calculate_all_policies(range_start=primary_range[0], range_end=primary_range[1])
