@@ -53,7 +53,6 @@ def list_used_words(text, words):
     ----------
     text : string
         Text in which the function looks for words.
-        
     words : list
         List of words to be looked for in the text.
 
@@ -75,10 +74,8 @@ def replace_in_file(_file, _from, _to):
     ----------
     _file : str
         Path to the file in which words are to be replaced.
-        
     _from : str
         Word that needs to be replaced.
-        
     _to :
         Word to be replaced with.
     """
@@ -96,7 +93,6 @@ def replace_in_file(_file, _from, _to):
 
 def clean_formula_source(formula_source):
     """Clean formula's source.
-    
     Prepares the formula's source to be analysed in terms of which function it calls.
     Removes first line (function name), comments and whitespaces before brackets.
 
@@ -180,7 +176,7 @@ def is_recursive(formula_source, name):
 
 
 def print_log(msg, settings=None):
-    """ Print a log message with timestamp."""
+    """ Print a log message with timestamp. Don't show for multiprocessing."""
     if settings is not None and settings.get("MULTIPROCESSING"):
         return None
     now = datetime.now()

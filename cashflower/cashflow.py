@@ -14,7 +14,6 @@ from . import utils
 
 def assign(var):
     """Assign formula to an object.
-    
     The decorator links model components and their formulas.
     The decorator also caches the function so that the results get remembered.
 
@@ -112,7 +111,6 @@ class Runplan:
 
 class ModelPoint:
     """Policyholders' data.
-    
     The model point stores data on all policyholders and points to a specific policyholder
     for which model should be calculated.
 
@@ -238,7 +236,6 @@ class ModelPoint:
 
 class ModelVariable:
     """Model variable of a cash flow model.
-    
     Model variable returns numbers and is t-dependent.
     Model variable is linked to a modelpoint and calculates results based on the formula.
 
@@ -487,7 +484,6 @@ class Constant:
 
 class Model:
     """Actuarial cash flow model.
-    
     Model combines constants, model variables and modelpoints.
     Model components (constants and variables) are ordered into a calculation queue.
     All variables are calculated for data of each policyholder in the modelpoints.
@@ -740,5 +736,5 @@ class Model:
             runtime.to_csv(f"output/{timestamp}_runtime.csv", index=False)
             print(f"{' '*10} output/{timestamp}_runtime.csv")
 
-        utils.print_log(f"Finished")
+        utils.print_log("Finished")
         return timestamp

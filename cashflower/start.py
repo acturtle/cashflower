@@ -10,7 +10,6 @@ from .utils import print_log
 
 def load_settings(settings=None):
     """Load model settings.
-    
     The function firstly reads the default settings and then overwrites these that have been defined by the user.
     The function helps with backward compatibility.
     If there is a new setting in the package, the user doesn't have to have it in the settings script.
@@ -143,7 +142,6 @@ def get_constants(model_members, policy):
     ----------
     model_members : list of tuples
         Items defined in input.py.
-        
     policy : object of class ModelPoint
         Primary model point in the model.
 
