@@ -1,8 +1,11 @@
+import datetime
 import importlib
 import inspect
+import os
+import pandas as pd
 
-
-from . import CashflowModelError, ModelVariable, ModelPoint, Model, Constant, Runplan
+from .cashflow import CashflowModelError, ModelVariable, ModelPoint, Model, Constant, Runplan
+from .utils import print_log
 
 
 def load_settings(settings=None):
@@ -158,19 +161,7 @@ def get_constants(model_members, policy):
 
 
 def start(model_name, settings, argv):
-    """Initiate a Model object and run it.
-
-    Parameters
-    ----------
-    model_name : str
-        Name of the model.
-        
-    settings : dict
-        Settings defined by the user.
-
-    argv : list
-        List of terminal arguments.
-    """
+    """Initiate a Model object and run it."""
     settings = load_settings(settings)
     input_module = importlib.import_module(model_name + ".input")
     model_module = importlib.import_module(model_name + ".model")
@@ -191,3 +182,51 @@ def start(model_name, settings, argv):
 
     model = Model(model_name, variables, constants, modelpoints, settings)
     model.run()
+    model.save()
+
+
+def execute(part, model_name, cpu_count, settings, argv):
+    settings = load_settings(settings)
+    input_module = importlib.import_module(model_name + ".input")
+    model_module = importlib.import_module(model_name + ".model")
+
+    # input.py contains runplan and modelpoints
+    input_members = inspect.getmembers(input_module)
+    runplan = get_runplan(input_members)
+    modelpoints, policy = get_modelpoints(input_members, settings)
+
+    # model.py contains model variables and constants
+    model_members = inspect.getmembers(model_module)
+    variables = get_variables(model_members, policy, settings)
+    constants = get_constants(model_members, policy)
+
+    # User can provide runplan version in CLI command
+    if runplan is not None and len(argv) > 1:
+        runplan.version = argv[1]
+
+    # Run model on multiple cpus
+    model = Model(model_name, variables, constants, modelpoints, settings, cpu_count)
+    output = model.run(part)
+    return output
+
+
+def merge_and_save(outputs, settings):
+    # Merge outputs into one
+    keys = outputs[0].keys()
+    output = {}
+    for key in keys:
+        if settings["AGGREGATE"]:
+            output[key] = sum(model_output[key] for model_output in outputs)
+        else:
+            output[key] = pd.concat(model_output[key] for model_output in outputs)
+
+    # Save results
+    if not os.path.exists("output"):
+        os.makedirs("output")
+
+    print_log("Saving files:")
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    for key in keys:
+        filepath = f"output/{timestamp}_{key}.csv"
+        print(f"{' ' * 10} {filepath}")
+        output[key].to_csv(filepath, index=False)

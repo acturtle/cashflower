@@ -179,14 +179,10 @@ def is_recursive(formula_source, name):
     return 0
 
 
-def print_log(msg):
-    """ Print a log message with timestamp.
-
-    Parameters
-    ----------
-    msg : string
-        Message to be displayed.
-    """
+def print_log(msg, settings=None):
+    """ Print a log message with timestamp."""
+    if settings is not None and settings.get("MULTIPROCESSING"):
+        return None
     now = datetime.now()
     print(now.strftime("%H:%M:%S") + " | " + msg)
 

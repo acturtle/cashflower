@@ -657,7 +657,8 @@ class Model:
                 policy_output[modelpoint.name]["t"] = np.tile(np.arange(t_output_max+1), modelpoint.size)
                 policy_output[modelpoint.name]["r"] = np.repeat(np.arange(1, modelpoint.size+1), t_output_max+1)
 
-        updt(n_pols, row + 1)
+        if not self.settings["MULTIPROCESSING"]:
+            updt(n_pols, row + 1)
         return policy_output
 
     def calculate_all_policies(self, range_start=None, range_end=None):
@@ -668,7 +669,7 @@ class Model:
         primary = self.get_modelpoint_by_name("policy")
 
         n_pols = len(primary)
-        utils.print_log(f"Number of policies: {n_pols}")
+        utils.print_log(f"Number of policies: {n_pols}", self.settings)
 
         calculate = functools.partial(self.calculate_one_policy, n_pols=n_pols, primary=primary)
 
@@ -677,7 +678,7 @@ class Model:
         else:
             policy_outputs = [*map(calculate, range(range_start, range_end))]
 
-        utils.print_log("Preparing results")
+        utils.print_log("Preparing results", self.settings)
         for m in self.modelpoints:
             if aggregate:
                 output[m.name] = sum(policy_output[m.name] for policy_output in policy_outputs)
@@ -690,51 +691,54 @@ class Model:
 
     def run(self, part=None):
         """Orchestrate all steps of the cash flow model run. """
-        # Settings
-        start = time.time()
-        utils.print_log(f"Start run for model '{self.name}'")
-        output_columns = self.settings["OUTPUT_COLUMNS"]
-        user_chose_columns = len(output_columns) > 0
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        utils.print_log(f"Start run for model '{self.name}'", self.settings)
 
         self.set_empty_output()
         self.set_children()
         self.set_grandchildren()
         self.set_queue()
 
-        # Subset modelpoints for multiprocessing
-        primary = self.get_modelpoint_by_name("policy")
-        primary_ranges = utils.split_to_ranges(primary.data.shape[0], self.cpu_count)
-        primary_range = primary_ranges[part]
+        if self.settings["MULTIPROCESSING"]:
+            # Subset modelpoints for multiprocessing
+            primary = self.get_modelpoint_by_name("policy")
+            primary_ranges = utils.split_to_ranges(primary.data.shape[0], self.cpu_count)
+            primary_range = primary_ranges[part]
 
-        # Calculate all policies or subset in case of multiprocessing
-        self.calculate_all_policies(range_start=primary_range[0], range_end=primary_range[1])
-
-        # if not os.path.exists("output"):
-        #     os.makedirs("output")
-        #
-        # utils.print_log("Saving files:")
-        # for modelpoint in self.modelpoints:
-        #     filepath = f"output/{timestamp}_{modelpoint.name}.csv"
-        #     print(f"{' '*10} {filepath}")
-        #
-        #     mp_output = self.output.get(modelpoint.name)
-        #     if user_chose_columns:
-        #         output_columns.extend(["t", "r"])
-        #         columns = mp_output.columns.intersection(output_columns)
-        #         mp_output.to_csv(filepath, index=False, columns=columns)
-        #     else:
-        #         mp_output.to_csv(filepath, index=False)
-        #
-        # # Save runtime
-        # if self.settings["SAVE_RUNTIME"]:
-        #     data = [(c.name, c.runtime) for c in self.components]
-        #     runtime = pd.DataFrame(data, columns=["component", "runtime"])
-        #     runtime.to_csv(f"output/{timestamp}_runtime.csv", index=False)
-        #     print(f"{' '*10} output/{timestamp}_runtime.csv")
-        #
-        # end = time.time()
-        # utils.print_log(f"Finished. Elapsed time: {datetime.timedelta(seconds=round(end-start))}.")
-        # return timestamp
+            # Calculate subset of policies
+            self.calculate_all_policies(range_start=primary_range[0], range_end=primary_range[1])
+        else:
+            self.calculate_all_policies()
 
         return self.output
+
+    def save(self):
+        """Only for single core (no multiprocessing)"""
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_columns = self.settings["OUTPUT_COLUMNS"]
+        user_chose_columns = len(output_columns) > 0
+
+        if not os.path.exists("output"):
+            os.makedirs("output")
+
+        utils.print_log("Saving files:")
+        for modelpoint in self.modelpoints:
+            filepath = f"output/{timestamp}_{modelpoint.name}.csv"
+            print(f"{' '*10} {filepath}")
+
+            mp_output = self.output.get(modelpoint.name)
+            if user_chose_columns:
+                output_columns.extend(["t", "r"])
+                columns = mp_output.columns.intersection(output_columns)
+                mp_output.to_csv(filepath, index=False, columns=columns)
+            else:
+                mp_output.to_csv(filepath, index=False)
+
+        # Save runtime
+        if self.settings["SAVE_RUNTIME"]:
+            data = [(c.name, c.runtime) for c in self.components]
+            runtime = pd.DataFrame(data, columns=["component", "runtime"])
+            runtime.to_csv(f"output/{timestamp}_runtime.csv", index=False)
+            print(f"{' '*10} output/{timestamp}_runtime.csv")
+
+        utils.print_log(f"Finished")
+        return timestamp
