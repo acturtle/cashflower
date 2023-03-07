@@ -9,7 +9,7 @@ import pandas as pd
 import sys
 
 
-from .utils import clean_formula_source, is_recursive, print_log, split_to_ranges
+from .utils import clean_formula_source, is_recursive, list_called_funcs, print_log, split_to_ranges, unique_extend
 
 
 def assign(var):
@@ -556,8 +556,8 @@ class Model:
         component_names = [component.name for component in self.components]
         for component in self.components:
             formula_source = inspect.getsource(component.formula)
-            cleaned_formula_source = utils.clean_formula_source(formula_source)
-            child_names = utils.list_called_funcs(cleaned_formula_source, component_names)
+            cleaned_formula_source = clean_formula_source(formula_source)
+            child_names = list_called_funcs(cleaned_formula_source, component_names)
             component.children = [self.get_component_by_name(n) for n in child_names if n != component.name]
 
     def set_grandchildren(self):
@@ -567,7 +567,7 @@ class Model:
             i = 0
             while i < len(component.grandchildren):
                 grandchild = component.grandchildren[i]
-                component.grandchildren = utils.unique_extend(component.grandchildren, grandchild.children)
+                component.grandchildren = unique_extend(component.grandchildren, grandchild.children)
                 i += 1
 
     def remove_from_grandchildren(self, removed_component):
@@ -615,7 +615,7 @@ class Model:
 
         self.empty_output = empty_output
 
-    def calculate_one_policy(self, row, n_pols, primary):
+    def calculate_single_policy(self, row, pb_max, primary, one_core=None):
         """Calculate results for a policy currently indicated in the model point. """
         policy_id = primary.data.index[row]
         for modelpoint in self.modelpoints:
@@ -653,32 +653,38 @@ class Model:
                 policy_output[modelpoint.name]["t"] = np.tile(np.arange(t_output_max+1), modelpoint.size)
                 policy_output[modelpoint.name]["r"] = np.repeat(np.arange(1, modelpoint.size+1), t_output_max+1)
 
-        if not self.settings["MULTIPROCESSING"]:
-            updt(n_pols, row + 1)
+        if one_core:
+            updt(pb_max, row + 1)
+
         return policy_output
 
-    def calculate_all_policies(self, range_start=None, range_end=None):
-        """Calculate results for all policies. """
+    def calculate_policies(self, range_start=None, range_end=None):
+        """Calculate results for policies. """
+        # Configuration
         output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
         t_output_max = min(self.settings["T_OUTPUT_MAX"], self.settings["T_CALCULATION_MAX"])
         primary = self.get_modelpoint_by_name("policy")
+        one_core = range_start == 0 or range_start is None
 
+        # Calculate formulas
         n_pols = len(primary)
-        print_log(f"Number of policies: {n_pols}")
-
-        calculate = functools.partial(self.calculate_one_policy, n_pols=n_pols, primary=primary)
-
+        pb_max = n_pols if range_end is None else range_end
+        calculate = functools.partial(self.calculate_single_policy, pb_max=pb_max, primary=primary, one_core=one_core)
         if range_start is None:
             policy_outputs = [*map(calculate, range(n_pols))]
         else:
             policy_outputs = [*map(calculate, range(range_start, range_end))]
 
-        print_log("Preparing results", self.settings)
+        # Merge results from single policies
+        if one_core:
+            print_log("Preparing results")
+
         for m in self.modelpoints:
             if aggregate:
                 output[m.name] = sum(policy_output[m.name] for policy_output in policy_outputs)
-                output[m.name]["t"] = np.arange(t_output_max+1)
+                if not self.settings["MULTIPROCESSING"]:
+                    output[m.name]["t"] = np.arange(t_output_max+1)
             else:
                 output[m.name] = pd.concat(policy_output[m.name] for policy_output in policy_outputs)
 
@@ -687,11 +693,10 @@ class Model:
 
     def run(self, part=None):
         """Orchestrate all steps of the cash flow model run. """
-        if part == 1 or part is None:
-            print_log(f"Start run for model '{self.name}'")
+        one_core = part == 0 or part is None
 
-        if part == 1:
-            print_log(f"Multiprocessing on {self.cpu_count} cores.")
+        if one_core:
+            print_log(f"Start run for model '{self.name}'")
 
         # Prepare the order of variables for the calculation
         self.set_empty_output()
@@ -701,17 +706,20 @@ class Model:
 
         # Inform on the number of policies
         primary = self.get_modelpoint_by_name("policy")
-        print_log(f"Total number of policies: {primary.data.shape[0]}")
+        if one_core:
+            print_log(f"Total number of policies: {primary.data.shape[0]}")
+        if part == 0:
+            print_log(f"Multiprocessing on {self.cpu_count} cores")
+            print_log(f"Calculation of ca. {primary.data.shape[0] // self.cpu_count} model points per core")
 
+        # In multiprocessing mode, the subset of policies is calculated
         if self.settings["MULTIPROCESSING"]:
-            # Subset modelpoints for multiprocessing
             primary_ranges = split_to_ranges(primary.data.shape[0], self.cpu_count)
             primary_range = primary_ranges[part]
-
-            # Calculate subset of policies
-            self.calculate_all_policies(range_start=primary_range[0], range_end=primary_range[1])
+            self.calculate_policies(range_start=primary_range[0], range_end=primary_range[1])
+        # Otherwise, all policies are calculated
         else:
-            self.calculate_all_policies()
+            self.calculate_policies()
 
         return self.output
 

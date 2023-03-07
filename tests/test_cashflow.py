@@ -379,7 +379,7 @@ class TestModel(TestCase):
         model.set_children()
         model.set_grandchildren()
         model.set_queue()
-        model_output = model.calculate_all_policies()
+        model_output = model.calculate_policies()
         test_output = pd.DataFrame({
             "t": list(range(1201)),
             "a": [2 * (i + 100) for i in range(1201)]
@@ -407,7 +407,7 @@ class TestModel(TestCase):
         model.set_children()
         model.set_grandchildren()
         model.set_queue()
-        model_output = model.calculate_all_policies()
+        model_output = model.calculate_policies()
 
         print(model_output["policy"], "\n\n")
 

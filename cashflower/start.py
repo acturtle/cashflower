@@ -3,6 +3,7 @@ import importlib
 import inspect
 import os
 import pandas as pd
+import numpy as np
 
 from .cashflow import CashflowModelError, ModelVariable, ModelPoint, Model, Constant, Runplan
 from .utils import print_log
@@ -205,12 +206,15 @@ def execute(part, model_name, settings, cpu_count, argv):
 
 def merge_and_save(outputs, settings):
     """Merge outputs from multiprocessing and save to files."""
+    t_output_max = min(settings["T_OUTPUT_MAX"], settings["T_CALCULATION_MAX"])
+
     # Merge outputs into one
     modelpoints = outputs[0].keys()
     model_output = {}
     for modelpoint in modelpoints:
         if settings["AGGREGATE"]:
             model_output[modelpoint] = sum(output[modelpoint] for output in outputs)
+            model_output[modelpoint]["t"] = np.arange(t_output_max + 1)
         else:
             model_output[modelpoint] = pd.concat(output[modelpoint] for output in outputs)
 
