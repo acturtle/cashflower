@@ -9,7 +9,7 @@ import pandas as pd
 import sys
 
 
-from . import utils
+from .utils import clean_formula_source, is_recursive, print_log, split_to_ranges
 
 
 def assign(var):
@@ -333,8 +333,8 @@ class ModelVariable:
 
         # The calculation varies if the model variable is recursive
         formula_source = inspect.getsource(new_formula)
-        clean = utils.clean_formula_source(formula_source)
-        self.recursive = utils.is_recursive(clean, self.name)
+        clean = clean_formula_source(formula_source)
+        self.recursive = is_recursive(clean, self.name)
         self._formula = new_formula
 
     def clear(self):
@@ -665,7 +665,7 @@ class Model:
         primary = self.get_modelpoint_by_name("policy")
 
         n_pols = len(primary)
-        utils.print_log(f"Number of policies: {n_pols}", self.settings)
+        print_log(f"Number of policies: {n_pols}")
 
         calculate = functools.partial(self.calculate_one_policy, n_pols=n_pols, primary=primary)
 
@@ -674,7 +674,7 @@ class Model:
         else:
             policy_outputs = [*map(calculate, range(range_start, range_end))]
 
-        utils.print_log("Preparing results", self.settings)
+        print_log("Preparing results", self.settings)
         for m in self.modelpoints:
             if aggregate:
                 output[m.name] = sum(policy_output[m.name] for policy_output in policy_outputs)
@@ -687,17 +687,25 @@ class Model:
 
     def run(self, part=None):
         """Orchestrate all steps of the cash flow model run. """
-        utils.print_log(f"Start run for model '{self.name}'", self.settings)
+        if part == 1 or part is None:
+            print_log(f"Start run for model '{self.name}'")
 
+        if part == 1:
+            print_log(f"Multiprocessing on {self.cpu_count} cores.")
+
+        # Prepare the order of variables for the calculation
         self.set_empty_output()
         self.set_children()
         self.set_grandchildren()
         self.set_queue()
 
+        # Inform on the number of policies
+        primary = self.get_modelpoint_by_name("policy")
+        print_log(f"Total number of policies: {primary.data.shape[0]}")
+
         if self.settings["MULTIPROCESSING"]:
             # Subset modelpoints for multiprocessing
-            primary = self.get_modelpoint_by_name("policy")
-            primary_ranges = utils.split_to_ranges(primary.data.shape[0], self.cpu_count)
+            primary_ranges = split_to_ranges(primary.data.shape[0], self.cpu_count)
             primary_range = primary_ranges[part]
 
             # Calculate subset of policies
@@ -716,7 +724,7 @@ class Model:
         if not os.path.exists("output"):
             os.makedirs("output")
 
-        utils.print_log("Saving files:")
+        print_log("Saving files:")
         for modelpoint in self.modelpoints:
             filepath = f"output/{timestamp}_{modelpoint.name}.csv"
             print(f"{' '*10} {filepath}")
@@ -736,5 +744,5 @@ class Model:
             runtime.to_csv(f"output/{timestamp}_runtime.csv", index=False)
             print(f"{' '*10} output/{timestamp}_runtime.csv")
 
-        utils.print_log("Finished")
+        print_log("Finished")
         return timestamp

@@ -28,6 +28,7 @@ def load_settings(settings=None):
 
     initial_settings = {
         "AGGREGATE": True,
+        "MULTIPROCESSING": False,
         "OUTPUT_COLUMNS": [],
         "POLICY_ID_COLUMN": "policy_id",
         "SAVE_RUNTIME": False,
@@ -158,9 +159,8 @@ def get_constants(model_members, policy):
     return constants
 
 
-def start(model_name, settings, argv):
+def prepare_model_input(model_name, settings, argv):
     """Initiate a Model object and run it."""
-    settings = load_settings(settings)
     input_module = importlib.import_module(model_name + ".input")
     model_module = importlib.import_module(model_name + ".model")
 
@@ -178,45 +178,41 @@ def start(model_name, settings, argv):
     if runplan is not None and len(argv) > 1:
         runplan.version = argv[1]
 
+    return runplan, modelpoints, variables, constants
+
+
+def start(model_name, settings, argv):
+    """Initiate a Model object and run it."""
+    settings = load_settings(settings)
+    runplan, modelpoints, variables, constants = prepare_model_input(model_name, settings, argv)
+
+    # Run model on single core and save results
     model = Model(model_name, variables, constants, modelpoints, settings)
     model.run()
     model.save()
 
 
-def execute(part, model_name, cpu_count, settings, argv):
+def execute(part, model_name, settings, cpu_count, argv):
+    """Execute part of the model points using multiprocessing."""
     settings = load_settings(settings)
-    input_module = importlib.import_module(model_name + ".input")
-    model_module = importlib.import_module(model_name + ".model")
+    runplan, modelpoints, variables, constants = prepare_model_input(model_name, settings, argv)
 
-    # input.py contains runplan and modelpoints
-    input_members = inspect.getmembers(input_module)
-    runplan = get_runplan(input_members)
-    modelpoints, policy = get_modelpoints(input_members, settings)
-
-    # model.py contains model variables and constants
-    model_members = inspect.getmembers(model_module)
-    variables = get_variables(model_members, policy, settings)
-    constants = get_constants(model_members, policy)
-
-    # User can provide runplan version in CLI command
-    if runplan is not None and len(argv) > 1:
-        runplan.version = argv[1]
-
-    # Run model on multiple cpus
+    # Run model on multiple cores
     model = Model(model_name, variables, constants, modelpoints, settings, cpu_count)
     output = model.run(part)
     return output
 
 
 def merge_and_save(outputs, settings):
+    """Merge outputs from multiprocessing and save to files."""
     # Merge outputs into one
-    keys = outputs[0].keys()
-    output = {}
-    for key in keys:
+    modelpoints = outputs[0].keys()
+    model_output = {}
+    for modelpoint in modelpoints:
         if settings["AGGREGATE"]:
-            output[key] = sum(model_output[key] for model_output in outputs)
+            model_output[modelpoint] = sum(output[modelpoint] for output in outputs)
         else:
-            output[key] = pd.concat(model_output[key] for model_output in outputs)
+            model_output[modelpoint] = pd.concat(output[modelpoint] for output in outputs)
 
     # Save results
     if not os.path.exists("output"):
@@ -224,7 +220,7 @@ def merge_and_save(outputs, settings):
 
     print_log("Saving files:")
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    for key in keys:
-        filepath = f"output/{timestamp}_{key}.csv"
+    for modelpoint in modelpoints:
+        filepath = f"output/{timestamp}_{modelpoint}.csv"
         print(f"{' ' * 10} {filepath}")
-        output[key].to_csv(filepath, index=False)
+        model_output[modelpoint].to_csv(filepath, index=False)

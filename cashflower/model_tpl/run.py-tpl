@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
     if settings.get("MULTIPROCESSING"):
         cpu_count = cpu_count()
-        p = partial(execute, model_name=model_name, cpu_count=cpu_count, settings=settings, argv=sys.argv)
+        p = partial(execute, model_name=model_name, settings=settings, cpu_count=cpu_count, argv=sys.argv)
         with Pool(cpu_count) as pool:
             outputs = pool.map(p, range(cpu_count))
         merge_and_save(outputs, settings)
