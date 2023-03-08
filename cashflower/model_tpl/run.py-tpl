@@ -1,7 +1,7 @@
 import sys
 from functools import partial
 from multiprocessing import cpu_count, Pool
-from cashflower import execute, merge_and_save, run
+from cashflower import execute, merge_and_save, start
 from {{ model }}.settings import settings
 
 
@@ -15,4 +15,4 @@ if __name__ == "__main__":
             outputs = pool.map(p, range(cpu_count))
         merge_and_save(outputs, settings)
     else:
-        run(model_name, settings, sys.argv)
+        start(model_name, settings, sys.argv)
