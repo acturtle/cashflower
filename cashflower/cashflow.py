@@ -709,8 +709,13 @@ class Model:
         if one_core:
             print_log(f"Total number of policies: {primary.data.shape[0]}")
         if part == 0:
+            # Runtime is not saved when multiprocessing
+            if self.settings["SAVE_RUNTIME"]:
+                print_log(f"The SAVE_RUNTIME setting is not applicable for multiprocessing.\n"
+                          f"{' '*10} Set the MULTIPROCESSING setting to 'False' to save the runtime.")
             print_log(f"Multiprocessing on {self.cpu_count} cores")
             print_log(f"Calculation of ca. {primary.data.shape[0] // self.cpu_count} model points per core")
+            print_log("The progressbar for the calculations on the 1st core:")
 
         # In multiprocessing mode, the subset of policies is calculated
         if self.settings["MULTIPROCESSING"]:
