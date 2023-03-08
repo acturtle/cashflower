@@ -208,6 +208,9 @@ def merge_and_save(outputs, settings):
     """Merge outputs from multiprocessing and save to files."""
     t_output_max = min(settings["T_OUTPUT_MAX"], settings["T_CALCULATION_MAX"])
 
+    # Nones are returned, when number of policies < number of cpus
+    outputs = [output for output in outputs if output is not None]
+
     # Merge outputs into one
     modelpoints = outputs[0].keys()
     model_output = {}

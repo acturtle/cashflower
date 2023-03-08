@@ -1,5 +1,6 @@
 settings = {
     "AGGREGATE": True,
+    "MULTIPROCESSING": True,
     "OUTPUT_COLUMNS": [],
     "POLICY_ID_COLUMN": "policy_id",
     "SAVE_RUNTIME": False,
