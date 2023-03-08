@@ -1,6 +1,6 @@
 from cashflower import assign, ModelVariable
 
-from tutorials.life_insurance.whole_life.input import policy
+from tutorials.life_insurance.deferred.input import policy
 
 INTEREST_RATE = 0.005
 DEATH_PROB = 0.003

@@ -9,12 +9,11 @@ import pandas as pd
 import sys
 
 
-from . import utils
+from .utils import clean_formula_source, is_recursive, list_called_funcs, print_log, split_to_ranges, unique_extend
 
 
 def assign(var):
     """Assign formula to an object.
-    
     The decorator links model components and their formulas.
     The decorator also caches the function so that the results get remembered.
 
@@ -112,7 +111,6 @@ class Runplan:
 
 class ModelPoint:
     """Policyholders' data.
-    
     The model point stores data on all policyholders and points to a specific policyholder
     for which model should be calculated.
 
@@ -238,7 +236,6 @@ class ModelPoint:
 
 class ModelVariable:
     """Model variable of a cash flow model.
-    
     Model variable returns numbers and is t-dependent.
     Model variable is linked to a modelpoint and calculates results based on the formula.
 
@@ -290,8 +287,6 @@ class ModelVariable:
         self.grandchildren = []
 
     def __repr__(self):
-        if self.name is None:
-            return "MV: NoName"
         return f"MV: {self.name}"
 
     def __lt__(self, other):
@@ -338,8 +333,8 @@ class ModelVariable:
 
         # The calculation varies if the model variable is recursive
         formula_source = inspect.getsource(new_formula)
-        clean = utils.clean_formula_source(formula_source)
-        self.recursive = utils.is_recursive(clean, self.name)
+        clean = clean_formula_source(formula_source)
+        self.recursive = is_recursive(clean, self.name)
         self._formula = new_formula
 
     def clear(self):
@@ -489,7 +484,6 @@ class Constant:
 
 class Model:
     """Actuarial cash flow model.
-    
     Model combines constants, model variables and modelpoints.
     Model components (constants and variables) are ordered into a calculation queue.
     All variables are calculated for data of each policyholder in the modelpoints.
@@ -513,7 +507,7 @@ class Model:
     output : dict
         Dict with key = modelpoints, values = data frames (columns for model variables).
     """
-    def __init__(self, name, variables, constants, modelpoints, settings):
+    def __init__(self, name, variables, constants, modelpoints, settings, cpu_count=None):
         self.name = name
         self.variables = variables
         self.constants = constants
@@ -523,6 +517,7 @@ class Model:
         self.queue = []
         self.empty_output = None
         self.output = None
+        self.cpu_count = cpu_count
 
     def get_component_by_name(self, name):
         """Get a model component object by its name.
@@ -561,8 +556,8 @@ class Model:
         component_names = [component.name for component in self.components]
         for component in self.components:
             formula_source = inspect.getsource(component.formula)
-            cleaned_formula_source = utils.clean_formula_source(formula_source)
-            child_names = utils.list_called_funcs(cleaned_formula_source, component_names)
+            cleaned_formula_source = clean_formula_source(formula_source)
+            child_names = list_called_funcs(cleaned_formula_source, component_names)
             component.children = [self.get_component_by_name(n) for n in child_names if n != component.name]
 
     def set_grandchildren(self):
@@ -572,7 +567,7 @@ class Model:
             i = 0
             while i < len(component.grandchildren):
                 grandchild = component.grandchildren[i]
-                component.grandchildren = utils.unique_extend(component.grandchildren, grandchild.children)
+                component.grandchildren = unique_extend(component.grandchildren, grandchild.children)
                 i += 1
 
     def remove_from_grandchildren(self, removed_component):
@@ -620,7 +615,7 @@ class Model:
 
         self.empty_output = empty_output
 
-    def calculate_one_policy(self, row, n_pols, primary):
+    def calculate_single_policy(self, row, pb_max, primary, one_core=None):
         """Calculate results for a policy currently indicated in the model point. """
         policy_id = primary.data.index[row]
         for modelpoint in self.modelpoints:
@@ -658,51 +653,97 @@ class Model:
                 policy_output[modelpoint.name]["t"] = np.tile(np.arange(t_output_max+1), modelpoint.size)
                 policy_output[modelpoint.name]["r"] = np.repeat(np.arange(1, modelpoint.size+1), t_output_max+1)
 
-        updt(n_pols, row + 1)
+        if one_core:
+            updt(pb_max, row + 1)
+
         return policy_output
 
-    def calculate_all_policies(self):
-        """Calculate results for all policies. """
+    def calculate_policies(self, range_start=None, range_end=None):
+        """Calculate results for policies. """
+        # Configuration
         output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
         t_output_max = min(self.settings["T_OUTPUT_MAX"], self.settings["T_CALCULATION_MAX"])
         primary = self.get_modelpoint_by_name("policy")
+        one_core = range_start == 0 or range_start is None
 
+        # Calculate formulas
         n_pols = len(primary)
-        utils.print_log(f"Number of policies: {n_pols}")
+        pb_max = n_pols if range_end is None else range_end
+        calculate = functools.partial(self.calculate_single_policy, pb_max=pb_max, primary=primary, one_core=one_core)
+        if range_start is None:
+            policy_outputs = [*map(calculate, range(n_pols))]
+        else:
+            policy_outputs = [*map(calculate, range(range_start, range_end))]
 
-        calculate = functools.partial(self.calculate_one_policy, n_pols=n_pols, primary=primary)
-        policy_outputs = [*map(calculate, range(n_pols))]
+        # Merge results from single policies
+        if one_core:
+            print_log("Preparing results")
 
-        utils.print_log("Preparing results")
         for m in self.modelpoints:
             if aggregate:
                 output[m.name] = sum(policy_output[m.name] for policy_output in policy_outputs)
-                output[m.name]["t"] = np.arange(t_output_max+1)
+                if not self.settings["MULTIPROCESSING"]:
+                    output[m.name]["t"] = np.arange(t_output_max+1)
             else:
                 output[m.name] = pd.concat(policy_output[m.name] for policy_output in policy_outputs)
 
         self.output = output
         return output
 
-    def run(self):
+    def run(self, part=None):
         """Orchestrate all steps of the cash flow model run. """
-        start = time.time()
-        utils.print_log(f"Start run for model '{self.name}'")
-        output_columns = self.settings["OUTPUT_COLUMNS"]
-        user_chose_columns = len(output_columns) > 0
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        one_core = part == 0 or part is None
 
+        if one_core:
+            print_log(f"Start run for model '{self.name}'")
+
+        # Prepare the order of variables for the calculation
         self.set_empty_output()
         self.set_children()
         self.set_grandchildren()
         self.set_queue()
-        self.calculate_all_policies()
+
+        # Inform on the number of policies
+        primary = self.get_modelpoint_by_name("policy")
+        if one_core:
+            print_log(f"Total number of policies: {primary.data.shape[0]}")
+        if part == 0:
+            # Runtime is not saved when multiprocessing
+            if self.settings["SAVE_RUNTIME"]:
+                print_log(f"The SAVE_RUNTIME setting is not applicable for multiprocessing.\n"
+                          f"{' '*10} Set the MULTIPROCESSING setting to 'False' to save the runtime.")
+            if primary.data.shape[0] > self.cpu_count:
+                print_log(f"Multiprocessing on {self.cpu_count} cores")
+                print_log(f"Calculation of ca. {primary.data.shape[0] // self.cpu_count} model points per core")
+                print_log("The progressbar for the calculations on the 1st core:")
+
+        # In multiprocessing mode, the subset of policies is calculated
+        if self.settings["MULTIPROCESSING"]:
+            primary_ranges = split_to_ranges(primary.data.shape[0], self.cpu_count)
+
+            # Number of policies is lower than number of cpus, only calculate on the 1st core
+            if part >= len(primary_ranges):
+                return None
+
+            primary_range = primary_ranges[part]
+            self.calculate_policies(range_start=primary_range[0], range_end=primary_range[1])
+        # Otherwise, all policies are calculated
+        else:
+            self.calculate_policies()
+
+        return self.output
+
+    def save(self):
+        """Only for single core (no multiprocessing)"""
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_columns = self.settings["OUTPUT_COLUMNS"]
+        user_chose_columns = len(output_columns) > 0
 
         if not os.path.exists("output"):
             os.makedirs("output")
 
-        utils.print_log("Saving files:")
+        print_log("Saving files:")
         for modelpoint in self.modelpoints:
             filepath = f"output/{timestamp}_{modelpoint.name}.csv"
             print(f"{' '*10} {filepath}")
@@ -722,6 +763,5 @@ class Model:
             runtime.to_csv(f"output/{timestamp}_runtime.csv", index=False)
             print(f"{' '*10} output/{timestamp}_runtime.csv")
 
-        end = time.time()
-        utils.print_log(f"Finished. Elapsed time: {datetime.timedelta(seconds=round(end-start))}.")
+        print_log("Finished")
         return timestamp

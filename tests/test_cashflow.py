@@ -379,7 +379,7 @@ class TestModel(TestCase):
         model.set_children()
         model.set_grandchildren()
         model.set_queue()
-        model_output = model.calculate_all_policies()
+        model_output = model.calculate_policies()
         test_output = pd.DataFrame({
             "t": list(range(1201)),
             "a": [2 * (i + 100) for i in range(1201)]
@@ -407,7 +407,7 @@ class TestModel(TestCase):
         model.set_children()
         model.set_grandchildren()
         model.set_queue()
-        model_output = model.calculate_all_policies()
+        model_output = model.calculate_policies()
 
         print(model_output["policy"], "\n\n")
 
@@ -422,44 +422,3 @@ class TestModel(TestCase):
         # Different indexes
         # assert 1 == 0
         # assert_frame_equal(model_output["policy"], test_output)
-
-    def test_run(self):
-        settings = load_settings()
-
-        policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2]}), name="policy", settings=settings)
-        policy.initialize()
-
-        a = ModelVariable(name="a", modelpoint=policy, settings=settings)
-        b = ModelVariable(name="a", modelpoint=policy, settings=settings)
-
-        @assign(a)
-        def a_formula(t):
-            return t + 100
-
-        @assign(b)
-        def b_formula(t):
-            return t
-
-        a.initialize()
-        b.initialize()
-
-        model = Model(None, [a, b], [], [policy], settings)
-        timestamp = model.run()
-
-        assert os.path.exists(f"./output/{timestamp}_policy.csv")
-        shutil.rmtree("./output")
-
-        # user chose output columns
-        settings["OUTPUT_COLUMNS"] = ["b"]
-        model = Model(None, [a], [], [policy], settings)
-        timestamp = model.run()
-        assert os.path.exists(f"./output/{timestamp}_policy.csv")
-        shutil.rmtree("./output")
-
-        # with runtime
-        settings["SAVE_RUNTIME"] = True
-        model = Model(None, [a], [], [policy], settings)
-        timestamp = model.run()
-        assert os.path.exists(f"./output/{timestamp}_runtime.csv")
-        shutil.rmtree("./output")
-
