@@ -57,7 +57,7 @@ The initial structure consists of the :code:`input.py`, :code:`model.py`, :code:
 Input
 ^^^^^
 
-In the :code:`input.py` script, you can define your model points and assumptions.
+In the :code:`input.py` script, you can define your model point sets and assumptions.
 
 .. code-block:: python
    :caption: wol/input.py
@@ -72,13 +72,13 @@ In the :code:`input.py` script, you can define your model points and assumptions
         "valuation_month": [12]
     }))
 
-    policy = ModelPointSet(data=pd.read_csv("C:/my_data/policy.csv"))
+    main = ModelPointSet(data=pd.read_csv("C:/my_data/policy.csv"))
 
     assumption = dict()
     assumption["interest_rates"] = pd.read_csv("C:/my_data/interest_rates.csv")
     assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv", index_col="age")
 
-Runplan bases on the :code:`Runplan` class, model points base on the :code:`ModelPointSet` class and assumptions have a form of a dictionary.
+Runplan bases on the :code:`Runplan` class, model point sets base on the :code:`ModelPointSet` class and assumptions have a form of a dictionary.
 
 |
 
@@ -92,13 +92,13 @@ The :code:`model.py` script contains the logic of the model. You can define mode
 
     from cashflower import assign, ModelVariable
 
-    age = ModelVariable(modelpoint=policy)
-    death_prob = ModelVariable(modelpoint=policy)
+    age = ModelVariable(model_point_set=main)
+    death_prob = ModelVariable(model_point_set=main)
 
     @assign(age)
     def age_formula(t):
         if t == 0:
-            return int(policy.get("AGE"))
+            return int(main.get("AGE"))
         elif t % 12 == 0:
             return age(t-1) + 1
         else:
@@ -110,14 +110,14 @@ The :code:`model.py` script contains the logic of the model. You can define mode
         if age(t) == age(t-1):
             return death_prob(t-1)
         elif age(t) <= 100:
-            sex = policy.get("SEX")
+            sex = main.get("SEX")
             yearly_rate = assumption["mortality"].loc[age(t)][sex]
             monthly_rate = (1 - (1 - yearly_rate)**(1/12))
             return monthly_rate
         else:
             return 1
 
-The variables defined in :code:`model.py` will be evaluated and saved in the output.
+The variables defined in :code:`model.py` will be calculated and saved in the output.
 
 |
 
@@ -142,9 +142,9 @@ Model overview
 Actuarial models help to predict future cash flows of insurance products.
 
 The main components of an actuarial model are:
-    * model points (policy data),
+    * model point sets,
     * assumptions,
-    * run plan,
+    * runplan,
     * model's components: model variables and constants,
     * results.
 
@@ -152,8 +152,9 @@ The main components of an actuarial model are:
 
 **Run plan** - run plan is a list of runs that we want to perform with the model.
 
-**Model points** - policyholders' data such as age, sex, premiums, coverage, etc.
-Model points can be split into separate files.
+**Model point sets** - points of data for which the model is calculated.
+For example, a model point can contain policyholder's attributes such as age, sex, premiums, coverage, etc.
+Model point sets can be split into separate files.
 For example, there might be separate files for fund and coverage data.
 
 **Assumptions** - actuarial models are calculated based on assumptions.

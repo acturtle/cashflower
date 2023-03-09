@@ -76,7 +76,7 @@ The survival rate is the probability that the policyholder will survive from the
     def actuarial_present_value_formula(t):
         return expected_payment(t) + actuarial_present_value(t+1) * 1/(1+INTEREST_RATE)
 
-The net single premium is **the present value** of the expected annuity payments.
+The actuarial present value is **the present value** of the expected annuity payments.
 The discount rate is calculated as :code:`1/(1+INTEREST_RATE)`.
 
 
@@ -92,7 +92,7 @@ Whole life annuity provides a policyholder with a periodic (e.g. monthly) paymen
 
     from cashflower import ModelPointSet
 
-    policy = ModelPointSet(data=pd.DataFrame({
+    main = ModelPointSet(data=pd.DataFrame({
         "id": [1],
         "payment": [1_000]
     }))
@@ -104,7 +104,7 @@ Policy data contains the value of the monthly payment which is be paid to the po
 
     from cashflower import assign, ModelVariable
 
-    from tutorials.annuity.whole_life.input import policy
+    from tutorials.annuity.whole_life.input import main
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
@@ -129,7 +129,7 @@ Policy data contains the value of the monthly payment which is be paid to the po
         if t == 0:
             return 0
         else:
-            payment = policy.get("payment")
+            payment = main.get("payment")
             return survival_rate(t) * payment
 
 
@@ -154,7 +154,7 @@ An n-year temporary life annuity provides a policyholder with a periodic (e.g. m
     from cashflower import Runplan, ModelPointSet
 
 
-    policy = ModelPointSet(data=pd.DataFrame({
+    main = ModelPointSet(data=pd.DataFrame({
         "id": [1],
         "payment": [1_000],
         "remaining_term": [36],
@@ -169,7 +169,7 @@ Here the remaining term is expressed in months starting the valuation period (ra
 
     from cashflower import assign, ModelVariable
 
-    from tutorials.annuity.temporary.input import policy
+    from tutorials.annuity.temporary.input import main
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
@@ -193,10 +193,10 @@ Here the remaining term is expressed in months starting the valuation period (ra
     def expected_payment_formula(t):
         if t == 0:
             return 0
-        elif t > policy.get("remaining_term"):
+        elif t > main.get("remaining_term"):
             return 0
         else:
-            payment = policy.get("payment")
+            payment = main.get("payment")
             return survival_rate(t) * payment
 
 
@@ -221,7 +221,7 @@ An m-year deferred whole life annuity provides a policyholder with a periodic (e
     from cashflower import Runplan, ModelPointSet
 
 
-    policy = ModelPointSet(data=pd.DataFrame({
+    main = ModelPointSet(data=pd.DataFrame({
         "id": [1],
         "payment": [1_000],
         "deferral": [12],
@@ -236,9 +236,7 @@ Here the deferral period is expressed in months starting from the valuation peri
 
     from cashflower import assign, ModelVariable
 
-    from tutorials.annuity.deferred.input import policy
-
-    projection_year = ModelVariable(modelpoint=policy)
+    from tutorials.annuity.deferred.input import main
 
 
     INTEREST_RATE = 0.005
@@ -261,10 +259,10 @@ Here the deferral period is expressed in months starting from the valuation peri
 
     @assign(expected_payment)
     def expected_payment_formula(t):
-        if t <= policy.get("deferral"):
+        if t <= main.get("deferral"):
             return 0
         else:
-            payment = policy.get("payment")
+            payment = main.get("payment")
             return survival_rate(t) * payment
 
 

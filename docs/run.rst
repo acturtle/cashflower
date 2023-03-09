@@ -9,13 +9,13 @@ To calculate the model, run :code:`run.py`.
     python run.py
 
 The model will create an :code:`output` folder.
-Inside of this folder, the model will create results for each of the model points.
+Inside of this folder, the model will create results for each of the model point sets.
 
 ..  code-block::
 
     .
     └── output/
-        ├── <timestamp>_policy.csv
+        ├── <timestamp>_main.csv
         ├── <timestamp>_fund.csv
         └── <timestamp>_coverage.csv
 

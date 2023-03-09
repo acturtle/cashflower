@@ -101,7 +101,7 @@ Whole life insurance provides for payment following the death of the insured at 
 
     from cashflower import ModelPointSet
 
-    policy = ModelPointSet(data=pd.DataFrame({
+    main = ModelPointSet(data=pd.DataFrame({
         "id": [1],
         "sum_assured": [100_000]
     }))
@@ -113,7 +113,7 @@ The policy data contains the sum assured which will be paid to the policyholder'
 
     from cashflower import assign, ModelVariable
 
-    from tutorials.life_insurance.whole_life.input import policy
+    from tutorials.life_insurance.whole_life.input import main
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
@@ -131,7 +131,7 @@ The policy data contains the sum assured which will be paid to the policyholder'
 
     @assign(expected_benefit)
     def expected_benefit_formula(t):
-        sum_assured = policy.get("sum_assured")
+        sum_assured = main.get("sum_assured")
         if t == 1200:
             return survival_rate(t-1) * sum_assured
         return survival_rate(t-1) * DEATH_PROB * sum_assured
@@ -165,7 +165,7 @@ commencing at issue.
 
     from cashflower import ModelPointSet
 
-    policy = ModelPointSet(data=pd.DataFrame({
+    main = ModelPointSet(data=pd.DataFrame({
         "id": [1],
         "sum_assured": [100_000],
         "remaining_term": [36],
@@ -183,7 +183,7 @@ In that case, the actuary should develop additional variables or adjust the exis
 
     from cashflower import assign, ModelVariable
 
-    from tutorials.life_insurance.term_life.input import policy
+    from tutorials.life_insurance.term_life.input import main
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
@@ -202,9 +202,9 @@ In that case, the actuary should develop additional variables or adjust the exis
 
     @assign(expected_benefit)
     def expected_benefit_formula(t):
-        if t > policy.get("remaining_term"):
+        if t > main.get("remaining_term"):
             return 0
-        return survival_rate(t-1) * DEATH_PROB * policy.get("sum_assured")
+        return survival_rate(t-1) * DEATH_PROB * main.get("sum_assured")
 
 
     @assign(net_single_premium)
@@ -231,7 +231,7 @@ n-years from the time of the policy issue.
 
     from cashflower import ModelPointSet
 
-    policy = ModelPointSet(data=pd.DataFrame({
+    main = ModelPointSet(data=pd.DataFrame({
         "id": [1],
         "sum_assured": [100_000],
         "remaining_term": [36],
@@ -245,7 +245,7 @@ In our case, the term is expressed as the remaining term (starting from the valu
 
     from cashflower import assign, ModelVariable
 
-    from tutorials.life_insurance.pure_endowment.input import policy
+    from tutorials.life_insurance.pure_endowment.input import main
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
@@ -264,8 +264,8 @@ In our case, the term is expressed as the remaining term (starting from the valu
 
     @assign(expected_benefit)
     def expected_benefit_formula(t):
-        if t == policy.get("remaining_term"):
-            return survival_rate(t) * policy.get("sum_assured")
+        if t == main.get("remaining_term"):
+            return survival_rate(t) * main.get("sum_assured")
         return 0
 
 
@@ -289,7 +289,7 @@ the survival of the insured to the end of the n-year term, whichever occurs firs
 
     from cashflower import ModelPointSet
 
-    policy = ModelPointSet(data=pd.DataFrame({
+    main = ModelPointSet(data=pd.DataFrame({
         "id": [1],
         "sum_assured": [100_000],
         "remaining_term": [36],
@@ -303,7 +303,7 @@ In our case, the term is expressed as the remaining term (so starting from the v
 
     from cashflower import assign, ModelVariable
 
-    from tutorials.life_insurance.pure_endowment.input import policy
+    from tutorials.life_insurance.pure_endowment.input import main
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
@@ -322,8 +322,8 @@ In our case, the term is expressed as the remaining term (so starting from the v
 
     @assign(expected_benefit)
     def expected_benefit_formula(t):
-        sum_assured = policy.get("sum_assured")
-        remaining_term = policy.get("remaining_term")
+        sum_assured = main.get("sum_assured")
+        remaining_term = main.get("remaining_term")
 
         if t < remaining_term:
             return survival_rate(t-1) * DEATH_PROB * sum_assured
@@ -357,7 +357,7 @@ at least m years following policy issue.
     from cashflower import ModelPointSet
 
 
-    policy = ModelPointSet(data=pd.DataFrame({
+    main = ModelPointSet(data=pd.DataFrame({
         "id": [1],
         "sum_assured": [100_000],
         "deferral": [24],
@@ -372,7 +372,7 @@ In our case, the deferral period is expressed starting from the valuation period
 
     from cashflower import assign, ModelVariable
 
-    from tutorials.life_insurance.whole_life.input import policy
+    from tutorials.life_insurance.whole_life.input import main
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
@@ -391,9 +391,9 @@ In our case, the deferral period is expressed starting from the valuation period
 
     @assign(expected_benefit)
     def expected_benefit_formula(t):
-        if t < policy.get("deferral"):
+        if t < main.get("deferral"):
             return 0
-        return survival_rate(t-1) * DEATH_PROB * policy.get("sum_assured")
+        return survival_rate(t-1) * DEATH_PROB * main.get("sum_assured")
 
 
     @assign(net_single_premium)

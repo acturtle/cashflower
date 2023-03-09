@@ -83,18 +83,18 @@ Model variables return numeric values.
 
 |
 
-Policy independent
-^^^^^^^^^^^^^^^^^^
+Model point independent
+^^^^^^^^^^^^^^^^^^^^^^^
 
-The model variables are recalculated for each of the policyholders.
-The default value for the :code:`pol_dep` (policy dependent) parameter of :code:`ModelVariable` is :code:`True`.
+The model variables are recalculated for each of the model points.
+The default value for the :code:`mp_dep` (model point dependent) parameter of :code:`ModelVariable` is :code:`True`.
 
-If the results for the given variable are the same for all policyholders, the parameter :code:`pol_dep` should be set
+If the results for the given variable are the same for all model points, the parameter :code:`mp_dep` should be set
 to :code:`False`. This setting helps to decrease the runtime of the model.
 
 |
 
-Variable A: policyholder-dependent
+Variable A: model point dependent
 
 ..  code-block:: python
 
@@ -104,13 +104,13 @@ or
 
 ..  code-block:: python
 
-    ModelVariable(pol_dep=True)
+    ModelVariable(mp_dep=True)
 
-Variable B: policyholder-independent
+Variable B: model point independent
 
 ..  code-block:: python
 
-    ModelVariable(pol_dep=False)
+    ModelVariable(mp_dep=False)
 
 |
 
@@ -121,8 +121,8 @@ Variable B: policyholder-independent
 
 In the above image we see that:
 
-* A - variable changes for each of the policyholders,
-* B - variable has the same results for all policyholders.
+* A - variable changes for each of the model points,
+* B - variable has the same results for all model points.
 
 |
 
@@ -137,7 +137,7 @@ Variables:
     :caption: model.py
 
     pv_premiums = ModelVariable()
-    calendar_month = ModelVariable(pol_dep=False)
+    calendar_month = ModelVariable(mp_dep=False)
 
 
     @assign(pv_premiums)
@@ -157,15 +157,15 @@ Variables:
             return calendar_month(t - 1) + 1
 
 
-Calendar month can have the :code:`pol_dep` attribute set to :code:`False` because the results are the same for all
-policyholders.
+Calendar month can have the :code:`mp_dep` attribute set to :code:`False` because the results are the same for all
+model points.
 
 |
 
 Constant
 --------
 
-Constant is a t-independent component of the model.
+Constant is a **t-independent** component of the model.
 
 Create constant
 ^^^^^^^^^^^^^^^
@@ -178,8 +178,8 @@ Create constant
     premium = Constant()
 
     @assign(premium)
-    def premium_formula(t):
-        return policy.get("PREMIUM")
+    def premium_formula():
+        return main.get("PREMIUM")
 
 There are two steps to define a constant:
     #. Create an instance of the :code:`Constant` class.
@@ -193,7 +193,7 @@ The first step is to create a variable, which is an instance of the :code:`Const
 
 The second step is to use the decorator :code:`@assign()` to link a formula to the variable.
 
-:code:`@assign()` takes as an argument a parameter.
+:code:`@assign()` takes as an argument a constant.
 
 ..  code-block:: python
 
@@ -221,20 +221,18 @@ The function contains the logic for the constant variable.
 
 ..  code-block:: python
 
-    def premium_formula(t):
-        return policy.get("PREMIUM")
+    def premium_formula():
+        return main.get("PREMIUM")
 
-Constants may return numeric and character values.
+Constants may return numeric or character values.
 
 |
 
 Time independent
 ^^^^^^^^^^^^^^^^
 
-Time-independent variables have the same result for t=0, t=1, t=2, ...
-
-The :code:`Constant` class can be used to code time-independent model components.
-Instances of this class can hold numeric and character results.
+The :code:`Constant` class is used to code time-independent model components.
+Time-independent variables have the same result for :code:`t=0`, :code:`t=1`, :code:`t=2`, ...
 
 |
 
@@ -259,7 +257,7 @@ Variable B: time-independent
 
 In the above image we see that:
 
-* A - variable has different results for periods,
+* A - variable has different results between periods,
 * B - variable has the same result for all periods.
 
 |
@@ -285,7 +283,7 @@ Variables:
 
     @assign(premium)
     def premium_formula():
-        return policy.get("PREMIUM")
+        return main.get("PREMIUM")
 
 Premium can be coded as an instance of the :code:`Constant` class because it is time-independent.
 Its formula does not require the :code:`t` parameter.
@@ -354,12 +352,12 @@ Model components can be called in each other formulas.
 
 To use another variable, call an instance of the :code:`ModelVariable` or :code:`Constant` class.
 
-If you are calling a model variable, pass an argument :code:`t`.
-
 .. IMPORTANT::
     To use results of :code:`a`, call :code:`a()` and **not** :code:`a_formula()`.
 
-A variable can also call **itself**. This functionality can be useful for discounting.
+If you are calling a model variable, pass an argument :code:`t`.
+
+A variable can also call **itself** for other :code:`t`. This functionality can be useful for discounting.
 
 ..  code-block:: python
     :caption: model.py
@@ -376,17 +374,17 @@ A variable can also call **itself**. This functionality can be useful for discou
 
 |
 
-Link to model point
--------------------
+Link to model point set
+-----------------------
 
-Model variables and constants are associated with a model point.
+Model variables and constants are associated with a model point set.
 
-To link a model point with a model component, use the :code:`modelpoint` parameter of the class.
-If a model point is not set explicitly, it will be set to :code:`policy` by default.
+To link a model point set with a model component, use the :code:`model_point_set` parameter of the class.
+If a model point set is not set explicitly, it will be set to :code:`main` by default.
 
 |
 
-The default model point is :code:`policy`:
+The default model point set is :code:`main`:
 
 ..  code-block:: python
 
@@ -396,19 +394,19 @@ is equivalent to
 
 ..  code-block:: python
 
-    ModelVariable(modelpoint=policy)
+    ModelVariable(model_point_set=main)
 
 |
 
-To use a different model point, it should be set to the :code:`modelpoint` parameter explicitly.
+To use a different model point set, it should be in the :code:`model_point_set` parameter explicitly.
 
 ..  code-block:: python
     :caption: model.py
 
-    from my_model.input import policy, fund
+    from my_model.input import main, fund
 
-    mortality_rate = ModelVariable(modelpoint=policy)
-    fund_value = ModelVariable(modelpoint=fund)
+    mortality_rate = ModelVariable(model_point_set=main)
+    fund_value = ModelVariable(model_point_set=fund)
 
 |
 
@@ -416,16 +414,16 @@ To read from a model point, use the :code:`get()` method of the :code:`ModelPoin
 
 ..  code-block:: python
 
-    policy.get("age")
+    main.get("age")
 
-The :code:`get()` method will retrieve value from the currently evaluated policy.
+The :code:`get()` method will retrieve value from the currently calculated model point.
 
 ..  code-block:: python
     :caption: model.py
 
     from my_model.input import fund
 
-    fund_value = ModelVariable(modelpoint=fund)
+    fund_value = ModelVariable(model_point_set=fund)
 
 
     @assign(fund_value)
@@ -436,13 +434,13 @@ The :code:`get()` method will retrieve value from the currently evaluated policy
 
 |
 
-The model will create a separate output file for each of the model points:
+The model will create a separate output file for each of the model point sets:
 
 ..  code-block::
 
     .
     └── output/
-        ├── <timestamp>_policy.csv
+        ├── <timestamp>_main.csv
         └── <timestamp>_fund.csv
 
-The output files will contain results for model components linked to an associated model point.
+The output files will contain results for model components linked to an associated model point set.

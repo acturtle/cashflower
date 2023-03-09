@@ -91,13 +91,13 @@ The table below indicates where the variables are added to the output:
      - Function
    * - False
      - False
-     - :code:`calculate_single_policy()`
+     - :code:`calculate_single_model_point()`
    * - False
      - True
-     - :code:`calculate_single_policy()`
+     - :code:`calculate_single_model_point()`
    * - True
      - False
-     - :code:`calculate_policies()`
+     - :code:`calculate()`
    * - True
      - True
      - :code:`merge_and_save_multiprocessing()`
