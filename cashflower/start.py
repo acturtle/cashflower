@@ -3,7 +3,9 @@ import importlib
 import inspect
 import os
 import pandas as pd
+import multiprocessing
 import numpy as np
+import functools
 
 from .cashflow import CashflowModelError, ModelVariable, ModelPoint, Model, Constant, Runplan
 from .utils import print_log
@@ -182,7 +184,7 @@ def prepare_model_input(model_name, settings, argv):
     return runplan, modelpoints, variables, constants
 
 
-def start(model_name, settings, argv):
+def start_single_core(model_name, settings, argv):
     """Initiate a Model object and run it."""
     settings = load_settings(settings)
     runplan, modelpoints, variables, constants = prepare_model_input(model_name, settings, argv)
@@ -193,7 +195,7 @@ def start(model_name, settings, argv):
     model.save()
 
 
-def execute(part, model_name, settings, cpu_count, argv):
+def execute_multiprocessing(part, model_name, settings, cpu_count, argv):
     """Execute part of the model points using multiprocessing."""
     settings = load_settings(settings)
     runplan, modelpoints, variables, constants = prepare_model_input(model_name, settings, argv)
@@ -204,7 +206,7 @@ def execute(part, model_name, settings, cpu_count, argv):
     return output
 
 
-def merge_and_save(outputs, settings):
+def merge_and_save_multiprocessing(outputs, settings):
     """Merge outputs from multiprocessing and save to files."""
     t_output_max = min(settings["T_OUTPUT_MAX"], settings["T_CALCULATION_MAX"])
 
@@ -231,3 +233,15 @@ def merge_and_save(outputs, settings):
         filepath = f"output/{timestamp}_{modelpoint}.csv"
         print(f"{' ' * 10} {filepath}")
         model_output[modelpoint].to_csv(filepath, index=False)
+
+
+def start(model_name, settings, argv):
+    settings = load_settings(settings)
+    if settings.get("MULTIPROCESSING"):
+        cpu_count = multiprocessing.cpu_count()
+        p = functools.partial(execute_multiprocessing, model_name=model_name, settings=settings, cpu_count=cpu_count, argv=argv)
+        with multiprocessing.Pool(cpu_count) as pool:
+            outputs = pool.map(p, range(cpu_count))
+        merge_and_save_multiprocessing(outputs, settings)
+    else:
+        start_single_core(model_name, settings, argv)
