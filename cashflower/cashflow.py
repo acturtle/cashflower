@@ -168,7 +168,7 @@ class ModelPointSet:
         self._id = new_id
 
         if new_id not in self.model_point_set_data.index:
-            raise CashflowModelError(f"There is no id '{new_id}' in modelpointset '{self.name}'.")
+            raise CashflowModelError(f"There is no id '{new_id}' in model_point_set '{self.name}'.")
 
         self.model_point_data = self.model_point_set_data.loc[[new_id]]
         self.model_point_size = self.model_point_data.shape[0]
@@ -194,14 +194,14 @@ class ModelPointSet:
     def check_id_col(self):
         id_column = self.settings["ID_COLUMN"]
         if id_column not in self.model_point_set_data.columns:
-            raise CashflowModelError(f"\nThere is no column '{id_column}' in modelpointset '{self.name}'.")
+            raise CashflowModelError(f"\nThere is no column '{id_column}' in model_point_set '{self.name}'.")
         return True
 
     def check_unique_keys(self):
         id_column = self.settings["ID_COLUMN"]
         if self.name == "main":
             if not self.model_point_set_data[id_column].is_unique:
-                msg = f"\nThe 'main' modelpointset must have unique values in '{id_column}' column."
+                msg = f"\nThe 'main' model_point_set must have unique values in '{id_column}' column."
                 raise CashflowModelError(msg)
         return True
 
@@ -217,13 +217,13 @@ class ModelPointSet:
 class ModelVariable:
     """Model variable of a cash flow model.
     Model variable returns numbers and is t-dependent.
-    Model variable is linked to a modelpointset and calculates results based on the formula.
+    Model variable is linked to a model_point_set and calculates results based on the formula.
 
     Attributes
     ----------
     name : str
         Name of the code variable.
-    modelpointset : ModelPointSet object
+    model_point_set : ModelPointSet object
         Model point to which the variable is linked.
         User sets it directly in the model script, otherwise it is set to the main model point.
     mp_dep : bool
@@ -240,7 +240,7 @@ class ModelVariable:
     settings : dict
         User settings from 'settings.py'.
     result : numpy array
-        List of n lists with m elements where: n = num of records for policy, m = num of projection months.
+        List of n lists with m elements where: n = num of model point records, m = num of projection months.
     runtime: float
         The runtime of the model variable in the model run (in seconds).
     children : list of model variables
@@ -251,10 +251,10 @@ class ModelVariable:
     """
     instances = []
 
-    def __init__(self, name=None, modelpointset=None, settings=None, mp_dep=True, calc_array=False):
+    def __init__(self, name=None, model_point_set=None, settings=None, mp_dep=True, calc_array=False):
         self.__class__.instances.append(self)
         self.name = name
-        self.modelpointset = modelpointset
+        self.model_point_set = model_point_set
         self.settings = settings
         self.mp_dep = mp_dep
         self.calc_array = calc_array
@@ -274,7 +274,7 @@ class ModelVariable:
 
     def __call__(self, t=None, r=None):
         if t is None:
-            return self.result[self.modelpointset.model_point_record_num, :]
+            return self.result[self.model_point_set.model_point_record_num, :]
 
         if t < 0 or t > self.settings["T_CALCULATION_MAX"]:
             return 0
@@ -283,7 +283,7 @@ class ModelVariable:
         if r is not None:
             return self.result[r, t]
 
-        return self.result[self.modelpointset.model_point_record_num, t]
+        return self.result[self.model_point_set.model_point_record_num, t]
 
     @property
     def formula(self):
@@ -321,11 +321,11 @@ class ModelVariable:
     def calculate(self):
         """Calculate result for all records of the model point."""
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
-        self.result = np.empty((self.modelpointset.model_point_size, t_calculation_max + 1), dtype=float)
+        self.result = np.empty((self.model_point_set.model_point_size, t_calculation_max + 1), dtype=float)
 
-        for r in range(self.modelpointset.model_point_size):
+        for r in range(self.model_point_set.model_point_size):
             self.clear()
-            self.modelpointset.model_point_record_num = r
+            self.model_point_set.model_point_record_num = r
 
             # Formula returns an array
             if self.calc_array:
@@ -350,8 +350,8 @@ class ModelVariable:
             msg = f"\nThe '{self.name}' variable has no formula. Please check the 'model.py' script."
             raise CashflowModelError(msg)
 
-        if self.modelpointset is None:
-            self.modelpointset = main
+        if self.model_point_set is None:
+            self.model_point_set = main
 
         self.formula = self.assigned_formula
 
@@ -376,7 +376,7 @@ class Constant:
         The formula to calculate the results. It takes definition from assigned_formula.
         While setting, it checks if the formula is recursive.
     result : list
-        List of n lists with 1 element where: n = num of records for policy.
+        List of n lists with 1 element where: n = num of model point records.
     runtime: float
         The runtime of the model variable in the model run (in seconds).
     children : list of model variables
@@ -543,7 +543,7 @@ class Model:
         aggregate = self.settings["AGGREGATE"]
         output_columns = self.settings["OUTPUT_COLUMNS"]
 
-        # Each modelpointset has a separate output file
+        # Each model_point_set has a separate output file
         for modelpointset in self.model_point_sets:
             empty_output[modelpointset.name] = pd.DataFrame()
             empty_output[modelpointset.name]["t"] = None
@@ -556,11 +556,11 @@ class Model:
         if aggregate:
             output_variables = [v for v in self.variables if v.in_output(output_columns)]
             for output_variable in output_variables:
-                empty_output[output_variable.modelpointset.name][output_variable.name] = None
+                empty_output[output_variable.model_point_set.name][output_variable.name] = None
         else:
             output_components = [c for c in self.components if c.in_output(output_columns)]
             for output_component in output_components:
-                empty_output[output_component.modelpointset.name][output_component.name] = None
+                empty_output[output_component.model_point_set.name][output_component.name] = None
 
         self.empty_output = empty_output
 
@@ -587,9 +587,9 @@ class Model:
                     # Variables are always in the output (individual and aggregate)
                     if isinstance(c, ModelVariable):
                         if aggregate:
-                            model_point_output[c.modelpointset.name][c.name] = sum(c.result[:, :t_output_max + 1])
+                            model_point_output[c.model_point_set.name][c.name] = sum(c.result[:, :t_output_max + 1])
                         else:
-                            model_point_output[c.modelpointset.name][c.name] = c.result[:, :t_output_max + 1].flatten()
+                            model_point_output[c.model_point_set.name][c.name] = c.result[:, :t_output_max + 1].flatten()
 
                     # Constants are added only to individual output
                     if isinstance(c, Constant) and not aggregate:
@@ -635,7 +635,7 @@ class Model:
                 if not self.settings["MULTIPROCESSING"]:
                     model_output[model_point_set.name]["t"] = np.arange(t_output_max + 1)
             else:
-                model_output[model_point_set.name] = pd.concat(policy_output[model_point_set.name] for policy_output in model_point_outputs)
+                model_output[model_point_set.name] = pd.concat(model_point_output[model_point_set.name] for model_point_output in model_point_outputs)
 
         self.output = model_output
         return model_output

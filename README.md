@@ -32,7 +32,7 @@ create_model("my_model")
 
 my_model/input.py
 ```python
-policy = ModelPointSet(data=pd.read_csv("C:/my_data/policy.csv"))
+main = ModelPointSet(data=pd.read_csv("C:/my_data/main.csv"))
 
 assumption = dict()
 assumption["interest_rates"] = pd.read_csv("C:/my_data/interest_rates.csv")
@@ -43,13 +43,13 @@ assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv", index_col="age
 
 my_model/model.py
 ```python
-age = ModelVariable(modelpoint=policy)
-death_prob = ModelVariable(modelpoint=policy)
+age = ModelVariable(modelpoint=main)
+death_prob = ModelVariable(modelpoint=main)
 
 @assign(age)
 def age_formula(t):
     if t == 0:
-        return int(policy.get("AGE"))
+        return int(main.get("AGE"))
     elif t % 12 == 0:
         return age(t-1) + 1
     else:
@@ -61,7 +61,7 @@ def death_prob_formula(t):
     if age(t) == age(t-1):
         return death_prob(t-1) 
     elif age(t) <= 100:
-        sex = policy.get("SEX")
+        sex = main.get("SEX")
         yearly_rate = assumption["mortality"].loc[age(t)][sex]
         monthly_rate = (1 - (1 - yearly_rate)**(1/12))
         return monthly_rate

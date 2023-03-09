@@ -1,13 +1,13 @@
 import math
 from cashflower import assign, ModelVariable, Constant
 
-from tutorials.time.input import policy, runplan
+from tutorials.time.input import main, runplan
 
-cal_month = ModelVariable(modelpointset=policy, mp_dep=False)
-cal_year = ModelVariable(modelpointset=policy, mp_dep=False)
-elapsed_months = Constant(modelpointset=policy)
-pol_month = ModelVariable(modelpointset=policy)
-pol_year = ModelVariable(modelpointset=policy)
+cal_month = ModelVariable(model_point_set=main, mp_dep=False)
+cal_year = ModelVariable(model_point_set=main, mp_dep=False)
+elapsed_months = Constant(modelpointset=main)
+pol_month = ModelVariable(model_point_set=main)
+pol_year = ModelVariable(model_point_set=main)
 
 
 @assign(cal_month)
@@ -32,8 +32,8 @@ def cal_year_formula(t):
 
 @assign(elapsed_months)
 def elapsed_months_formula():
-    issue_year = policy.get("issue_year")
-    issue_month = policy.get("issue_month")
+    issue_year = main.get("issue_year")
+    issue_month = main.get("issue_month")
     valuation_year = runplan.get("valuation_year")
     valuation_month = runplan.get("valuation_month")
     return (valuation_year - issue_year) * 12 + (valuation_month - issue_month)

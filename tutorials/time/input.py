@@ -10,7 +10,7 @@ runplan = Runplan(data=pd.DataFrame({
 }))
 
 
-policy = ModelPointSet(data=pd.DataFrame({
+main = ModelPointSet(data=pd.DataFrame({
     "id": [1],
     "issue_year": [2020],
     "issue_month": [6],

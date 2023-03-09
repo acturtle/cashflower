@@ -106,7 +106,7 @@ class TestModelVariable(TestCase):
         )
         policy.initialize()
 
-        mv = ModelVariable(name="mv", modelpointset=policy, settings=load_settings())
+        mv = ModelVariable(name="mv", model_point_set=policy, settings=load_settings())
 
         @assign(mv)
         def mv_formula(t):
@@ -120,7 +120,7 @@ class TestModelVariable(TestCase):
 
     def test_model_variable_raises_error_when_formula_has_no_parameter_t(self):
         policy = ModelPointSet(pd.DataFrame({"id": [1]}))
-        mv = ModelVariable(name="mv", modelpointset=policy, settings=load_settings())
+        mv = ModelVariable(name="mv", model_point_set=policy, settings=load_settings())
 
         @assign(mv)
         def mv_formula():
@@ -139,8 +139,8 @@ class TestModelVariable(TestCase):
         )
         policy.initialize()
 
-        mv_1 = ModelVariable(name="mv_1", modelpointset=policy, settings=settings)
-        mv_2 = ModelVariable(name="mv_2", modelpointset=policy, settings=settings)
+        mv_1 = ModelVariable(name="mv_1", model_point_set=policy, settings=settings)
+        mv_2 = ModelVariable(name="mv_2", model_point_set=policy, settings=settings)
 
         @assign(mv_1)
         def mv_1_formula(t):
@@ -184,7 +184,7 @@ class TestModelVariable(TestCase):
             return t
 
         mv.initialize(policy)
-        assert mv.modelpointset == policy
+        assert mv.model_point_set == policy
 
 
 class TestConstant(TestCase):
@@ -326,9 +326,9 @@ class TestModel(TestCase):
         policy = ModelPointSet(data=pd.DataFrame({"id": [1, 2, 3]}), name="policy")
         fund = ModelPointSet(data=pd.DataFrame({"id": [1, 2, 2, 3]}), name="fund")
 
-        a = ModelVariable(name="a", modelpointset=policy)
+        a = ModelVariable(name="a", model_point_set=policy)
         b = Constant(name="b", modelpointset=policy)
-        c = ModelVariable(name="c", modelpointset=fund)
+        c = ModelVariable(name="c", model_point_set=fund)
 
         model = Model(None, [a, c], [b], [policy, fund], settings)
         model.set_empty_output()
@@ -345,9 +345,9 @@ class TestModel(TestCase):
         policy = ModelPointSet(data=pd.DataFrame({"id": [1, 2, 3]}), name="policy")
         fund = ModelPointSet(data=pd.DataFrame({"id": [1, 2, 2, 3]}), name="fund")
 
-        a = ModelVariable(name="a", modelpointset=policy)
+        a = ModelVariable(name="a", model_point_set=policy)
         b = Constant(name="b", modelpointset=policy)
-        c = ModelVariable(name="c", modelpointset=fund)
+        c = ModelVariable(name="c", model_point_set=fund)
 
         model = Model(None, [a, c], [b], [policy, fund], settings)
         model.set_empty_output()
@@ -366,7 +366,7 @@ class TestModel(TestCase):
         policy = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="policy", settings=settings)
         policy.initialize()
 
-        a = ModelVariable(name="a", modelpointset=policy, settings=settings)
+        a = ModelVariable(name="a", model_point_set=policy, settings=settings)
 
         @assign(a)
         def a_formula(t):
@@ -394,7 +394,7 @@ class TestModel(TestCase):
         policy = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="policy", settings=settings)
         policy.initialize()
 
-        a = ModelVariable(name="a", modelpointset=policy, settings=settings)
+        a = ModelVariable(name="a", model_point_set=policy, settings=settings)
 
         @assign(a)
         def a_formula(t):

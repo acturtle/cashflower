@@ -1,6 +1,6 @@
 from cashflower import assign, ModelVariable
 
-from tutorials.annuity.deferred.input import policy
+from tutorials.annuity.deferred.input import main
 
 
 INTEREST_RATE = 0.005
@@ -23,10 +23,10 @@ def survival_rate_formula(t):
 
 @assign(expected_payment)
 def expected_payment_formula(t):
-    if t <= policy.get("deferral"):
+    if t <= main.get("deferral"):
         return 0
     else:
-        payment = policy.get("payment")
+        payment = main.get("payment")
         return survival_rate(t) * payment
 
 
