@@ -90,7 +90,7 @@ Input:
 
     import pandas as pd
 
-    from cashflower import Runplan, ModelPoint
+    from cashflower import Runplan, ModelPointSet
 
 
     runplan = Runplan(data=pd.DataFrame({
@@ -100,8 +100,8 @@ Input:
     }))
 
 
-    policy = ModelPoint(data=pd.DataFrame({
-        "policy_id": [1],
+    policy = ModelPointSet(data=pd.DataFrame({
+        "id": [1],
         "issue_year": [2020],
         "issue_month": [6],
     }))
@@ -124,7 +124,7 @@ Model uses runplan to store the information on the valuation date.
 
     import pandas as pd
 
-    from cashflower import Runplan, ModelPoint
+    from cashflower import Runplan, ModelPointSet
 
 
     runplan = Runplan(data=pd.DataFrame({
@@ -138,8 +138,8 @@ The policyholder has a policy that was issued in June 2020.
 ..  code-block:: python
     :caption: input.py
 
-    policy = ModelPoint(data=pd.DataFrame({
-        "policy_id": [1],
+    policy = ModelPointSet(data=pd.DataFrame({
+        "id": [1],
         "issue_year": [2020],
         "issue_month": [6],
     }))

@@ -45,8 +45,8 @@ class TestRunplan(TestCase):
 
 class TestModelPoint(TestCase):
     def test_model_point(self):
-        policy = ModelPoint(data=pd.DataFrame({
-            "policy_id": [1, 2, 3],
+        policy = ModelPointSet(data=pd.DataFrame({
+            "id": [1, 2, 3],
             "age": [52, 47, 35]
         }))
         assert len(policy) == 3
@@ -54,16 +54,16 @@ class TestModelPoint(TestCase):
         policy.name = "policy"
         policy.settings = load_settings()
         policy.initialize()
-        assert policy.policy_id == "1"
-        assert policy.record_num == 0
-        assert policy.size == 1
+        assert policy.id == "1"
+        assert policy.model_point_record_num == 0
+        assert policy.model_point_size == 1
         assert policy.get("age") == 52
 
         with pytest.raises(CashflowModelError):
-            policy.policy_id = 4
+            policy.id = 4
 
     def test_model_point_raises_error_when_no_policy_id_col(self):
-        policy = ModelPoint(
+        policy = ModelPointSet(
             data=pd.DataFrame({"age": [52, 47, 35]}),
             name="policy",
             settings=load_settings()
@@ -72,8 +72,8 @@ class TestModelPoint(TestCase):
             policy.initialize()
 
     def test_policy_raises_error_when_no_unique_keys(self):
-        policy = ModelPoint(
-            data=pd.DataFrame({"policy_id": [1, 2, 2]}),
+        policy = ModelPointSet(
+            data=pd.DataFrame({"id": [1, 2, 2]}),
             name="policy",
             settings=load_settings()
         )
@@ -99,14 +99,14 @@ class TestModelVariable(TestCase):
         assert mv > other_mv
 
     def test_model_variable_gets_called(self):
-        policy = ModelPoint(
-            data=pd.DataFrame({"policy_id": [1]}),
+        policy = ModelPointSet(
+            data=pd.DataFrame({"id": [1]}),
             name="policy",
             settings=load_settings()
         )
         policy.initialize()
 
-        mv = ModelVariable(name="mv", modelpoint=policy, settings=load_settings())
+        mv = ModelVariable(name="mv", modelpointset=policy, settings=load_settings())
 
         @assign(mv)
         def mv_formula(t):
@@ -119,8 +119,8 @@ class TestModelVariable(TestCase):
         assert mv(3, 0) == 3
 
     def test_model_variable_raises_error_when_formula_has_no_parameter_t(self):
-        policy = ModelPoint(pd.DataFrame({"policy_id": [1]}))
-        mv = ModelVariable(name="mv", modelpoint=policy, settings=load_settings())
+        policy = ModelPointSet(pd.DataFrame({"id": [1]}))
+        mv = ModelVariable(name="mv", modelpointset=policy, settings=load_settings())
 
         @assign(mv)
         def mv_formula():
@@ -132,15 +132,15 @@ class TestModelVariable(TestCase):
     def test_model_variable_calculates_for_recursive_formula(self):
         settings = load_settings()
 
-        policy = ModelPoint(
-            data=pd.DataFrame({"policy_id": [1]}),
+        policy = ModelPointSet(
+            data=pd.DataFrame({"id": [1]}),
             name="policy",
             settings=settings
         )
         policy.initialize()
 
-        mv_1 = ModelVariable(name="mv_1", modelpoint=policy, settings=settings)
-        mv_2 = ModelVariable(name="mv_2", modelpoint=policy, settings=settings)
+        mv_1 = ModelVariable(name="mv_1", modelpointset=policy, settings=settings)
+        mv_2 = ModelVariable(name="mv_2", modelpointset=policy, settings=settings)
 
         @assign(mv_1)
         def mv_1_formula(t):
@@ -170,8 +170,8 @@ class TestModelVariable(TestCase):
     def test_model_variable_has_policy_model_point_by_default(self):
         settings=load_settings()
 
-        policy = ModelPoint(
-            data=pd.DataFrame({"policy_id": [1]}),
+        policy = ModelPointSet(
+            data=pd.DataFrame({"id": [1]}),
             name="policy",
             settings=settings
         )
@@ -184,7 +184,7 @@ class TestModelVariable(TestCase):
             return t
 
         mv.initialize(policy)
-        assert mv.modelpoint == policy
+        assert mv.modelpointset == policy
 
 
 class TestConstant(TestCase):
@@ -200,13 +200,13 @@ class TestConstant(TestCase):
         assert p1 > p2
 
     def test_constant_gets_called(self):
-        policy = ModelPoint(
-            data=pd.DataFrame({"policy_id": [1]}),
+        policy = ModelPointSet(
+            data=pd.DataFrame({"id": [1]}),
             name="policy",
             settings=load_settings()
         )
         policy.initialize()
-        p = Constant(name="p", modelpoint=policy)
+        p = Constant(name="p", modelpointset=policy)
 
         @assign(p)
         def mv_formula():
@@ -242,9 +242,9 @@ class TestModel(TestCase):
         assert model.get_component_by_name("my-parameter") == p
 
     def test_get_modelpoint_by_name(self):
-        mp = ModelPoint(data=None, name="my-model-point")
+        mp = ModelPointSet(data=None, name="my-model-point")
         model = Model(None, [], [], [mp], None)
-        assert model.get_modelpoint_by_name("my-model-point") == mp
+        assert model.get_model_point_set_by_name("my-model-point") == mp
 
     def test_model_sets_children(self):
         a = ModelVariable(name="a")
@@ -323,12 +323,12 @@ class TestModel(TestCase):
     def test_set_empty_output_when_aggregate(self):
         settings = load_settings()
 
-        policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2, 3]}), name="policy")
-        fund = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2, 2, 3]}), name="fund")
+        policy = ModelPointSet(data=pd.DataFrame({"id": [1, 2, 3]}), name="policy")
+        fund = ModelPointSet(data=pd.DataFrame({"id": [1, 2, 2, 3]}), name="fund")
 
-        a = ModelVariable(name="a", modelpoint=policy)
-        b = Constant(name="b", modelpoint=policy)
-        c = ModelVariable(name="c", modelpoint=fund)
+        a = ModelVariable(name="a", modelpointset=policy)
+        b = Constant(name="b", modelpointset=policy)
+        c = ModelVariable(name="c", modelpointset=fund)
 
         model = Model(None, [a, c], [b], [policy, fund], settings)
         model.set_empty_output()
@@ -342,12 +342,12 @@ class TestModel(TestCase):
         settings = load_settings()
         settings["AGGREGATE"] = False
 
-        policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2, 3]}), name="policy")
-        fund = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2, 2, 3]}), name="fund")
+        policy = ModelPointSet(data=pd.DataFrame({"id": [1, 2, 3]}), name="policy")
+        fund = ModelPointSet(data=pd.DataFrame({"id": [1, 2, 2, 3]}), name="fund")
 
-        a = ModelVariable(name="a", modelpoint=policy)
-        b = Constant(name="b", modelpoint=policy)
-        c = ModelVariable(name="c", modelpoint=fund)
+        a = ModelVariable(name="a", modelpointset=policy)
+        b = Constant(name="b", modelpointset=policy)
+        c = ModelVariable(name="c", modelpointset=fund)
 
         model = Model(None, [a, c], [b], [policy, fund], settings)
         model.set_empty_output()
@@ -363,10 +363,10 @@ class TestModel(TestCase):
     def test_calculate_all_policies_when_aggregate(self):
         settings = load_settings()
 
-        policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2]}), name="policy", settings=settings)
+        policy = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="policy", settings=settings)
         policy.initialize()
 
-        a = ModelVariable(name="a", modelpoint=policy, settings=settings)
+        a = ModelVariable(name="a", modelpointset=policy, settings=settings)
 
         @assign(a)
         def a_formula(t):
@@ -379,7 +379,7 @@ class TestModel(TestCase):
         model.set_children()
         model.set_grandchildren()
         model.set_queue()
-        model_output = model.calculate_policies()
+        model_output = model.calculate()
         test_output = pd.DataFrame({
             "t": list(range(1201)),
             "a": [2 * (i + 100) for i in range(1201)]
@@ -391,10 +391,10 @@ class TestModel(TestCase):
         settings = load_settings()
         settings["AGGREGATE"] = False
 
-        policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2]}), name="policy", settings=settings)
+        policy = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="policy", settings=settings)
         policy.initialize()
 
-        a = ModelVariable(name="a", modelpoint=policy, settings=settings)
+        a = ModelVariable(name="a", modelpointset=policy, settings=settings)
 
         @assign(a)
         def a_formula(t):
@@ -407,7 +407,7 @@ class TestModel(TestCase):
         model.set_children()
         model.set_grandchildren()
         model.set_queue()
-        model_output = model.calculate_policies()
+        model_output = model.calculate()
 
         print(model_output["policy"], "\n\n")
 

@@ -1,9 +1,9 @@
 import pandas as pd
 
-from cashflower import Runplan, ModelPoint
+from cashflower import Runplan, ModelPointSet
 
 
-policy = ModelPoint(data=pd.DataFrame({
-    "policy_id": [1],
+policy = ModelPointSet(data=pd.DataFrame({
+    "id": [1],
     "payment": [1_000]
 }))

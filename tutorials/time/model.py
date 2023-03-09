@@ -3,11 +3,11 @@ from cashflower import assign, ModelVariable, Constant
 
 from tutorials.time.input import policy, runplan
 
-cal_month = ModelVariable(modelpoint=policy, pol_dep=False)
-cal_year = ModelVariable(modelpoint=policy, pol_dep=False)
-elapsed_months = Constant(modelpoint=policy)
-pol_month = ModelVariable(modelpoint=policy)
-pol_year = ModelVariable(modelpoint=policy)
+cal_month = ModelVariable(modelpointset=policy, mp_dep=False)
+cal_year = ModelVariable(modelpointset=policy, mp_dep=False)
+elapsed_months = Constant(modelpointset=policy)
+pol_month = ModelVariable(modelpointset=policy)
+pol_year = ModelVariable(modelpointset=policy)
 
 
 @assign(cal_month)

@@ -99,10 +99,10 @@ Whole life insurance provides for payment following the death of the insured at 
 
     import pandas as pd
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
-    policy = ModelPoint(data=pd.DataFrame({
-        "policy_id": [1],
+    policy = ModelPointSet(data=pd.DataFrame({
+        "id": [1],
         "sum_assured": [100_000]
     }))
 
@@ -163,10 +163,10 @@ commencing at issue.
 
     import pandas as pd
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
-    policy = ModelPoint(data=pd.DataFrame({
-        "policy_id": [1],
+    policy = ModelPointSet(data=pd.DataFrame({
+        "id": [1],
         "sum_assured": [100_000],
         "remaining_term": [36],
     }))
@@ -229,10 +229,10 @@ n-years from the time of the policy issue.
 
     import pandas as pd
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
-    policy = ModelPoint(data=pd.DataFrame({
-        "policy_id": [1],
+    policy = ModelPointSet(data=pd.DataFrame({
+        "id": [1],
         "sum_assured": [100_000],
         "remaining_term": [36],
     }))
@@ -287,10 +287,10 @@ the survival of the insured to the end of the n-year term, whichever occurs firs
 
     import pandas as pd
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
-    policy = ModelPoint(data=pd.DataFrame({
-        "policy_id": [1],
+    policy = ModelPointSet(data=pd.DataFrame({
+        "id": [1],
         "sum_assured": [100_000],
         "remaining_term": [36],
     }))
@@ -354,11 +354,11 @@ at least m years following policy issue.
 
     import pandas as pd
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
 
-    policy = ModelPoint(data=pd.DataFrame({
-        "policy_id": [1],
+    policy = ModelPointSet(data=pd.DataFrame({
+        "id": [1],
         "sum_assured": [100_000],
         "deferral": [24],
     }))

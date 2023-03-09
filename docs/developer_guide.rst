@@ -32,7 +32,7 @@ After that, it creates the instance of the :code:`Model` class which is used to 
 
 The :code:`cashflow.py` script contains the classes for all the main objects, such as:
     * :code:`Runplan`,
-    * :code:`ModelPoint`,
+    * :code:`ModelPointSet`,
     * :code:`ModelVariable`,
     * :code:`Constant`,
     * :code:`Model`.

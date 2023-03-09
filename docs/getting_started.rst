@@ -64,7 +64,7 @@ In the :code:`input.py` script, you can define your model points and assumptions
 
     import pandas as pd
 
-    from cashflower import Runplan, ModelPoint
+    from cashflower import Runplan, ModelPointSet
 
     runplan = Runplan(data=pd.DataFrame({
         "version": [1],
@@ -72,13 +72,13 @@ In the :code:`input.py` script, you can define your model points and assumptions
         "valuation_month": [12]
     }))
 
-    policy = ModelPoint(data=pd.read_csv("C:/my_data/policy.csv"))
+    policy = ModelPointSet(data=pd.read_csv("C:/my_data/policy.csv"))
 
     assumption = dict()
     assumption["interest_rates"] = pd.read_csv("C:/my_data/interest_rates.csv")
     assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv", index_col="age")
 
-Runplan bases on the :code:`Runplan` class, model points base on the :code:`ModelPoint` class and assumptions have a form of a dictionary.
+Runplan bases on the :code:`Runplan` class, model points base on the :code:`ModelPointSet` class and assumptions have a form of a dictionary.
 
 |
 

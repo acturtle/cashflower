@@ -54,7 +54,7 @@ class Runplan:
 
     Attributes
     ----------
-    data : data frame
+    data : model_point_set_data frame
         Data for runplan which must contain column named 'version'.
     _version : str
         Current version to be evaluated.
@@ -89,7 +89,7 @@ class Runplan:
             self.data["version"] = self.data["version"].astype(str)
 
     def set_index(self):
-        """Set 'version' column as an index of the data frame."""
+        """Set 'version' column as an index of the model_point_set_data frame."""
         self.data = self.data.set_index("version")
 
     def get(self, attribute):
@@ -109,145 +109,125 @@ class Runplan:
         return self.data.loc[self.version][attribute]
 
 
-class ModelPoint:
-    """Policyholders' data.
-    The model point stores data on all policyholders and points to a specific policyholder
-    for which model should be calculated.
+class ModelPointSet:
+    """Set of model points.
 
     Attributes
     ----------
-    data : data frame
-        Policyholders' data.
+    data : model_point_set_data frame
+        Data containing model points.
     name : str
         Used in the output filename. Set in get_model_input().
     settings : dict
-        User settings. Model point uses POLICY_ID_COLUMN setting. Set in get_model_input().
-    _policy_id : str
-        Value to identify the policyholder by in the column defined by POLICY_ID_COLUMN setting.
-        Looped over in model.calculated_all_policies().
-    _record_num : int
-        Number of records - relevant when there are multiple records for the same policyholder.
+        User settings. Model point uses ID_COLUMN setting. Set in get_model_input().
+    _id : str
+        Value to identify the model point in the column defined by ID_COLUMN setting.
+        Looped over in model.calculated_policies().
+    _model_point_record_num : int
+        Record number - relevant when there are multiple records for the same model point.
         Looped over in model_variable.calculate().
-    policy_data : data frame
-        Row(s) of data for the current policyholder.
-    size : int
-        Number of rows of policy data.
-    policy_record : data frame
-        Row of data for the current policyholder and record.
+    model_point_data : model_point_set_data frame
+        Row(s) of model_point_set_data for the current model point.
+    model_point_size : int
+        Number of rows of model_point_set_data for all model points.
+    model_point_record_data : model_point_set_data frame
+        Row of model_point_set_data for the current model point and record.
     """
 
     instances = []
 
     def __init__(self, data, name=None, settings=None):
         self.__class__.instances.append(self)
-        self.data = data
+        self.model_point_set_data = data
         self.name = name
         self.settings = settings
-        self._policy_id = None
-        self._record_num = None
-        self.policy_data = None
-        self.size = 0
-        self.policy_record = None
+        self._id = None
+        self._model_point_record_num = None
+        self.model_point_data = None
+        self.model_point_size = 0
+        self.model_point_record_data = None
 
     def __repr__(self):
         return f"MP: {self.name}"
 
     def __len__(self):
-        return self.data.shape[0]
+        return self.model_point_set_data.shape[0]
 
     def get(self, attribute):
-        """Get value from the modelpoint for the current policy id and record.
-
-        Parameters
-        ----------
-        attribute : str
-            Column name of the needed attribute.
-
-        Returns
-        -------
-        scalar
-        """
-        return self.policy_record[attribute].values[0]
+        """Get value from the the current record."""
+        return self.model_point_record_data[attribute].values[0]
 
     @property
-    def policy_id(self):
-        """Policy id of the currently evaluated policy. """
-        return self._policy_id
+    def id(self):
+        """Current model point's id."""
+        return self._id
 
-    @policy_id.setter
-    def policy_id(self, new_policy_id):
-        """Set model point's policy id.
+    @id.setter
+    def id(self, new_id):
+        """Set model point's id and corresponding attributes."""
+        self._id = new_id
 
-        Check if the policy id exists in the model point.
-        Set policy data and size (number of records).
-        Set record number back to zero.
-        """
-        self._policy_id = new_policy_id
+        if new_id not in self.model_point_set_data.index:
+            raise CashflowModelError(f"There is no id '{new_id}' in modelpointset '{self.name}'.")
 
-        if new_policy_id not in self.data.index:
-            raise CashflowModelError(f"There is no policy id '{new_policy_id}' in modelpoint '{self.name}'.")
-
-        self.policy_data = self.data.loc[[new_policy_id]]
-        self.size = self.policy_data.shape[0]
-        self.record_num = 0
+        self.model_point_data = self.model_point_set_data.loc[[new_id]]
+        self.model_point_size = self.model_point_data.shape[0]
+        self.model_point_record_num = 0
 
     @property
-    def record_num(self):
-        """Record number for the policies with multiple records. """
-        return self._record_num
+    def model_point_record_num(self):
+        """Current model point's record number (model point can have multiple records)."""
+        return self._model_point_record_num
 
-    @record_num.setter
-    def record_num(self, new_record_num):
-        """Set policy's record number (relevant for the policies with multiple records).
-
-        Set policy record (row of policy data for the currently evaluated record number).
-        """
-        self._record_num = new_record_num
-        self.policy_record = self.policy_data.iloc[[new_record_num]]
+    @model_point_record_num.setter
+    def model_point_record_num(self, new_record_num):
+        """Set model point's record number and data."""
+        self._model_point_record_num = new_record_num
+        self.model_point_record_data = self.model_point_data.iloc[[new_record_num]]
 
     def initialize(self):
-        self.check_policy_id_col()
+        self.check_id_col()
         self.check_unique_keys()
         self.set_index()
-        self.policy_id = self.data.iloc[0][self.settings["POLICY_ID_COLUMN"]]
+        self.id = self.model_point_set_data.iloc[0][self.settings["ID_COLUMN"]]
 
-    def check_policy_id_col(self):
-        policy_id_column = self.settings["POLICY_ID_COLUMN"]
-        if policy_id_column not in self.data.columns:
-            raise CashflowModelError(f"\nThere is no column '{policy_id_column}' in modelpoint '{self.name}'.")
+    def check_id_col(self):
+        id_column = self.settings["ID_COLUMN"]
+        if id_column not in self.model_point_set_data.columns:
+            raise CashflowModelError(f"\nThere is no column '{id_column}' in modelpointset '{self.name}'.")
         return True
 
     def check_unique_keys(self):
-        policy_id_column = self.settings["POLICY_ID_COLUMN"]
-        if self.name == "policy":
-            if not self.data[policy_id_column].is_unique:
-                msg = f"\nThe 'policy' modelpoint must have unique values in '{policy_id_column}' column."
+        id_column = self.settings["ID_COLUMN"]
+        if self.name == "main":
+            if not self.model_point_set_data[id_column].is_unique:
+                msg = f"\nThe 'main' modelpointset must have unique values in '{id_column}' column."
                 raise CashflowModelError(msg)
         return True
 
     def set_index(self):
-        policy_id_column = self.settings["POLICY_ID_COLUMN"]
-        self.data[policy_id_column] = self.data[policy_id_column].astype(str)
-        self.data[policy_id_column + "_duplicate"] = self.data[policy_id_column]
-        self.data = self.data.set_index(policy_id_column)
-        self.data[policy_id_column] = self.data[policy_id_column + "_duplicate"]
-        self.data = self.data.drop(columns=[policy_id_column + "_duplicate"])
+        id_column = self.settings["ID_COLUMN"]
+        self.model_point_set_data[id_column] = self.model_point_set_data[id_column].astype(str)
+        self.model_point_set_data[id_column + "_duplicate"] = self.model_point_set_data[id_column]
+        self.model_point_set_data = self.model_point_set_data.set_index(id_column)
+        self.model_point_set_data[id_column] = self.model_point_set_data[id_column + "_duplicate"]
+        self.model_point_set_data = self.model_point_set_data.drop(columns=[id_column + "_duplicate"])
 
 
 class ModelVariable:
     """Model variable of a cash flow model.
     Model variable returns numbers and is t-dependent.
-    Model variable is linked to a modelpoint and calculates results based on the formula.
+    Model variable is linked to a modelpointset and calculates results based on the formula.
 
     Attributes
     ----------
     name : str
         Name of the code variable.
-    modelpoint : ModelPoint object
+    modelpointset : ModelPointSet object
         Model point to which the variable is linked.
-        User sets it directly in the model script, otherwise it is set to the primary model point.
-    pol_dep : bool
-        Should the variable be calculated for each policyholder or only once?
+        User sets it directly in the model script, otherwise it is set to the main model point.
+    mp_dep : bool
+        Should the variable be calculated for each model point or only once?
     calc_array : bool
         Is the calculation arrayized?
     assigned_formula : function
@@ -271,12 +251,12 @@ class ModelVariable:
     """
     instances = []
 
-    def __init__(self, name=None, modelpoint=None, settings=None, pol_dep=True, calc_array=False):
+    def __init__(self, name=None, modelpointset=None, settings=None, mp_dep=True, calc_array=False):
         self.__class__.instances.append(self)
         self.name = name
-        self.modelpoint = modelpoint
+        self.modelpointset = modelpointset
         self.settings = settings
-        self.pol_dep = pol_dep
+        self.mp_dep = mp_dep
         self.calc_array = calc_array
         self.assigned_formula = None
         self._formula = None
@@ -294,7 +274,7 @@ class ModelVariable:
 
     def __call__(self, t=None, r=None):
         if t is None:
-            return self.result[self.modelpoint.record_num, :]
+            return self.result[self.modelpointset.model_point_record_num, :]
 
         if t < 0 or t > self.settings["T_CALCULATION_MAX"]:
             return 0
@@ -303,7 +283,7 @@ class ModelVariable:
         if r is not None:
             return self.result[r, t]
 
-        return self.result[self.modelpoint.record_num, t]
+        return self.result[self.modelpointset.model_point_record_num, t]
 
     @property
     def formula(self):
@@ -312,11 +292,7 @@ class ModelVariable:
 
     @formula.setter
     def formula(self, new_formula):
-        """Set a formula to the model variable.
-
-        Check if the formula has correct parameters.
-        Set if the formula is recursive (and how).
-        """
+        """Set a formula to the model variable."""
         params = inspect.signature(new_formula).parameters
 
         # Model variables should have parameter 't'
@@ -339,23 +315,23 @@ class ModelVariable:
 
     def clear(self):
         """Clear formula's cache. """
-        if self.pol_dep:
+        if self.mp_dep:
             self.formula.cache_clear()
 
     def calculate(self):
-        """Calculate result for all records of the policy. """
+        """Calculate result for all records of the model point."""
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
-        self.result = np.empty((self.modelpoint.size, t_calculation_max+1), dtype=float)
+        self.result = np.empty((self.modelpointset.model_point_size, t_calculation_max + 1), dtype=float)
 
-        for r in range(self.modelpoint.size):
+        for r in range(self.modelpointset.model_point_size):
             self.clear()
-            self.modelpoint.record_num = r
+            self.modelpointset.model_point_record_num = r
 
             # Formula returns an array
             if self.calc_array:
                 self.result[r, :] = self.formula()
 
-            # Formula returns value for each time separately
+            # Formula returns value for each `t` separately
             else:
                 # not recursive
                 if self.recursive == 0:
@@ -369,13 +345,13 @@ class ModelVariable:
                     for t in range(t_calculation_max, -1, -1):
                         self.result[r, t] = self.formula(t)
 
-    def initialize(self, policy=None):
+    def initialize(self, main=None):
         if self.assigned_formula is None:
             msg = f"\nThe '{self.name}' variable has no formula. Please check the 'model.py' script."
             raise CashflowModelError(msg)
 
-        if self.modelpoint is None:
-            self.modelpoint = policy
+        if self.modelpointset is None:
+            self.modelpointset = main
 
         self.formula = self.assigned_formula
 
@@ -385,14 +361,13 @@ class ModelVariable:
 
 class Constant:
     """Constant of a cash flow model.
-
     Constant can return either number or string and is t-independent.
 
     Attributes
     ----------
     name : str
         Name of the code variable.
-    modelpoint : ModelPoint object
+    modelpointset : ModelPointSet object
         Model point to which the variable is linked.
         User sets it directly in the model script, otherwise it is set to the primary model point.
     assigned_formula : function
@@ -410,9 +385,9 @@ class Constant:
     grandchildren : list of model variables
         Children and their descendants (children, grandchildren, grandgrandchildren and so on...).
     """
-    def __init__(self, name=None, modelpoint=None):
+    def __init__(self, name=None, modelpointset=None):
         self.name = name
-        self.modelpoint = modelpoint
+        self.modelpointset = modelpointset
         self.assigned_formula = None
         self._formula = None
         self.result = None
@@ -421,8 +396,6 @@ class Constant:
         self.grandchildren = []
 
     def __repr__(self):
-        if self.name is None:
-            return "C: NoName"
         return f"C: {self.name}"
 
     def __lt__(self, other):
@@ -437,19 +410,16 @@ class Constant:
                 raise CashflowModelError(f"Unable to evaluate the '{self.name}' constant. "
                                          f"Tip: don't call constants with the time parameter.")
 
-        return self.result[self.modelpoint.record_num]
+        return self.result[self.modelpointset.model_point_record_num]
 
     @property
     def formula(self):
-        """Formula to calculate constant's value. """
+        """Formula to calculate constant's value."""
         return self._formula
 
     @formula.setter
     def formula(self, new_formula):
-        """Set a formula.
-
-        Check if formula doesn't have any parameters.
-        """
+        """Set a formula. Check if formula doesn't have any parameters."""
         params = inspect.signature(new_formula).parameters
         if not (len(params) == 0):
             msg = f"\nFormula can't have any parameters. Please check code for '{new_formula.__name__}'."
@@ -461,20 +431,20 @@ class Constant:
         self.formula.cache_clear()
 
     def calculate(self):
-        """Calculate parameter's value for all records in the policy. """
-        self.result = [None] * self.modelpoint.size
-        for r in range(self.modelpoint.size):
+        """Calculate constant's value for all records in the model point."""
+        self.result = [None] * self.modelpointset.model_point_size
+        for r in range(self.modelpointset.model_point_size):
             self.clear()
-            self.modelpoint.record_num = r
+            self.modelpointset.model_point_record_num = r
             self.result[r] = self.formula()
 
-    def initialize(self, policy=None):
+    def initialize(self, main=None):
         if self.assigned_formula is None:
             msg = f"\nThe '{self.name}' parameter has no formula. Please check the 'model.py' script."
             raise CashflowModelError(msg)
 
-        if self.modelpoint is None:
-            self.modelpoint = policy
+        if self.modelpointset is None:
+            self.modelpointset = main
 
         self.formula = self.assigned_formula
 
@@ -484,9 +454,8 @@ class Constant:
 
 class Model:
     """Actuarial cash flow model.
-    Model combines constants, model variables and modelpoints.
+    Model combines model variables, constants and model point sets.
     Model components (constants and variables) are ordered into a calculation queue.
-    All variables are calculated for data of each policyholder in the modelpoints.
 
     Attributes
     ----------
@@ -496,7 +465,7 @@ class Model:
         List of model variables objects.
     constants : list
         List of constants objects.
-    modelpoints : list
+    model_point_sets : list
         List of model point objects.
     settings : dict
         User settings.
@@ -505,13 +474,13 @@ class Model:
     empty_output : dict
         Empty dict with keys prepared for output
     output : dict
-        Dict with key = modelpoints, values = data frames (columns for model variables).
+        Dict with key = model_point_sets, values = model_point_set_data frames (columns for model variables).
     """
-    def __init__(self, name, variables, constants, modelpoints, settings, cpu_count=None):
+    def __init__(self, name, variables, constants, model_point_sets, settings, cpu_count=None):
         self.name = name
         self.variables = variables
         self.constants = constants
-        self.modelpoints = modelpoints
+        self.model_point_sets = model_point_sets
         self.settings = settings
         self.components = variables + constants
         self.queue = []
@@ -520,36 +489,16 @@ class Model:
         self.cpu_count = cpu_count
 
     def get_component_by_name(self, name):
-        """Get a model component object by its name.
-
-        Parameters
-        ----------
-        name : str
-            Name of the model variable or parameter.
-
-        Returns
-        -------
-        object of class ModelVariable or Constant
-        """
+        """Get a model component object by its name."""
         for component in self.components:
             if component.name == name:
                 return component
 
-    def get_modelpoint_by_name(self, name):
-        """Get a model point object by its name.
-
-        Parameters
-        ----------
-        name : str
-            Name of the model point.
-
-        Returns
-        -------
-        object of class ModelPoint
-        """
-        for modelpoint in self.modelpoints:
-            if modelpoint.name == name:
-                return modelpoint
+    def get_model_point_set_by_name(self, name):
+        """Get a model point set object by its name."""
+        for model_point_set in self.model_point_sets:
+            if model_point_set.name == name:
+                return model_point_set
 
     def set_children(self):
         """Set children of the model components. """
@@ -577,7 +526,7 @@ class Model:
                 component.grandchildren.remove(removed_component)
 
     def set_queue(self):
-        """Set an ordrer in which model components should be evaluated. """
+        """Set an ordrer in which model components should be evaluated."""
         queue = []
         components = sorted(self.components)
         while components:
@@ -594,34 +543,34 @@ class Model:
         aggregate = self.settings["AGGREGATE"]
         output_columns = self.settings["OUTPUT_COLUMNS"]
 
-        # Each modelpoint has a separate output file
-        for modelpoint in self.modelpoints:
-            empty_output[modelpoint.name] = pd.DataFrame()
-            empty_output[modelpoint.name]["t"] = None
+        # Each modelpointset has a separate output file
+        for modelpointset in self.model_point_sets:
+            empty_output[modelpointset.name] = pd.DataFrame()
+            empty_output[modelpointset.name]["t"] = None
             # Individual output contains record numbers
             if not aggregate:
-                empty_output[modelpoint.name]["r"] = None
+                empty_output[modelpointset.name]["r"] = None
 
         # Aggregated output contains only variables
         # Individual output contains all components (variables and constants)
         if aggregate:
             output_variables = [v for v in self.variables if v.in_output(output_columns)]
             for output_variable in output_variables:
-                empty_output[output_variable.modelpoint.name][output_variable.name] = None
+                empty_output[output_variable.modelpointset.name][output_variable.name] = None
         else:
             output_components = [c for c in self.components if c.in_output(output_columns)]
             for output_component in output_components:
-                empty_output[output_component.modelpoint.name][output_component.name] = None
+                empty_output[output_component.modelpointset.name][output_component.name] = None
 
         self.empty_output = empty_output
 
-    def calculate_single_policy(self, row, pb_max, primary, one_core=None):
-        """Calculate results for a policy currently indicated in the model point. """
-        policy_id = primary.data.index[row]
-        for modelpoint in self.modelpoints:
-            modelpoint.policy_id = policy_id
+    def calculate_single_model_point(self, row, pb_max, main, one_core=None):
+        """Calculate results for a model point currently indicated in the model point set."""
+        model_point_id = main.model_point_set_data.index[row]
+        for model_point_set in self.model_point_sets:
+            model_point_set.id = model_point_id
 
-        policy_output = copy.deepcopy(self.empty_output)
+        model_point_output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
         t_output_max = min(self.settings["T_OUTPUT_MAX"], t_calculation_max)
@@ -635,64 +584,64 @@ class Model:
                 raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
             else:
                 if c.in_output(output_columns):
-                    # Variables are always in the output
+                    # Variables are always in the output (individual and aggregate)
                     if isinstance(c, ModelVariable):
                         if aggregate:
-                            policy_output[c.modelpoint.name][c.name] = sum(c.result[:, :t_output_max+1])
+                            model_point_output[c.modelpointset.name][c.name] = sum(c.result[:, :t_output_max + 1])
                         else:
-                            policy_output[c.modelpoint.name][c.name] = c.result[:, :t_output_max+1].flatten()
+                            model_point_output[c.modelpointset.name][c.name] = c.result[:, :t_output_max + 1].flatten()
 
                     # Constants are added only to individual output
                     if isinstance(c, Constant) and not aggregate:
-                        policy_output[c.modelpoint.name][c.name] = np.repeat(c.result, t_output_max+1)
+                        model_point_output[c.modelpointset.name][c.name] = np.repeat(c.result, t_output_max + 1)
             c.runtime += time.time() - start
 
         # Add time and record number to the individual output
         if not aggregate:
-            for modelpoint in self.modelpoints:
-                policy_output[modelpoint.name]["t"] = np.tile(np.arange(t_output_max+1), modelpoint.size)
-                policy_output[modelpoint.name]["r"] = np.repeat(np.arange(1, modelpoint.size+1), t_output_max+1)
+            for model_point_set in self.model_point_sets:
+                model_point_output[model_point_set.name]["t"] = np.tile(np.arange(t_output_max + 1), model_point_set.model_point_size)
+                model_point_output[model_point_set.name]["r"] = np.repeat(np.arange(1, model_point_set.model_point_size + 1), t_output_max + 1)
 
         if one_core:
             updt(pb_max, row + 1)
 
-        return policy_output
+        return model_point_output
 
-    def calculate_policies(self, range_start=None, range_end=None):
-        """Calculate results for policies. """
+    def calculate(self, range_start=None, range_end=None):
+        """Calculate results for all model points."""
         # Configuration
-        output = copy.deepcopy(self.empty_output)
+        model_output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
         t_output_max = min(self.settings["T_OUTPUT_MAX"], self.settings["T_CALCULATION_MAX"])
-        primary = self.get_modelpoint_by_name("policy")
+        main = self.get_model_point_set_by_name("main")
         one_core = range_start == 0 or range_start is None
 
         # Calculate formulas
-        n_pols = len(primary)
+        n_pols = len(main)
         pb_max = n_pols if range_end is None else range_end
-        calculate = functools.partial(self.calculate_single_policy, pb_max=pb_max, primary=primary, one_core=one_core)
+        calculate = functools.partial(self.calculate_single_model_point, pb_max=pb_max, main=main, one_core=one_core)
         if range_start is None:
-            policy_outputs = [*map(calculate, range(n_pols))]
+            model_point_outputs = [*map(calculate, range(n_pols))]
         else:
-            policy_outputs = [*map(calculate, range(range_start, range_end))]
+            model_point_outputs = [*map(calculate, range(range_start, range_end))]
 
-        # Merge results from single policies
+        # Merge results from single model points
         if one_core:
             print_log("Preparing results")
 
-        for m in self.modelpoints:
+        for model_point_set in self.model_point_sets:
             if aggregate:
-                output[m.name] = sum(policy_output[m.name] for policy_output in policy_outputs)
+                model_output[model_point_set.name] = sum(model_point_output[model_point_set.name] for model_point_output in model_point_outputs)
                 if not self.settings["MULTIPROCESSING"]:
-                    output[m.name]["t"] = np.arange(t_output_max+1)
+                    model_output[model_point_set.name]["t"] = np.arange(t_output_max + 1)
             else:
-                output[m.name] = pd.concat(policy_output[m.name] for policy_output in policy_outputs)
+                model_output[model_point_set.name] = pd.concat(policy_output[model_point_set.name] for policy_output in model_point_outputs)
 
-        self.output = output
-        return output
+        self.output = model_output
+        return model_output
 
     def run(self, part=None):
-        """Orchestrate all steps of the cash flow model run. """
+        """Orchestrate all steps of the cash flow model run."""
         one_core = part == 0 or part is None
 
         if one_core:
@@ -704,33 +653,33 @@ class Model:
         self.set_grandchildren()
         self.set_queue()
 
-        # Inform on the number of policies
-        primary = self.get_modelpoint_by_name("policy")
+        # Inform on the number of model points
+        main = self.get_model_point_set_by_name("main")
         if one_core:
-            print_log(f"Total number of policies: {primary.data.shape[0]}")
+            print_log(f"Total number of model points: {main.model_point_set_data.shape[0]}")
         if part == 0:
             # Runtime is not saved when multiprocessing
             if self.settings["SAVE_RUNTIME"]:
                 print_log(f"The SAVE_RUNTIME setting is not applicable for multiprocessing.\n"
                           f"{' '*10} Set the MULTIPROCESSING setting to 'False' to save the runtime.")
-            if primary.data.shape[0] > self.cpu_count:
+            if main.model_point_set_data.shape[0] > self.cpu_count:
                 print_log(f"Multiprocessing on {self.cpu_count} cores")
-                print_log(f"Calculation of ca. {primary.data.shape[0] // self.cpu_count} model points per core")
+                print_log(f"Calculation of ca. {len(main) // self.cpu_count} model points per core")
                 print_log("The progressbar for the calculations on the 1st core:")
 
         # In multiprocessing mode, the subset of policies is calculated
         if self.settings["MULTIPROCESSING"]:
-            primary_ranges = split_to_ranges(primary.data.shape[0], self.cpu_count)
+            main_ranges = split_to_ranges(len(main), self.cpu_count)
 
-            # Number of policies is lower than number of cpus, only calculate on the 1st core
-            if part >= len(primary_ranges):
+            # Number of model points is lower than the number of cpus, only calculate on the 1st core
+            if part >= len(main_ranges):
                 return None
 
-            primary_range = primary_ranges[part]
-            self.calculate_policies(range_start=primary_range[0], range_end=primary_range[1])
+            main_range = main_ranges[part]
+            self.calculate(range_start=main_range[0], range_end=main_range[1])
         # Otherwise, all policies are calculated
         else:
-            self.calculate_policies()
+            self.calculate()
 
         return self.output
 
@@ -744,17 +693,17 @@ class Model:
             os.makedirs("output")
 
         print_log("Saving files:")
-        for modelpoint in self.modelpoints:
-            filepath = f"output/{timestamp}_{modelpoint.name}.csv"
+        for model_point_set in self.model_point_sets:
+            filepath = f"output/{timestamp}_{model_point_set.name}.csv"
             print(f"{' '*10} {filepath}")
 
-            mp_output = self.output.get(modelpoint.name)
+            model_point_set_output = self.output.get(model_point_set.name)
             if user_chose_columns:
                 output_columns.extend(["t", "r"])
-                columns = mp_output.columns.intersection(output_columns)
-                mp_output.to_csv(filepath, index=False, columns=columns)
+                columns = model_point_set_output.columns.intersection(output_columns)
+                model_point_set_output.to_csv(filepath, index=False, columns=columns)
             else:
-                mp_output.to_csv(filepath, index=False)
+                model_point_set_output.to_csv(filepath, index=False)
 
         # Save runtime
         if self.settings["SAVE_RUNTIME"]:

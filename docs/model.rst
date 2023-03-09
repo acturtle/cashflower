@@ -412,7 +412,7 @@ To use a different model point, it should be set to the :code:`modelpoint` param
 
 |
 
-To read from a model point, use the :code:`get()` method of the :code:`ModelPoint` class.
+To read from a model point, use the :code:`get()` method of the :code:`ModelPointSet` class.
 
 ..  code-block:: python
 

@@ -170,22 +170,22 @@ Policy ID column
 Each model point must have a column with a key column used for identification of policyholders.
 This column is also used to connect records in case of multiple model point.
 
-By default, the column must be named :code:`policy_id`.
+By default, the column must be named :code:`id`.
 The value can be changed using the :code:`POLICY_ID_COLUMN` setting.
 
 .. WARNING::
-   Column names are case-sensitive. :code:`policy_id` is not :code:`POLICY_ID`.
+   Column names are case-sensitive. :code:`id` is not :code:`POLICY_ID`.
 
 |
 
-The default value for the :code:`POLICY_ID_COLUMN` setting is :code:`policy_id`.
+The default value for the :code:`POLICY_ID_COLUMN` setting is :code:`id`.
 
 ..  code-block:: python
     :caption: settings.py
 
     settings = {
         ...
-        "POLICY_ID_COLUMN": "policy_id",
+        "POLICY_ID_COLUMN": "id",
         ...
     }
 
@@ -194,9 +194,9 @@ The model point must have a column with this name.
 ..  code-block:: python
     :caption: input.py
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
-    policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2]}))
+    policy = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}))
 
 |
 
@@ -216,9 +216,9 @@ The model point must have a column with this name.
 ..  code-block:: python
     :caption: input.py
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
-    policy = ModelPoint(data=pd.DataFrame({"policy_number": [1, 2]}))
+    policy = ModelPointSet(data=pd.DataFrame({"policy_number": [1, 2]}))
 
 |
 

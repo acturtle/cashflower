@@ -1,9 +1,9 @@
 import pandas as pd
 
-from cashflower import ModelPoint
+from cashflower import ModelPointSet
 
 
-policy = ModelPoint(data=pd.DataFrame({
-    "policy_id": [1],
+policy = ModelPointSet(data=pd.DataFrame({
+    "id": [1],
     "sum_assured": [100_000]
 }))

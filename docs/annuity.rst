@@ -90,10 +90,10 @@ Whole life annuity provides a policyholder with a periodic (e.g. monthly) paymen
 
     import pandas as pd
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
-    policy = ModelPoint(data=pd.DataFrame({
-        "policy_id": [1],
+    policy = ModelPointSet(data=pd.DataFrame({
+        "id": [1],
         "payment": [1_000]
     }))
 
@@ -151,11 +151,11 @@ An n-year temporary life annuity provides a policyholder with a periodic (e.g. m
 
     import pandas as pd
 
-    from cashflower import Runplan, ModelPoint
+    from cashflower import Runplan, ModelPointSet
 
 
-    policy = ModelPoint(data=pd.DataFrame({
-        "policy_id": [1],
+    policy = ModelPointSet(data=pd.DataFrame({
+        "id": [1],
         "payment": [1_000],
         "remaining_term": [36],
     }))
@@ -218,11 +218,11 @@ An m-year deferred whole life annuity provides a policyholder with a periodic (e
 
     import pandas as pd
 
-    from cashflower import Runplan, ModelPoint
+    from cashflower import Runplan, ModelPointSet
 
 
-    policy = ModelPoint(data=pd.DataFrame({
-        "policy_id": [1],
+    policy = ModelPointSet(data=pd.DataFrame({
+        "id": [1],
         "payment": [1_000],
         "deferral": [12],
     }))

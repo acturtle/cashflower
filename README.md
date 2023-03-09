@@ -32,7 +32,7 @@ create_model("my_model")
 
 my_model/input.py
 ```python
-policy = ModelPoint(data=pd.read_csv("C:/my_data/policy.csv"))
+policy = ModelPointSet(data=pd.read_csv("C:/my_data/policy.csv"))
 
 assumption = dict()
 assumption["interest_rates"] = pd.read_csv("C:/my_data/interest_rates.csv")

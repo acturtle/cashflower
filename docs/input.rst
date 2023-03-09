@@ -17,9 +17,9 @@ Model point contains policy data such as age, sex and premium.
 ..  code-block:: python
     :caption: input.py
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
-    policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2, 3]}))
+    policy = ModelPointSet(data=pd.DataFrame({"id": [1, 2, 3]}))
 
 
 The cash flow model will calculate results for each of the policies in the model point.
@@ -34,7 +34,7 @@ The data for the model point might be stored in a csv file.
 ..  code-block::
     :caption: data-policy.csv
 
-    policy_id,age,sex,premium
+    id,age,sex,premium
     X149,45,F,100
     A192,57,M,130
     D32,18,F,50
@@ -44,11 +44,11 @@ The primary model point **must** be called :code:`policy`.
 ..  code-block:: python
     :caption: input.py
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
-    policy = ModelPoint(data=pd.read_csv("data-policy.csv"))
+    policy = ModelPointSet(data=pd.read_csv("data-policy.csv"))
 
-To create a model point, use :code:`ModelPoint()` class and pass a data frame in the :code:`data` parameter.
+To create a model point, use :code:`ModelPointSet()` class and pass a data frame in the :code:`data` parameter.
 
 A model can have multiple model points but at least one of them must be assigned to a variable :code:`policy`.
 The :code:`policy` model point must have unique keys.
@@ -58,7 +58,7 @@ The :code:`policy` model point must have unique keys.
 
 |
 
-By default, the identifiers of policies are stored in the column :code:`policy_id`.
+By default, the identifiers of policies are stored in the column :code:`id`.
 The column name can be changed in the :code:`settings.py`.
 
 .. IMPORTANT::
@@ -77,7 +77,7 @@ For example, the policyholder holds multiple funds. Each fund has its own record
 ..  code-block::
     :caption: data-fund.csv
 
-    policy_id,fund_code,fund_value
+    id,fund_code,fund_value
     X149,10,15000
     A192,10,3000
     A192,12,9000
@@ -91,19 +91,19 @@ Data on these funds are stored in the :code:`fund` model point.
 ..  code-block:: python
     :caption: input.py
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
-    policy = ModelPoint(data=pd.read_csv("data-policy.csv"))
-    fund = ModelPoint(data=pd.read_csv("data-fund.csv"))
+    policy = ModelPointSet(data=pd.read_csv("data-policy.csv"))
+    fund = ModelPointSet(data=pd.read_csv("data-fund.csv"))
 
-Model points link with each other by the :code:`policy_id` column.
+Model points link with each other by the :code:`id` column.
 
 |
 
 Read from a model point
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-To read from a model point, use the :code:`get()` method of the :code:`ModelPoint` class.
+To read from a model point, use the :code:`get()` method of the :code:`ModelPointSet` class.
 
 ..  code-block:: python
 
@@ -197,7 +197,7 @@ Runplan is a list of runs which models should perform.
     :caption: input.py
 
     import pandas as pd
-    from cashflower import Runplan, ModelPoint
+    from cashflower import Runplan, ModelPointSet
 
     runplan = Runplan(data=pd.DataFrame({
         "version": [1, 2, 3],

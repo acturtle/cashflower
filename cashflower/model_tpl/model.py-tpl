@@ -1,9 +1,9 @@
 from cashflower import assign, ModelVariable
 
-from {{ model }}.input import assumption, policy, runplan
+from {{ model }}.input import assumption, main, runplan
 
 
-projection_year = ModelVariable(modelpoint=policy)
+projection_year = ModelVariable(modelpoint=main)
 
 
 @assign(projection_year)
