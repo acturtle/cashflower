@@ -7,6 +7,7 @@ class TestLoadSettings(TestCase):
     def test_load_settings(self):
         default_settings = {
             "AGGREGATE": True,
+            "MULTIPROCESSING": False,
             "OUTPUT_COLUMNS": [],
             "POLICY_ID_COLUMN": "policy_id",
             "SAVE_RUNTIME": False,
@@ -27,6 +28,7 @@ class TestLoadSettings(TestCase):
         settings = load_settings(my_settings2)
         assert settings == {
             "AGGREGATE": True,
+            "MULTIPROCESSING": False,
             "OUTPUT_COLUMNS": ["a", "b", "c"],
             "POLICY_ID_COLUMN": "polnumber",
             "SAVE_RUNTIME": False,

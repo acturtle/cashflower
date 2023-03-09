@@ -68,10 +68,10 @@ class TestListCalledFuncs(TestCase):
 class TestIsRecursive(TestCase):
     def test_is_recursive(self):
         def my_func1(t):
-            return my_func1(t+1)
+            return my_func1(t + 1)
 
         def my_func2(t):
-            return my_func2(t-1)
+            return my_func2(t - 1)
 
         def my_func3(t):
             return 2
@@ -88,8 +88,8 @@ class TestIsRecursive(TestCase):
         cfs4 = clean_formula_source(inspect.getsource(my_func4))
         cfs5 = clean_formula_source(inspect.getsource(my_func5))
 
-        assert is_recursive(cfs1, "my_func1") == "backward"
-        assert is_recursive(cfs2, "my_func2") == "forward"
-        assert is_recursive(cfs3, "my_func3") == "not_recursive"
-        assert is_recursive(cfs4, "my_func4") == "backward"
-        assert is_recursive(cfs5, "my_func5") == "forward"
+        assert is_recursive(cfs1, "my_func1") == 2
+        assert is_recursive(cfs2, "my_func2") == 1
+        assert is_recursive(cfs3, "my_func3") == 0
+        assert is_recursive(cfs4, "my_func4") == 2
+        assert is_recursive(cfs5, "my_func5") == 1

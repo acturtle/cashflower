@@ -1,13 +1,18 @@
+import datetime
 import importlib
 import inspect
+import os
+import pandas as pd
+import multiprocessing
+import numpy as np
+import functools
 
-
-from . import CashflowModelError, ModelVariable, ModelPoint, Model, Constant, Runplan
+from .cashflow import CashflowModelError, ModelVariable, ModelPoint, Model, Constant, Runplan
+from .utils import print_log
 
 
 def load_settings(settings=None):
     """Load model settings.
-    
     The function firstly reads the default settings and then overwrites these that have been defined by the user.
     The function helps with backward compatibility.
     If there is a new setting in the package, the user doesn't have to have it in the settings script.
@@ -26,6 +31,7 @@ def load_settings(settings=None):
 
     initial_settings = {
         "AGGREGATE": True,
+        "MULTIPROCESSING": False,
         "OUTPUT_COLUMNS": [],
         "POLICY_ID_COLUMN": "policy_id",
         "SAVE_RUNTIME": False,
@@ -140,7 +146,6 @@ def get_constants(model_members, policy):
     ----------
     model_members : list of tuples
         Items defined in input.py.
-        
     policy : object of class ModelPoint
         Primary model point in the model.
 
@@ -157,21 +162,8 @@ def get_constants(model_members, policy):
     return constants
 
 
-def start(model_name, settings, argv):
-    """Initiate a Model object and run it.
-
-    Parameters
-    ----------
-    model_name : str
-        Name of the model.
-        
-    settings : dict
-        Settings defined by the user.
-
-    argv : list
-        List of terminal arguments.
-    """
-    settings = load_settings(settings)
+def prepare_model_input(model_name, settings, argv):
+    """Initiate a Model object and run it."""
     input_module = importlib.import_module(model_name + ".input")
     model_module = importlib.import_module(model_name + ".model")
 
@@ -189,5 +181,67 @@ def start(model_name, settings, argv):
     if runplan is not None and len(argv) > 1:
         runplan.version = argv[1]
 
+    return runplan, modelpoints, variables, constants
+
+
+def start_single_core(model_name, settings, argv):
+    """Initiate a Model object and run it."""
+    settings = load_settings(settings)
+    runplan, modelpoints, variables, constants = prepare_model_input(model_name, settings, argv)
+
+    # Run model on single core and save results
     model = Model(model_name, variables, constants, modelpoints, settings)
     model.run()
+    model.save()
+
+
+def execute_multiprocessing(part, model_name, settings, cpu_count, argv):
+    """Execute part of the model points using multiprocessing."""
+    settings = load_settings(settings)
+    runplan, modelpoints, variables, constants = prepare_model_input(model_name, settings, argv)
+
+    # Run model on multiple cores
+    model = Model(model_name, variables, constants, modelpoints, settings, cpu_count)
+    output = model.run(part)
+    return output
+
+
+def merge_and_save_multiprocessing(outputs, settings):
+    """Merge outputs from multiprocessing and save to files."""
+    t_output_max = min(settings["T_OUTPUT_MAX"], settings["T_CALCULATION_MAX"])
+
+    # Nones are returned, when number of policies < number of cpus
+    outputs = [output for output in outputs if output is not None]
+
+    # Merge outputs into one
+    modelpoints = outputs[0].keys()
+    model_output = {}
+    for modelpoint in modelpoints:
+        if settings["AGGREGATE"]:
+            model_output[modelpoint] = sum(output[modelpoint] for output in outputs)
+            model_output[modelpoint]["t"] = np.arange(t_output_max + 1)
+        else:
+            model_output[modelpoint] = pd.concat(output[modelpoint] for output in outputs)
+
+    # Save results
+    if not os.path.exists("output"):
+        os.makedirs("output")
+
+    print_log("Saving files:")
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    for modelpoint in modelpoints:
+        filepath = f"output/{timestamp}_{modelpoint}.csv"
+        print(f"{' ' * 10} {filepath}")
+        model_output[modelpoint].to_csv(filepath, index=False)
+
+
+def start(model_name, settings, argv):
+    settings = load_settings(settings)
+    if settings.get("MULTIPROCESSING"):
+        cpu_count = multiprocessing.cpu_count()
+        p = functools.partial(execute_multiprocessing, model_name=model_name, settings=settings, cpu_count=cpu_count, argv=argv)
+        with multiprocessing.Pool(cpu_count) as pool:
+            outputs = pool.map(p, range(cpu_count))
+        merge_and_save_multiprocessing(outputs, settings)
+    else:
+        start_single_core(model_name, settings, argv)
