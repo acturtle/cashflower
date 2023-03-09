@@ -69,3 +69,35 @@ Branches:
         * place to work on new features
         * pushed to the *develop* branch (via pull request)
         * the same version number as the *develop* branch
+
+Various
+-------
+
+The :code:`t` and :code:`r` variables are system variables.
+
+The :code:`t` variable represents time.
+The :code:`r` variable represents the record number of the model point.
+
+These two variables are added at different stages of the process depending on the settings.
+
+The table below indicates where the variables are added to the output:
+
+.. list-table::
+   :widths: 25 25 50
+   :header-rows: 1
+
+   * - AGGREGATE
+     - MULTIPROCESSING
+     - Function
+   * - False
+     - False
+     - :code:`calculate_single_policy()`
+   * - False
+     - True
+     - :code:`calculate_single_policy()`
+   * - True
+     - False
+     - :code:`calculate_policies()`
+   * - True
+     - True
+     - :code:`merge_and_save_multiprocessing()`
