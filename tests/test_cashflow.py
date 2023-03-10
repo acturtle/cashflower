@@ -206,7 +206,7 @@ class TestConstant(TestCase):
             settings=load_settings()
         )
         policy.initialize()
-        p = Constant(name="p", modelpointset=policy)
+        p = Constant(name="p", model_point_set=policy)
 
         @assign(p)
         def mv_formula():
@@ -327,7 +327,7 @@ class TestModel(TestCase):
         fund = ModelPointSet(data=pd.DataFrame({"id": [1, 2, 2, 3]}), name="fund")
 
         a = ModelVariable(name="a", model_point_set=policy)
-        b = Constant(name="b", modelpointset=policy)
+        b = Constant(name="b", model_point_set=policy)
         c = ModelVariable(name="c", model_point_set=fund)
 
         model = Model(None, [a, c], [b], [policy, fund], settings)
@@ -346,7 +346,7 @@ class TestModel(TestCase):
         fund = ModelPointSet(data=pd.DataFrame({"id": [1, 2, 2, 3]}), name="fund")
 
         a = ModelVariable(name="a", model_point_set=policy)
-        b = Constant(name="b", modelpointset=policy)
+        b = Constant(name="b", model_point_set=policy)
         c = ModelVariable(name="c", model_point_set=fund)
 
         model = Model(None, [a, c], [b], [policy, fund], settings)

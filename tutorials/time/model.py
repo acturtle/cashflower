@@ -5,7 +5,7 @@ from tutorials.time.input import main, runplan
 
 cal_month = ModelVariable(model_point_set=main, mp_dep=False)
 cal_year = ModelVariable(model_point_set=main, mp_dep=False)
-elapsed_months = Constant(modelpointset=main)
+elapsed_months = Constant(model_point_set=main)
 pol_month = ModelVariable(model_point_set=main)
 pol_year = ModelVariable(model_point_set=main)
 

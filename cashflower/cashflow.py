@@ -367,7 +367,7 @@ class Constant:
     ----------
     name : str
         Name of the code variable.
-    modelpointset : ModelPointSet object
+    model_point_set : ModelPointSet object
         Model point to which the variable is linked.
         User sets it directly in the model script, otherwise it is set to the primary model point.
     assigned_formula : function
@@ -385,9 +385,9 @@ class Constant:
     grandchildren : list of model variables
         Children and their descendants (children, grandchildren, grandgrandchildren and so on...).
     """
-    def __init__(self, name=None, modelpointset=None):
+    def __init__(self, name=None, model_point_set=None):
         self.name = name
-        self.modelpointset = modelpointset
+        self.model_point_set = model_point_set
         self.assigned_formula = None
         self._formula = None
         self.result = None
@@ -410,7 +410,7 @@ class Constant:
                 raise CashflowModelError(f"Unable to evaluate the '{self.name}' constant. "
                                          f"Tip: don't call constants with the time parameter.")
 
-        return self.result[self.modelpointset.model_point_record_num]
+        return self.result[self.model_point_set.model_point_record_num]
 
     @property
     def formula(self):
@@ -432,10 +432,10 @@ class Constant:
 
     def calculate(self):
         """Calculate constant's value for all records in the model point."""
-        self.result = [None] * self.modelpointset.model_point_size
-        for r in range(self.modelpointset.model_point_size):
+        self.result = [None] * self.model_point_set.model_point_size
+        for r in range(self.model_point_set.model_point_size):
             self.clear()
-            self.modelpointset.model_point_record_num = r
+            self.model_point_set.model_point_record_num = r
             self.result[r] = self.formula()
 
     def initialize(self, main=None):
@@ -443,8 +443,8 @@ class Constant:
             msg = f"\nThe '{self.name}' parameter has no formula. Please check the 'model.py' script."
             raise CashflowModelError(msg)
 
-        if self.modelpointset is None:
-            self.modelpointset = main
+        if self.model_point_set is None:
+            self.model_point_set = main
 
         self.formula = self.assigned_formula
 
@@ -593,7 +593,7 @@ class Model:
 
                     # Constants are added only to individual output
                     if isinstance(c, Constant) and not aggregate:
-                        model_point_output[c.modelpointset.name][c.name] = np.repeat(c.result, t_output_max + 1)
+                        model_point_output[c.model_point_set.name][c.name] = np.repeat(c.result, t_output_max + 1)
             c.runtime += time.time() - start
 
         # Add time and record number to the individual output
