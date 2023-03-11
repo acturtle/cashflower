@@ -1,6 +1,6 @@
 from cashflower import assign, ModelVariable
 
-from tutorials.annuity.whole_life.input import policy
+from tutorials.annuity.whole_life.input import main
 
 INTEREST_RATE = 0.005
 DEATH_PROB = 0.003
@@ -25,7 +25,7 @@ def expected_payment_formula(t):
     if t == 0:
         return 0
     else:
-        payment = policy.get("payment")
+        payment = main.get("payment")
         return survival_rate(t) * payment
 
 

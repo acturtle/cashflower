@@ -5,20 +5,7 @@ from datetime import datetime
 
 
 def unique_append(lst, item):
-    """Append a unique item to a list.
-
-    Parameters
-    ----------
-    lst : list
-        List to append item to.
-
-    item : scalar
-        Item to be appended to the list.
-
-    Returns
-    -------
-    list
-    """
+    """Append a unique item to a list."""
     output = lst.copy()
     if item not in lst:
         output.append(item)
@@ -26,19 +13,7 @@ def unique_append(lst, item):
 
 
 def unique_extend(lst1, lst2):
-    """Extend list with items of other list if they are unique.
-
-    Parameters
-    ----------
-    lst1 : list
-        List to be extended with items from lst2.
-    lst2 : list
-        List which items are uniquely appended to lst1.
-
-    Returns
-    -------
-    list
-    """
+    """Extend list with items of other list if they are unique."""
     output = lst1.copy()
     for item in lst2:
         if item not in lst1:
@@ -47,19 +22,7 @@ def unique_extend(lst1, lst2):
 
 
 def list_used_words(text, words):
-    """Choose words from a list that were used in a text.
-
-    Parameters
-    ----------
-    text : string
-        Text in which the function looks for words.
-    words : list
-        List of words to be looked for in the text.
-
-    Returns
-    -------
-    list
-    """
+    """Choose words from a list that were used in a text."""
     used_words = []
     for word in words:
         if word in text:
@@ -68,17 +31,7 @@ def list_used_words(text, words):
 
 
 def replace_in_file(_file, _from, _to):
-    """Replace a word with other word in a file.
-
-    Parameters
-    ----------
-    _file : str
-        Path to the file in which words are to be replaced.
-    _from : str
-        Word that needs to be replaced.
-    _to :
-        Word to be replaced with.
-    """
+    """Replace a word (_from) with another word (_to) in a file (_file)."""
     # Read in the file
     with open(_file, "r") as file:
         filedata = file.read()

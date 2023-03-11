@@ -25,13 +25,13 @@ Formulas:
     import math
     from cashflower import assign, ModelVariable, Constant
 
-    from tutorials.time.input import policy, runplan
+    from tutorials.time.input import main, runplan
 
-    cal_month = ModelVariable(modelpoint=policy, pol_dep=False)
-    cal_year = ModelVariable(modelpoint=policy, pol_dep=False)
-    elapsed_months = Constant(modelpoint=policy)
-    pol_month = ModelVariable(modelpoint=policy)
-    pol_year = ModelVariable(modelpoint=policy)
+    cal_month = ModelVariable(mp_dep=False)
+    cal_year = ModelVariable(mp_dep=False)
+    elapsed_months = Constant()
+    pol_month = ModelVariable()
+    pol_year = ModelVariable()
 
 
     @assign(cal_month)
@@ -56,8 +56,8 @@ Formulas:
 
     @assign(elapsed_months)
     def elapsed_months_formula():
-        issue_year = policy.get("issue_year")
-        issue_month = policy.get("issue_month")
+        issue_year = main.get("issue_year")
+        issue_month = main.get("issue_month")
         valuation_year = runplan.get("valuation_year")
         valuation_month = runplan.get("valuation_month")
         return (valuation_year - issue_year) * 12 + (valuation_month - issue_month)
@@ -90,7 +90,7 @@ Input:
 
     import pandas as pd
 
-    from cashflower import Runplan, ModelPoint
+    from cashflower import Runplan, ModelPointSet
 
 
     runplan = Runplan(data=pd.DataFrame({
@@ -100,8 +100,8 @@ Input:
     }))
 
 
-    policy = ModelPoint(data=pd.DataFrame({
-        "policy_id": [1],
+    main = ModelPointSet(data=pd.DataFrame({
+        "id": [1],
         "issue_year": [2020],
         "issue_month": [6],
     }))
@@ -124,7 +124,7 @@ Model uses runplan to store the information on the valuation date.
 
     import pandas as pd
 
-    from cashflower import Runplan, ModelPoint
+    from cashflower import Runplan, ModelPointSet
 
 
     runplan = Runplan(data=pd.DataFrame({
@@ -138,8 +138,8 @@ The policyholder has a policy that was issued in June 2020.
 ..  code-block:: python
     :caption: input.py
 
-    policy = ModelPoint(data=pd.DataFrame({
-        "policy_id": [1],
+    main = ModelPointSet(data=pd.DataFrame({
+        "id": [1],
         "issue_year": [2020],
         "issue_month": [6],
     }))
@@ -153,14 +153,14 @@ Model
 
 Knowing the valuation date, we can calculate actual calendar years and months.
 These variables have the same values for all policyholders.
-So the :code:`pol_dep` parameter (policy-dependent) can be set to :code:`False`.
+So the :code:`mp_dep` parameter (model point dependent) can be set to :code:`False`.
 The valuation year and month can be read from the runplan.
 
 ..  code-block:: python
     :caption: model.py
 
-    cal_month = ModelVariable(modelpoint=policy, pol_dep=False)
-    cal_year = ModelVariable(modelpoint=policy, pol_dep=False)
+    cal_month = ModelVariable(mp_dep=False)
+    cal_year = ModelVariable(mp_dep=False)
 
     @assign(cal_month)
     def cal_month_formula(t):
@@ -193,12 +193,12 @@ Elapsed months is time-independent so can be modelled as a :code:`Constant`.
 ..  code-block:: python
     :caption: model.py
 
-    elapsed_months = Constant(modelpoint=policy)
+    elapsed_months = Constant()
 
     @assign(elapsed_months)
     def elapsed_months_formula():
-        issue_year = policy.get("issue_year")
-        issue_month = policy.get("issue_month")
+        issue_year = main.get("issue_year")
+        issue_month = main.get("issue_month")
         valuation_year = runplan.get("valuation_year")
         valuation_month = runplan.get("valuation_month")
         return (valuation_year - issue_year) * 12 + (valuation_month - issue_month)
@@ -239,7 +239,7 @@ Results
 The result for the first 13 months.
 
 ..  code-block::
-    :caption: <timestamp>_policy.csv
+    :caption: <timestamp>_main.csv
 
     t,cal_year,cal_month,elapsed_months,pol_year,pol_month
     0,2022,12,30,2,6

@@ -1,6 +1,6 @@
 from cashflower import assign, ModelVariable
 
-from tutorials.life_insurance.whole_life.input import policy
+from tutorials.life_insurance.whole_life.input import main
 
 INTEREST_RATE = 0.005
 DEATH_PROB = 0.003
@@ -20,7 +20,7 @@ def survival_rate_formula(t):
 
 @assign(expected_benefit)
 def expected_benefit_formula(t):
-    sum_assured = policy.get("sum_assured")
+    sum_assured = main.get("sum_assured")
     if t == 1200:
         return survival_rate(t-1) * sum_assured
     return survival_rate(t-1) * DEATH_PROB * sum_assured

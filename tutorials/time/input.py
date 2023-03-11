@@ -1,6 +1,6 @@
 import pandas as pd
 
-from cashflower import Runplan, ModelPoint
+from cashflower import Runplan, ModelPointSet
 
 
 runplan = Runplan(data=pd.DataFrame({
@@ -10,8 +10,8 @@ runplan = Runplan(data=pd.DataFrame({
 }))
 
 
-policy = ModelPoint(data=pd.DataFrame({
-    "policy_id": [1],
+main = ModelPointSet(data=pd.DataFrame({
+    "id": [1],
     "issue_year": [2020],
     "issue_month": [6],
 }))

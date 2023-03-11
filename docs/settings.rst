@@ -3,7 +3,7 @@ Settings
 
 The settings of the model are defined in the :code:`settings.py` script.
 
-The table below summarizes all available settings.
+The table below summarizes available settings.
 
 .. list-table::
    :widths: 25 25 50
@@ -13,16 +13,19 @@ The table below summarizes all available settings.
      - Possible values
      - Description
    * - AGGREGATE
-     - True / False
-     - Flag if results should be aggregated for policyholders.
+     - :code:`True` / :code:`False`
+     - Flag if results for model pointsshould be aggregated.
+   * - MULTIPROCESSING
+     - :code:`True` / :code:`False`
+     - Flag if multiple CPUs should be used for the calculations.
    * - OUTPUT_COLUMNS
      - empty list of list of strings
-     - List of variables to be included in the output. If empty, all variables are included.
-   * - POLICY_ID_COLUMN
+     - List of variables to be included in the output. If empty list, all variables are included.
+   * - ID_COLUMN
      - a string
-     - The name of the column which contains id of the policy.
+     - The name of the column which contains identificators of the model points.
    * - SAVE_RUNTIME
-     - True / False
+     - :code:`True` / :code:`False`
      - Flag if an additional file should be created which contains runtime of variables.
    * - T_CALCULATION_MAX
      - integer
@@ -35,9 +38,9 @@ The table below summarizes all available settings.
 Aggregate
 ---------
 
-The :code:`AGGREGATE` setting is a flag if the results should be aggregated for policyholders.
+The :code:`AGGREGATE` setting is a flag if the results should be aggregated for model points.
 
-If the setting is set to :code:`False`, the results will be on individual level:
+If the setting is set to :code:`False`, the results will be on the individual level:
 
 ..  code-block::
     :caption: <timestamp>_fund.csv
@@ -56,7 +59,7 @@ If the setting is set to :code:`False`, the results will be on individual level:
     2,2,9036.04
     3,2,9054.11
 
-There are results for 2 policies and 1 of them has two records (record is in column :code:`r`).
+There are results for 2 model points and 1 of them has two records (record is in column :code:`r`).
 
 If the AGGREGATE setting is set to :code:`True`, the results will aggregated:
 
@@ -164,28 +167,28 @@ Only the chosen columns are in the output.
 
 |
 
-Policy ID column
-----------------
+ID column
+---------
 
-Each model point must have a column with a key column used for identification of policyholders.
+Each model point must have a column with a key column used for identification.
 This column is also used to connect records in case of multiple model point.
 
-By default, the column must be named :code:`policy_id`.
-The value can be changed using the :code:`POLICY_ID_COLUMN` setting.
+By default, the column must be named :code:`id`.
+The value can be changed using the :code:`ID_COLUMN` setting.
 
 .. WARNING::
-   Column names are case-sensitive. :code:`policy_id` is not :code:`POLICY_ID`.
+   Column names are case-sensitive. :code:`id` is something else than :code:`ID`.
 
 |
 
-The default value for the :code:`POLICY_ID_COLUMN` setting is :code:`policy_id`.
+The default value for the :code:`ID_COLUMN` setting is :code:`id`.
 
 ..  code-block:: python
     :caption: settings.py
 
     settings = {
         ...
-        "POLICY_ID_COLUMN": "policy_id",
+        "ID_COLUMN": "id",
         ...
     }
 
@@ -194,9 +197,9 @@ The model point must have a column with this name.
 ..  code-block:: python
     :caption: input.py
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
-    policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2]}))
+    main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}))
 
 |
 
@@ -207,7 +210,7 @@ The key column might have other name.
 
     settings = {
         ...
-        "POLICY_ID_COLUMN": "policy_number",
+        "ID_COLUMN": "policy_number",
         ...
     }
 
@@ -216,9 +219,9 @@ The model point must have a column with this name.
 ..  code-block:: python
     :caption: input.py
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
-    policy = ModelPoint(data=pd.DataFrame({"policy_number": [1, 2]}))
+    main = ModelPointSet(data=pd.DataFrame({"policy_number": [1, 2]}))
 
 |
 
@@ -246,7 +249,7 @@ No additional output is created.
 
     .
     └── output/
-        └── <timestamp>_policy.csv
+        └── <timestamp>_main.csv
 
 |
 
@@ -282,6 +285,12 @@ The file contains the number of seconds the model needed to evaluate each of the
     c,7.1
 
 The file can help to find variables that are the evaluated the longest and to optimize them.
+
+Measuring runtime is not possible using multiprocessing.
+
+.. WARNING::
+   The runtime will not be saved if the :code:`MULTIPROCESSING` setting is set to :code:`True`.
+
 
 |
 
