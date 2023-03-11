@@ -32,7 +32,7 @@ After that, it creates the instance of the :code:`Model` class which is used to 
 
 The :code:`cashflow.py` script contains the classes for all the main objects, such as:
     * :code:`Runplan`,
-    * :code:`ModelPoint`,
+    * :code:`ModelPointSet`,
     * :code:`ModelVariable`,
     * :code:`Constant`,
     * :code:`Model`.
@@ -91,13 +91,13 @@ The table below indicates where the variables are added to the output:
      - Function
    * - False
      - False
-     - :code:`calculate_single_policy()`
+     - :code:`calculate_single_model_point()`
    * - False
      - True
-     - :code:`calculate_single_policy()`
+     - :code:`calculate_single_model_point()`
    * - True
      - False
-     - :code:`calculate_policies()`
+     - :code:`calculate()`
    * - True
      - True
      - :code:`merge_and_save_multiprocessing()`

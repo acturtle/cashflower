@@ -1,6 +1,6 @@
 from cashflower import assign, ModelVariable
 
-from tutorials.life_insurance.deferred.input import policy
+from tutorials.life_insurance.deferred.input import main
 
 INTEREST_RATE = 0.005
 DEATH_PROB = 0.003
@@ -21,9 +21,9 @@ def survival_rate_formula(t):
 
 @assign(expected_benefit)
 def expected_benefit_formula(t):
-    if t < policy.get("deferral"):
+    if t < main.get("deferral"):
         return 0
-    return survival_rate(t-1) * DEATH_PROB * policy.get("sum_assured")
+    return survival_rate(t-1) * DEATH_PROB * main.get("sum_assured")
 
 
 @assign(net_single_premium)

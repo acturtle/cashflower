@@ -5,24 +5,25 @@ Input for the model is defined in the :code:`input.py` script.
 
 There are three types of the model's inputs:
 
-* model point,
+* model point sets,
 * assumptions,
 * runplan.
 
-Model point
------------
+Model point sets
+----------------
 
-Model point contains policy data such as age, sex and premium.
+Model point sets contain model points. Model points represents one point which will be evaluated by the model.
+The model point can be, for example, a policyholder or a financial instrument.
 
 ..  code-block:: python
     :caption: input.py
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
-    policy = ModelPoint(data=pd.DataFrame({"policy_id": [1, 2, 3]}))
+    main = ModelPointSet(data=pd.DataFrame({"id": [1, 2, 3]}))
 
 
-The cash flow model will calculate results for each of the policies in the model point.
+The cash flow model will calculate results for each of the model points in the model point set.
 
 |
 
@@ -34,50 +35,50 @@ The data for the model point might be stored in a csv file.
 ..  code-block::
     :caption: data-policy.csv
 
-    policy_id,age,sex,premium
+    id,age,sex,premium
     X149,45,F,100
     A192,57,M,130
     D32,18,F,50
 
-The primary model point **must** be called :code:`policy`.
+The primary model point set **must** be called :code:`main`.
 
 ..  code-block:: python
     :caption: input.py
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
-    policy = ModelPoint(data=pd.read_csv("data-policy.csv"))
+    main = ModelPointSet(data=pd.read_csv("data-policy.csv"))
 
-To create a model point, use :code:`ModelPoint()` class and pass a data frame in the :code:`data` parameter.
+To create a model point set, use :code:`ModelPointSet()` class and pass a data frame in the :code:`data` parameter.
 
-A model can have multiple model points but at least one of them must be assigned to a variable :code:`policy`.
-The :code:`policy` model point must have unique keys.
+A model can have multiple model point sets but at least one of them must be assigned to a variable :code:`main`.
+The :code:`main` model point **must** have unique keys.
 
 .. IMPORTANT::
-   Each model must have a model point assigned to a variable called :code:`policy`.
+   Each model must have a model point assigned to a variable called :code:`main`.
 
 |
 
-By default, the identifiers of policies are stored in the column :code:`policy_id`.
+By default, the identifiers of policies are stored in the column :code:`id`.
 The column name can be changed in the :code:`settings.py`.
 
 .. IMPORTANT::
-   The :code:`policy` model point has one record per policyholder.
+   The :code:`main` model point set has one record per model point.
 
 |
 
-Multiple model points
-^^^^^^^^^^^^^^^^^^^^^
+Multiple model point sets
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The model can have multiple model points. The :code:`policy` model point must have one record per policyholder.
-The other model points might have multiple records for each policyholder.
+The model can have multiple model point sets. The :code:`main` model point set must have one record per model point.
+The other model point sets might have multiple records for each model point.
 
 For example, the policyholder holds multiple funds. Each fund has its own record.
 
 ..  code-block::
     :caption: data-fund.csv
 
-    policy_id,fund_code,fund_value
+    id,fund_code,fund_value
     X149,10,15000
     A192,10,3000
     A192,12,9000
@@ -86,45 +87,45 @@ For example, the policyholder holds multiple funds. Each fund has its own record
 
 Policyholder X149 has one fund and policyholders A192 and D32 have two funds.
 
-Data on these funds are stored in the :code:`fund` model point.
+Data on these funds are stored in the :code:`fund` model point set.
 
 ..  code-block:: python
     :caption: input.py
 
-    from cashflower import ModelPoint
+    from cashflower import ModelPointSet
 
-    policy = ModelPoint(data=pd.read_csv("data-policy.csv"))
-    fund = ModelPoint(data=pd.read_csv("data-fund.csv"))
+    main = ModelPointSet(data=pd.read_csv("data-policy.csv"))
+    fund = ModelPointSet(data=pd.read_csv("data-fund.csv"))
 
-Model points link with each other by the :code:`policy_id` column.
+Model point sets link with each other by the :code:`id` column.
 
 |
 
 Read from a model point
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-To read from a model point, use the :code:`get()` method of the :code:`ModelPoint` class.
+To read from a model point, use the :code:`get()` method of the :code:`ModelPointSet` class.
 
 ..  code-block:: python
 
-        policy.get("age")
+        main.get("age")
 
 
-The model variable will read the data for the record which is currently evaluated.
+The model variable will read the data for the record which is currently calculated.
 
 ..  code-block:: python
     :caption: model.py
 
     from cashflower import assign, ModelVariable
-    from example.input import assumption, policy
+    from example.input import assumption, main
 
     mortality_rate = ModelVariable()
 
 
     @assign(mortality_rate)
     def mortality_rate_formula(t):
-        age = policy.get("age")
-        sex = policy.get("sex")
+        age = main.get("age")
+        sex = main.get("sex")
         return assumption["mortality"].loc[age, sex]["rate"]
 
 
@@ -144,7 +145,7 @@ Assumptions contain data for predicting the future.
     assumption["interest_rates"] = pd.read_csv("input/interest_rates.csv", index_col="T")
 
 
-Assumptions include:
+Assumptions for life insurance can include:
 
 * underwriting - mortality, lapses, expenses,
 * market - interest rates, inflation,
@@ -191,13 +192,13 @@ To add new assumptions, create a new key in the :code:`assumption` dictionary an
 Runplan
 -------
 
-Runplan is a list of runs which models should perform.
+Runplan is a list of runs which the model should perform.
 
 ..  code-block:: python
     :caption: input.py
 
     import pandas as pd
-    from cashflower import Runplan, ModelPoint
+    from cashflower import Runplan, ModelPointSet
 
     runplan = Runplan(data=pd.DataFrame({
         "version": [1, 2, 3],
@@ -218,10 +219,10 @@ For example:
     :caption: model.py
 
     import pandas as pd
-    from example.input import policy, runplan
+    from example.input import main, runplan
 
-    mortality_rate = ModelVariable(modelpoint=policy)
-    shocked_mortality_rate = ModelVariable(modelpoint=policy)
+    mortality_rate = ModelVariable(model_point_set=main)
+    shocked_mortality_rate = ModelVariable(model_point_set=main)
 
     @assign(mortality_rate)
     def mortality_rate_formula(t):
