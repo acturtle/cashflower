@@ -72,13 +72,13 @@ class TestModelPoint(TestCase):
             policy.initialize()
 
     def test_policy_raises_error_when_no_unique_keys(self):
-        policy = ModelPointSet(
+        main = ModelPointSet(
             data=pd.DataFrame({"id": [1, 2, 2]}),
-            name="policy",
+            name="main",
             settings=load_settings()
         )
         with pytest.raises(CashflowModelError):
-            policy.initialize()
+            main.initialize()
 
 
 class TestModelVariable(TestCase):
@@ -363,10 +363,10 @@ class TestModel(TestCase):
     def test_calculate_all_policies_when_aggregate(self):
         settings = load_settings()
 
-        policy = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="policy", settings=settings)
-        policy.initialize()
+        main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="main", settings=settings)
+        main.initialize()
 
-        a = ModelVariable(name="a", model_point_set=policy, settings=settings)
+        a = ModelVariable(name="a", model_point_set=main, settings=settings)
 
         @assign(a)
         def a_formula(t):
@@ -374,7 +374,7 @@ class TestModel(TestCase):
 
         a.initialize()
 
-        model = Model(None, [a], [], [policy], settings)
+        model = Model(None, [a], [], [main], settings)
         model.set_empty_output()
         model.set_children()
         model.set_grandchildren()
@@ -385,16 +385,16 @@ class TestModel(TestCase):
             "a": [2 * (i + 100) for i in range(1201)]
         })
 
-        assert_frame_equal(model_output["policy"], test_output, check_dtype=False)
+        assert_frame_equal(model_output["main"], test_output, check_dtype=False)
 
     def test_calculate_all_policies_when_individual(self):
         settings = load_settings()
         settings["AGGREGATE"] = False
 
-        policy = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="policy", settings=settings)
-        policy.initialize()
+        main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="main", settings=settings)
+        main.initialize()
 
-        a = ModelVariable(name="a", model_point_set=policy, settings=settings)
+        a = ModelVariable(name="a", model_point_set=main, settings=settings)
 
         @assign(a)
         def a_formula(t):
@@ -402,14 +402,14 @@ class TestModel(TestCase):
 
         a.initialize()
 
-        model = Model(None, [a], [], [policy], settings)
+        model = Model(None, [a], [], [main], settings)
         model.set_empty_output()
         model.set_children()
         model.set_grandchildren()
         model.set_queue()
         model_output = model.calculate()
 
-        print(model_output["policy"], "\n\n")
+        print(model_output["main"], "\n\n")
 
         test_output = pd.DataFrame({
             "t": list(range(1201)) * 2,
