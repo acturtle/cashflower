@@ -116,7 +116,7 @@ Variable B: model point independent
 
 **Comparison**
 
-.. image:: https://acturtle.com/static/img/31/graph.png
+.. image:: https://acturtle.com/static/img/31/mp_dep.png
    :align: center
 
 In the above image we see that:
@@ -252,7 +252,7 @@ Variable B: time-independent
 
 **Comparison**
 
-.. image:: https://acturtle.com/static/img/34/graph.png
+.. image:: https://acturtle.com/static/img/31/constant.png
    :align: center
 
 In the above image we see that:
