@@ -68,6 +68,9 @@ def get_variables(model_members, main, settings):
     variable_members = [m for m in model_members if isinstance(m[1], ModelVariable)]
     variables = []
     for name, variable in variable_members:
+        if name in ["t", "r"]:
+            msg = f"\nA model component can not be named '{name}' because it is a system variable. Please rename it."
+            raise CashflowModelError(msg)
         variable.name = name
         variable.settings = settings
         variable.initialize(main)
@@ -93,6 +96,9 @@ def get_constants(model_members, main):
     constant_members = [m for m in model_members if isinstance(m[1], Constant)]
     constants = []
     for name, constant in constant_members:
+        if name in ["t", "r"]:
+            msg = f"\nA model component can not be named '{name}' because it is a system variable. Please rename it."
+            raise CashflowModelError(msg)
         constant.name = name
         constant.initialize(main)
         constants.append(constant)
