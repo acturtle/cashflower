@@ -148,7 +148,7 @@ class ModelPointSet:
         self.model_point_record_data = None
 
     def __repr__(self):
-        return f"MP: {self.name}"
+        return f"ModelPointSet: {self.name}"
 
     def __len__(self):
         return self.model_point_set_data.shape[0]
@@ -267,7 +267,7 @@ class ModelVariable:
         self.grandchildren = []
 
     def __repr__(self):
-        return f"MV: {self.name}"
+        return f"ModelVariable: {self.name}"
 
     def __lt__(self, other):
         return len(self.grandchildren) < len(other.grandchildren)
@@ -396,7 +396,7 @@ class Constant:
         self.grandchildren = []
 
     def __repr__(self):
-        return f"C: {self.name}"
+        return f"Constant: {self.name}"
 
     def __lt__(self, other):
         return len(self.grandchildren) < len(other.grandchildren)
