@@ -3,4 +3,4 @@ from cashflower import start
 from {{ model }}.settings import settings
 
 if __name__ == "__main__":
-    start("{{ model }}", settings, sys.argv)
+    output = start("{{ model }}", settings, sys.argv)
