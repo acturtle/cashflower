@@ -373,17 +373,23 @@ class TestModel(TestCase):
 
     def test_calculate_single_model_point(self):
         settings = load_settings()
-        main = ModelPointSet(data=pd.DataFrame({"id": [1]}))
+        main = ModelPointSet(data=pd.DataFrame({"id": [1]}), name="main")
 
-        premium = ModelVariable()
+        premium = ModelVariable(name="premium", model_point_set=main, settings=settings)
 
         @assign(premium)
         def mv_formula(t):
-            return t
+            return 1
+
+        premium.initialize()
 
         model = Model(None, [premium], [], [main], settings)
-        # model.calculate_single_model_point()
-        assert 1 == 2
+        model.initialize()
+        model_point_output = model.calculate_single_model_point(0, 1, main)
+        df = pd.DataFrame({
+            "premium": [1.0] * (settings.get("T_OUTPUT_MAX") + 1)
+        })
+        assert_frame_equal(model_point_output["main"][["premium"]], df)
 
     def test_calculate_all_policies_when_aggregate(self):
         settings = load_settings()

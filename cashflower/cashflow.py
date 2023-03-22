@@ -564,6 +564,12 @@ class Model:
 
         self.empty_output = empty_output
 
+    def initialize(self):
+        self.set_empty_output()
+        self.set_children()
+        self.set_grandchildren()
+        self.set_queue()
+
     def calculate_single_model_point(self, row, pb_max, main, one_core=None):
         """Calculate results for a model point currently indicated in the model point set."""
         model_point_id = main.model_point_set_data.index[row]
@@ -648,10 +654,7 @@ class Model:
             print_log(f"Start run for model '{self.name}'")
 
         # Prepare the order of variables for the calculation
-        self.set_empty_output()
-        self.set_children()
-        self.set_grandchildren()
-        self.set_queue()
+        self.initialize()
 
         # Inform on the number of model points
         main = self.get_model_point_set_by_name("main")
