@@ -690,14 +690,16 @@ class Model:
         if not os.path.exists("output"):
             os.makedirs("output")
 
-        print_log("Saving files:")
-        for model_point_set in self.model_point_sets:
-            filepath = f"output/{timestamp}_{model_point_set.name}.csv"
-            model_point_set_output = self.output.get(model_point_set.name)
-            column_names = [col for col in model_point_set_output.columns.values.tolist() if col not in ["t", "r"]]
-            if len(column_names) > 0:
-                print(f"{' ' * 10} {filepath}")
-                model_point_set_output.to_csv(filepath, index=False)
+        # Save output to csv
+        if self.settings["SAVE_OUTPUT"]:
+            print_log("Saving output:")
+            for model_point_set in self.model_point_sets:
+                filepath = f"output/{timestamp}_{model_point_set.name}.csv"
+                model_point_set_output = self.output.get(model_point_set.name)
+                column_names = [col for col in model_point_set_output.columns.values.tolist() if col not in ["t", "r"]]
+                if len(column_names) > 0:
+                    print(f"{' ' * 10} {filepath}")
+                    model_point_set_output.to_csv(filepath, index=False)
 
         # Save runtime
         if self.settings["SAVE_RUNTIME"]:

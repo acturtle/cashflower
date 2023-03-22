@@ -18,6 +18,7 @@ def load_settings(settings=None):
         "MULTIPROCESSING": False,
         "OUTPUT_COLUMNS": [],
         "ID_COLUMN": "id",
+        "SAVE_OUTPUT": True,
         "SAVE_RUNTIME": False,
         "T_CALCULATION_MAX": 1200,
         "T_OUTPUT_MAX": 1200,
@@ -134,7 +135,6 @@ def start_single_core(model_name, settings, argv):
 
 def execute_multiprocessing(part, model_name, settings, cpu_count, argv):
     """Run subset of the model points using multiprocessing."""
-    settings = load_settings(settings)
     runplan, model_point_sets, variables, constants = prepare_model_input(model_name, settings, argv)
 
     # Run model on multiple cores
@@ -160,24 +160,28 @@ def merge_and_save_multiprocessing(part_outputs, settings):
         else:
             model_output[model_point_set_name] = pd.concat(part_output[model_point_set_name] for part_output in part_outputs)
 
-    # Save results to csv files
     if not os.path.exists("output"):
         os.makedirs("output")
 
-    print_log("Saving files:")
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    for model_point_set_name in model_point_set_names:
-        filepath = f"output/{timestamp}_{model_point_set_name}.csv"
+    # Save output to csv
+    if settings["SAVE_OUTPUT"]:
+        print_log("Saving output:")
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        for model_point_set_name in model_point_set_names:
+            filepath = f"output/{timestamp}_{model_point_set_name}.csv"
 
-        column_names = [col for col in model_output[model_point_set_name].columns.values.tolist() if col not in ["t", "r"]]
-        if len(column_names) > 0:
-            print(f"{' ' * 10} {filepath}")
-            model_output[model_point_set_name].to_csv(filepath, index=False)
+            column_names = [col for col in model_output[model_point_set_name].columns.values.tolist() if col not in ["t", "r"]]
+            if len(column_names) > 0:
+                print(f"{' ' * 10} {filepath}")
+                model_output[model_point_set_name].to_csv(filepath, index=False)
+
+    print_log("Finished")
     return model_output
 
 
 def start(model_name, settings, argv):
     settings = load_settings(settings)
+
     if settings.get("MULTIPROCESSING"):
         cpu_count = multiprocessing.cpu_count()
         p = functools.partial(execute_multiprocessing, model_name=model_name, settings=settings, cpu_count=cpu_count, argv=argv)
@@ -186,4 +190,5 @@ def start(model_name, settings, argv):
         output = merge_and_save_multiprocessing(part_outputs, settings)
     else:
         output = start_single_core(model_name, settings, argv)
+
     return output
