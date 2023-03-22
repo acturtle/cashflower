@@ -21,7 +21,7 @@ Once the user has populated files with the formulas, the model gets started usin
 
 The :code:`start()` function gathers all components of the model:
     * settings from :code:`settings.py`,
-    * model points and runplan from :code:`input.py`,
+    * model point sets and runplan from :code:`input.py`,
     * model variables and constants from :code:`model.py`.
 
 After that, it creates the instance of the :code:`Model` class which is used to calculate and save the results.
