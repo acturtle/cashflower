@@ -127,8 +127,9 @@ def start_single_core(model_name, settings, argv):
 
     # Run model on single core and save results
     model = Model(model_name, variables, constants, model_point_sets, settings)
-    model.run()
+    output = model.run()
     model.save()
+    return output
 
 
 def execute_multiprocessing(part, model_name, settings, cpu_count, argv):
@@ -159,7 +160,7 @@ def merge_and_save_multiprocessing(part_outputs, settings):
         else:
             model_output[model_point_set_name] = pd.concat(part_output[model_point_set_name] for part_output in part_outputs)
 
-    # Save results
+    # Save results to csv files
     if not os.path.exists("output"):
         os.makedirs("output")
 
@@ -167,8 +168,12 @@ def merge_and_save_multiprocessing(part_outputs, settings):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     for model_point_set_name in model_point_set_names:
         filepath = f"output/{timestamp}_{model_point_set_name}.csv"
-        print(f"{' ' * 10} {filepath}")
-        model_output[model_point_set_name].to_csv(filepath, index=False)
+
+        column_names = [col for col in model_output[model_point_set_name].columns.values.tolist() if col not in ["t", "r"]]
+        if len(column_names) > 0:
+            print(f"{' ' * 10} {filepath}")
+            model_output[model_point_set_name].to_csv(filepath, index=False)
+    return model_output
 
 
 def start(model_name, settings, argv):
@@ -178,6 +183,7 @@ def start(model_name, settings, argv):
         p = functools.partial(execute_multiprocessing, model_name=model_name, settings=settings, cpu_count=cpu_count, argv=argv)
         with multiprocessing.Pool(cpu_count) as pool:
             part_outputs = pool.map(p, range(cpu_count))
-        merge_and_save_multiprocessing(part_outputs, settings)
+        output = merge_and_save_multiprocessing(part_outputs, settings)
     else:
-        start_single_core(model_name, settings, argv)
+        output = start_single_core(model_name, settings, argv)
+    return output

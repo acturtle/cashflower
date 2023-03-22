@@ -583,6 +583,7 @@ class Model:
             except:
                 raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
             else:
+                # User can choose output columns
                 if c.in_output(output_columns):
                     # Variables are always in the output (individual and aggregate)
                     if isinstance(c, ModelVariable):
@@ -590,7 +591,6 @@ class Model:
                             model_point_output[c.model_point_set.name][c.name] = sum(c.result[:, :t_output_max + 1])
                         else:
                             model_point_output[c.model_point_set.name][c.name] = c.result[:, :t_output_max + 1].flatten()
-
                     # Constants are added only to individual output
                     if isinstance(c, Constant) and not aggregate:
                         model_point_output[c.model_point_set.name][c.name] = np.repeat(c.result, t_output_max + 1)
@@ -686,8 +686,6 @@ class Model:
     def save(self):
         """Only for single core (no multiprocessing)"""
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_columns = self.settings["OUTPUT_COLUMNS"]
-        user_chose_columns = len(output_columns) > 0
 
         if not os.path.exists("output"):
             os.makedirs("output")
@@ -695,14 +693,10 @@ class Model:
         print_log("Saving files:")
         for model_point_set in self.model_point_sets:
             filepath = f"output/{timestamp}_{model_point_set.name}.csv"
-            print(f"{' '*10} {filepath}")
-
             model_point_set_output = self.output.get(model_point_set.name)
-            if user_chose_columns:
-                output_columns.extend(["t", "r"])
-                columns = model_point_set_output.columns.intersection(output_columns)
-                model_point_set_output.to_csv(filepath, index=False, columns=columns)
-            else:
+            column_names = [col for col in model_point_set_output.columns.values.tolist() if col not in ["t", "r"]]
+            if len(column_names) > 0:
+                print(f"{' ' * 10} {filepath}")
                 model_point_set_output.to_csv(filepath, index=False)
 
         # Save runtime
