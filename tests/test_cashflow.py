@@ -386,30 +386,27 @@ class TestModel(TestCase):
         model = Model(None, [premium], [], [main], settings)
         model.initialize()
         model_point_output = model.calculate_single_model_point(0, 1, main)
-        df = pd.DataFrame({
+        test_output = pd.DataFrame({
             "premium": [1.0] * (settings.get("T_OUTPUT_MAX") + 1)
         })
-        assert_frame_equal(model_point_output["main"][["premium"]], df)
+        assert_frame_equal(model_point_output["main"][["premium"]], test_output)
 
-    def test_calculate_all_policies_when_aggregate(self):
+    def test_calculate(self):
         settings = load_settings()
+        main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="main")
 
-        main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="main", settings=settings)
-        main.initialize()
+        premium = ModelVariable(name="a", model_point_set=main, settings=settings)
 
-        a = ModelVariable(name="a", model_point_set=main, settings=settings)
-
-        @assign(a)
-        def a_formula(t):
+        @assign(premium)
+        def premium_formula(t):
             return t + 100
 
-        a.initialize()
+        premium.initialize()
 
-        model = Model(None, [a], [], [main], settings)
-        model.set_empty_output()
-        model.set_children()
-        model.set_grandchildren()
-        model.set_queue()
+        # Aggregated output
+        model = Model(None, [premium], [], [main], settings)
+        model.initialize()
+
         model_output = model.calculate()
         test_output = pd.DataFrame({
             "t": list(range(1201)),
@@ -418,38 +415,37 @@ class TestModel(TestCase):
 
         assert_frame_equal(model_output["main"], test_output, check_dtype=False)
 
-    def test_calculate_all_policies_when_individual(self):
-        settings = load_settings()
+        # Individual output
         settings["AGGREGATE"] = False
+        model = Model(None, [premium], [], [main], settings)
+        model.initialize()
 
-        main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="main", settings=settings)
-        main.initialize()
-
-        a = ModelVariable(name="a", model_point_set=main, settings=settings)
-
-        @assign(a)
-        def a_formula(t):
-            return t + 100
-
-        a.initialize()
-
-        model = Model(None, [a], [], [main], settings)
-        model.set_empty_output()
-        model.set_children()
-        model.set_grandchildren()
-        model.set_queue()
         model_output = model.calculate()
-
-        print(model_output["main"], "\n\n")
-
         test_output = pd.DataFrame({
             "t": list(range(1201)) * 2,
             "r": [1 for _ in range(1201 * 2)],
             "a": [(i + 100) for i in range(1201)] * 2
         })
 
-        print(test_output, "\n\n")
+        assert_frame_equal(model_output["main"].reset_index(drop=True), test_output.reset_index(drop=True), check_dtype=False)
 
-        # Different indexes
-        # assert 1 == 0
-        # assert_frame_equal(model_output["policy"], test_output)
+    def test_run(self):
+        settings = load_settings()
+        main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="main")
+
+        premium = ModelVariable(name="a", model_point_set=main, settings=settings)
+
+        @assign(premium)
+        def premium_formula(t):
+            return t + 100
+
+        premium.initialize()
+
+        test_output = pd.DataFrame({
+            "t": list(range(1201)),
+            "a": [2 * (i + 100) for i in range(1201)]
+        })
+
+        model = Model(None, [premium], [], [main], settings)
+        model_output = model.run()
+        assert_frame_equal(model_output["main"], test_output, check_dtype=False)

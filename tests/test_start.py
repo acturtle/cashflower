@@ -1,9 +1,12 @@
 import pytest
+import shutil
 
+from pandas.testing import assert_frame_equal
 from unittest import TestCase
 
-from cashflower.start import *
+from cashflower.admin import *
 from cashflower.cashflow import *
+from cashflower.start import *
 
 
 class TestLoadSettings(TestCase):
@@ -62,6 +65,34 @@ class TestGetModelPointSets(TestCase):
             get_model_point_sets(input_members_2, settings)
 
 
+class TestGetVariables(TestCase):
+    def test_get_variables(self):
+        settings = load_settings()
+        my_variable = ModelVariable()
+
+        @assign(my_variable)
+        def my_variable_formula(t):
+            return t
+
+        model_members = [("foo", "foo"), ("my_constant", my_variable)]
+        main = ModelPointSet(data=pd.DataFrame({"id": [1]}))
+        variables = get_variables(model_members, main, settings)
+        assert variables == [my_variable]
+
+    def test_get_variables_raises_error_when_name_is_t_or_r(self):
+        settings = load_settings()
+        t = ModelVariable()
+
+        @assign(t)
+        def t_formula():
+            return 1
+
+        model_members = [("foo", "foo"), ("t", t)]
+        main = ModelPointSet(data=pd.DataFrame({"id": [1]}))
+        with pytest.raises(CashflowModelError):
+            get_variables(model_members, main, settings)
+
+
 class TestGetConstants(TestCase):
     def test_get_constants(self):
         my_constant = Constant()
@@ -86,3 +117,18 @@ class TestGetConstants(TestCase):
         main = ModelPointSet(data=pd.DataFrame({"id": [1]}))
         with pytest.raises(CashflowModelError):
             get_constants(model_members, main)
+
+
+class TestSimpleModel(TestCase):
+    def test_simple_model_runs(self):
+        model_name = "my_test_model"
+        settings = load_settings()
+
+        create_model(model_name)
+        model_output = start(model_name, settings, [])
+        shutil.rmtree(model_name)
+        test_output = pd.DataFrame({
+            "t": range(settings["T_CALCULATION_MAX"]+1),
+            "projection_year": [0] + [x for x in range(1, 101) for _ in range(12)],
+        })
+        assert_frame_equal(model_output["main"], test_output, check_dtype=False)
