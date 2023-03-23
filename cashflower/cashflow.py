@@ -385,9 +385,10 @@ class Constant:
     grandchildren : list of model variables
         Children and their descendants (children, grandchildren, grandgrandchildren and so on...).
     """
-    def __init__(self, name=None, model_point_set=None):
+    def __init__(self, name=None, model_point_set=None, mp_dep=True):
         self.name = name
         self.model_point_set = model_point_set
+        self.mp_dep = mp_dep
         self.assigned_formula = None
         self._formula = None
         self.result = None
@@ -428,7 +429,8 @@ class Constant:
 
     def clear(self):
         """Clear formula's cache. """
-        self.formula.cache_clear()
+        if self.mp_dep:
+            self.formula.cache_clear()
 
     def calculate(self):
         """Calculate constant's value for all records in the model point."""
