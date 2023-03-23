@@ -148,7 +148,7 @@ class ModelPointSet:
         self.model_point_record_data = None
 
     def __repr__(self):
-        return f"MP: {self.name}"
+        return f"ModelPointSet: {self.name}"
 
     def __len__(self):
         return self.model_point_set_data.shape[0]
@@ -267,7 +267,7 @@ class ModelVariable:
         self.grandchildren = []
 
     def __repr__(self):
-        return f"MV: {self.name}"
+        return f"ModelVariable: {self.name}"
 
     def __lt__(self, other):
         return len(self.grandchildren) < len(other.grandchildren)
@@ -385,9 +385,10 @@ class Constant:
     grandchildren : list of model variables
         Children and their descendants (children, grandchildren, grandgrandchildren and so on...).
     """
-    def __init__(self, name=None, model_point_set=None):
+    def __init__(self, name=None, model_point_set=None, mp_dep=True):
         self.name = name
         self.model_point_set = model_point_set
+        self.mp_dep = mp_dep
         self.assigned_formula = None
         self._formula = None
         self.result = None
@@ -396,7 +397,7 @@ class Constant:
         self.grandchildren = []
 
     def __repr__(self):
-        return f"C: {self.name}"
+        return f"Constant: {self.name}"
 
     def __lt__(self, other):
         return len(self.grandchildren) < len(other.grandchildren)
@@ -428,7 +429,8 @@ class Constant:
 
     def clear(self):
         """Clear formula's cache. """
-        self.formula.cache_clear()
+        if self.mp_dep:
+            self.formula.cache_clear()
 
     def calculate(self):
         """Calculate constant's value for all records in the model point."""
@@ -564,6 +566,12 @@ class Model:
 
         self.empty_output = empty_output
 
+    def initialize(self):
+        self.set_empty_output()
+        self.set_children()
+        self.set_grandchildren()
+        self.set_queue()
+
     def calculate_single_model_point(self, row, pb_max, main, one_core=None):
         """Calculate results for a model point currently indicated in the model point set."""
         model_point_id = main.model_point_set_data.index[row]
@@ -583,6 +591,7 @@ class Model:
             except:
                 raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
             else:
+                # User can choose output columns
                 if c.in_output(output_columns):
                     # Variables are always in the output (individual and aggregate)
                     if isinstance(c, ModelVariable):
@@ -590,7 +599,6 @@ class Model:
                             model_point_output[c.model_point_set.name][c.name] = sum(c.result[:, :t_output_max + 1])
                         else:
                             model_point_output[c.model_point_set.name][c.name] = c.result[:, :t_output_max + 1].flatten()
-
                     # Constants are added only to individual output
                     if isinstance(c, Constant) and not aggregate:
                         model_point_output[c.model_point_set.name][c.name] = np.repeat(c.result, t_output_max + 1)
@@ -648,10 +656,7 @@ class Model:
             print_log(f"Start run for model '{self.name}'")
 
         # Prepare the order of variables for the calculation
-        self.set_empty_output()
-        self.set_children()
-        self.set_grandchildren()
-        self.set_queue()
+        self.initialize()
 
         # Inform on the number of model points
         main = self.get_model_point_set_by_name("main")
@@ -686,24 +691,20 @@ class Model:
     def save(self):
         """Only for single core (no multiprocessing)"""
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_columns = self.settings["OUTPUT_COLUMNS"]
-        user_chose_columns = len(output_columns) > 0
 
         if not os.path.exists("output"):
             os.makedirs("output")
 
-        print_log("Saving files:")
-        for model_point_set in self.model_point_sets:
-            filepath = f"output/{timestamp}_{model_point_set.name}.csv"
-            print(f"{' '*10} {filepath}")
-
-            model_point_set_output = self.output.get(model_point_set.name)
-            if user_chose_columns:
-                output_columns.extend(["t", "r"])
-                columns = model_point_set_output.columns.intersection(output_columns)
-                model_point_set_output.to_csv(filepath, index=False, columns=columns)
-            else:
-                model_point_set_output.to_csv(filepath, index=False)
+        # Save output to csv
+        if self.settings["SAVE_OUTPUT"]:
+            print_log("Saving output:")
+            for model_point_set in self.model_point_sets:
+                filepath = f"output/{timestamp}_{model_point_set.name}.csv"
+                model_point_set_output = self.output.get(model_point_set.name)
+                column_names = [col for col in model_point_set_output.columns.values.tolist() if col not in ["t", "r"]]
+                if len(column_names) > 0:
+                    print(f"{' ' * 10} {filepath}")
+                    model_point_set_output.to_csv(filepath, index=False)
 
         # Save runtime
         if self.settings["SAVE_RUNTIME"]:

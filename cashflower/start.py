@@ -1,14 +1,42 @@
 import datetime
+import functools
 import importlib
 import inspect
-import os
-import pandas as pd
 import multiprocessing
 import numpy as np
-import functools
+import os
+import pandas as pd
+import shutil
 
 from .cashflow import CashflowModelError, ModelVariable, ModelPointSet, Model, Constant, Runplan
-from .utils import print_log
+from .utils import replace_in_file, print_log
+
+
+def create_model(model):
+    """Create a folder structure for a model.
+
+    Copies the whole content of the model_tpl folder and changes templates to scripts.
+
+    Parameters
+    ----------
+    model : str
+        Name of the model to be added.
+
+    """
+    template_path = os.path.join(os.path.dirname(__file__), "model_tpl")
+    current_path = os.getcwd()
+
+    shutil.copytree(template_path, model)
+
+    # Some scripts needs words replacements
+    run_file = os.path.join(current_path, model, "run.py-tpl")
+    model_file = os.path.join(current_path, model, "model.py-tpl")
+    replace_in_file(run_file, "{{ model }}", model)
+    replace_in_file(model_file, "{{ model }}", model)
+
+    # Remove -tpl from template
+    os.rename(run_file, run_file[:-4])
+    os.rename(model_file, model_file[:-4])
 
 
 def load_settings(settings=None):
@@ -18,6 +46,7 @@ def load_settings(settings=None):
         "MULTIPROCESSING": False,
         "OUTPUT_COLUMNS": [],
         "ID_COLUMN": "id",
+        "SAVE_OUTPUT": True,
         "SAVE_RUNTIME": False,
         "T_CALCULATION_MAX": 1200,
         "T_OUTPUT_MAX": 1200,
@@ -66,24 +95,15 @@ def get_variables(model_members, main, settings):
     """Get model variables from input.py script."""
     variable_members = [m for m in model_members if isinstance(m[1], ModelVariable)]
     variables = []
+
     for name, variable in variable_members:
+        if name in ["t", "r"]:
+            msg = f"\nA model component can not be named '{name}' because it is a system variable. Please rename it."
+            raise CashflowModelError(msg)
         variable.name = name
         variable.settings = settings
         variable.initialize(main)
         variables.append(variable)
-
-    # Model variables can not be overwritten by formulas with the same name
-    overwritten = list(set(ModelVariable.instances) - set(variables))
-    if len(overwritten) > 0:
-        for item in overwritten:
-            if item.assigned_formula is None:
-                msg = "\nThere are two variables with the same name. Please check the 'model.py' script."
-                raise CashflowModelError(msg)
-        names = [item.assigned_formula.__name__ for item in overwritten]
-        names_str = ", ".join(names)
-        msg = f"\nThe variables with the following formulas are not correctly handled in the model: \n{names_str}"
-        raise CashflowModelError(msg)
-
     return variables
 
 
@@ -92,6 +112,9 @@ def get_constants(model_members, main):
     constant_members = [m for m in model_members if isinstance(m[1], Constant)]
     constants = []
     for name, constant in constant_members:
+        if name in ["t", "r"]:
+            msg = f"\nA model component can not be named '{name}' because it is a system variable. Please rename it."
+            raise CashflowModelError(msg)
         constant.name = name
         constant.initialize(main)
         constants.append(constant)
@@ -127,13 +150,13 @@ def start_single_core(model_name, settings, argv):
 
     # Run model on single core and save results
     model = Model(model_name, variables, constants, model_point_sets, settings)
-    model.run()
+    output = model.run()
     model.save()
+    return output
 
 
 def execute_multiprocessing(part, model_name, settings, cpu_count, argv):
     """Run subset of the model points using multiprocessing."""
-    settings = load_settings(settings)
     runplan, model_point_sets, variables, constants = prepare_model_input(model_name, settings, argv)
 
     # Run model on multiple cores
@@ -159,25 +182,35 @@ def merge_and_save_multiprocessing(part_outputs, settings):
         else:
             model_output[model_point_set_name] = pd.concat(part_output[model_point_set_name] for part_output in part_outputs)
 
-    # Save results
     if not os.path.exists("output"):
         os.makedirs("output")
 
-    print_log("Saving files:")
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    for model_point_set_name in model_point_set_names:
-        filepath = f"output/{timestamp}_{model_point_set_name}.csv"
-        print(f"{' ' * 10} {filepath}")
-        model_output[model_point_set_name].to_csv(filepath, index=False)
+    # Save output to csv
+    if settings["SAVE_OUTPUT"]:
+        print_log("Saving output:")
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        for model_point_set_name in model_point_set_names:
+            filepath = f"output/{timestamp}_{model_point_set_name}.csv"
+
+            column_names = [col for col in model_output[model_point_set_name].columns.values.tolist() if col not in ["t", "r"]]
+            if len(column_names) > 0:
+                print(f"{' ' * 10} {filepath}")
+                model_output[model_point_set_name].to_csv(filepath, index=False)
+
+    print_log("Finished")
+    return model_output
 
 
 def start(model_name, settings, argv):
     settings = load_settings(settings)
+
     if settings.get("MULTIPROCESSING"):
         cpu_count = multiprocessing.cpu_count()
         p = functools.partial(execute_multiprocessing, model_name=model_name, settings=settings, cpu_count=cpu_count, argv=argv)
         with multiprocessing.Pool(cpu_count) as pool:
             part_outputs = pool.map(p, range(cpu_count))
-        merge_and_save_multiprocessing(part_outputs, settings)
+        output = merge_and_save_multiprocessing(part_outputs, settings)
     else:
-        start_single_core(model_name, settings, argv)
+        output = start_single_core(model_name, settings, argv)
+
+    return output

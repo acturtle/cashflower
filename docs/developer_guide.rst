@@ -89,15 +89,15 @@ The table below indicates where the variables are added to the output:
    * - AGGREGATE
      - MULTIPROCESSING
      - Function
-   * - False
-     - False
-     - :code:`calculate_single_model_point()`
-   * - False
-     - True
-     - :code:`calculate_single_model_point()`
    * - True
      - False
      - :code:`calculate()`
    * - True
      - True
      - :code:`merge_and_save_multiprocessing()`
+   * - False
+     - False
+     - :code:`calculate_single_model_point()`
+   * - False
+     - True
+     - :code:`calculate_single_model_point()`

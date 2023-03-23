@@ -1,7 +1,7 @@
 Input
 =====
 
-Input for the model is defined in the :code:`input.py` script.
+Input for the cash flow model is defined in the :code:`input.py` script.
 
 There are three types of the model's inputs:
 
@@ -12,8 +12,23 @@ There are three types of the model's inputs:
 Model point sets
 ----------------
 
-Model point sets contain model points. Model points represents one point which will be evaluated by the model.
+Model point sets contain model points. Model points represent objects for which the model is calculated.
 The model point can be, for example, a policyholder or a financial instrument.
+
+.. image:: https://acturtle.com/static/img/25/multiple_model_point_sets.png
+   :align: center
+
+|
+
+We can define:
+
+* **model point set** - a group of model points; data can be read from a file or a database query result,
+* **model point** - one or multiple records that contain data on the given object (e.g. policyholder or financial asset),
+* **record** - a single row of data.
+
+|
+
+The model point set is defined using the :code:`ModelPointSet` class.
 
 ..  code-block:: python
     :caption: input.py
@@ -27,10 +42,10 @@ The cash flow model will calculate results for each of the model points in the m
 
 |
 
-Create model point
-^^^^^^^^^^^^^^^^^^
+Create a model point set
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-The data for the model point might be stored in a csv file.
+The data for the model point set might be stored in a csv file.
 
 ..  code-block::
     :caption: data-policy.csv
@@ -40,7 +55,9 @@ The data for the model point might be stored in a csv file.
     A192,57,M,130
     D32,18,F,50
 
-The primary model point set **must** be called :code:`main`.
+
+To create a model point set, use :code:`ModelPointSet` class and pass a data frame in the :code:`data` parameter.
+The primary model point set must be called :code:`main`.
 
 ..  code-block:: python
     :caption: input.py
@@ -49,21 +66,13 @@ The primary model point set **must** be called :code:`main`.
 
     main = ModelPointSet(data=pd.read_csv("data-policy.csv"))
 
-To create a model point set, use :code:`ModelPointSet()` class and pass a data frame in the :code:`data` parameter.
+
 
 A model can have multiple model point sets but at least one of them must be assigned to a variable :code:`main`.
-The :code:`main` model point **must** have unique keys.
+The :code:`main` model point set must have unique keys.
 
-.. IMPORTANT::
-   Each model must have a model point assigned to a variable called :code:`main`.
-
-|
-
-By default, the identifiers of policies are stored in the column :code:`id`.
-The column name can be changed in the :code:`settings.py`.
-
-.. IMPORTANT::
-   The :code:`main` model point set has one record per model point.
+By default, the identifiers of model points are stored in the column named :code:`id`.
+The column name can be changed using the :code:`ID_COLUMN` setting in the :code:`settings.py` script.
 
 |
 
@@ -85,7 +94,7 @@ For example, the policyholder holds multiple funds. Each fund has its own record
     D32,8,12500
     D32,14,12500
 
-Policyholder X149 has one fund and policyholders A192 and D32 have two funds.
+Policyholder X149 has one fund and policyholders A192 and D32 have two funds each.
 
 Data on these funds are stored in the :code:`fund` model point set.
 
@@ -101,17 +110,18 @@ Model point sets link with each other by the :code:`id` column.
 
 |
 
-Read from a model point
-^^^^^^^^^^^^^^^^^^^^^^^
+Get value from a model point
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To read from a model point, use the :code:`get()` method of the :code:`ModelPointSet` class.
+To read a value from a model point, use the :code:`get()` method of the :code:`ModelPointSet` class.
 
 ..  code-block:: python
 
         main.get("age")
 
+|
 
-The model variable will read the data for the record which is currently calculated.
+The model variable will read the value of the record which is currently calculated.
 
 ..  code-block:: python
     :caption: model.py
@@ -128,6 +138,31 @@ The model variable will read the data for the record which is currently calculat
         sex = main.get("sex")
         return assumption["mortality"].loc[age, sex]["rate"]
 
+
+Read from other model point set
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can read model point's data from another set. For example:
+
+..  code-block:: python
+    :caption: model.py
+
+    expected_coverage_benefit(t=10, r=1)
+
+This code reads the value for the 10th period and the second model point's record.
+
+The :code:`model_point_size` attribute of the model point set returns the number of records for the current model point.
+This attribute can be used to calculate the total values of all records.
+
+..  code-block:: python
+    :caption: model.py
+
+    @assign(expected_benefit)
+    def expected_benefit_formula(t):
+        result = 0
+        for r in range(coverage.model_point_size):
+            result += expected_coverage_benefit(t, r)
+        return result
 
 
 Assumptions
