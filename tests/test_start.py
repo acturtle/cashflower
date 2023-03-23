@@ -124,12 +124,25 @@ class TestSimpleModel(TestCase):
         model_name = "my_test_model"
         settings = load_settings()
 
+        # Single core
         create_model(model_name)
         model_output = start(model_name, settings, [])
         shutil.rmtree(model_name)
         shutil.rmtree("output")
         test_output = pd.DataFrame({
             "t": range(settings["T_CALCULATION_MAX"]+1),
+            "projection_year": [0] + [x for x in range(1, 101) for _ in range(12)],
+        })
+        assert_frame_equal(model_output["main"], test_output, check_dtype=False)
+
+        # Multiprocessing
+        settings["MULTIPROCESSING"] = True
+        create_model(model_name)
+        model_output = start(model_name, settings, [])
+        shutil.rmtree(model_name)
+        shutil.rmtree("output")
+        test_output = pd.DataFrame({
+            "t": range(settings["T_CALCULATION_MAX"] + 1),
             "projection_year": [0] + [x for x in range(1, 101) for _ in range(12)],
         })
         assert_frame_equal(model_output["main"], test_output, check_dtype=False)
