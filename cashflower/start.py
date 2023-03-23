@@ -67,6 +67,7 @@ def get_variables(model_members, main, settings):
     """Get model variables from input.py script."""
     variable_members = [m for m in model_members if isinstance(m[1], ModelVariable)]
     variables = []
+
     for name, variable in variable_members:
         if name in ["t", "r"]:
             msg = f"\nA model component can not be named '{name}' because it is a system variable. Please rename it."
@@ -75,19 +76,6 @@ def get_variables(model_members, main, settings):
         variable.settings = settings
         variable.initialize(main)
         variables.append(variable)
-
-    # Model variables can not be overwritten by formulas with the same name
-    overwritten = list(set(ModelVariable.instances) - set(variables))
-    if len(overwritten) > 0:
-        for item in overwritten:
-            if item.assigned_formula is None:
-                msg = "\nThere are two variables with the same name. Please check the 'model.py' script."
-                raise CashflowModelError(msg)
-        names = [item.assigned_formula.__name__ for item in overwritten]
-        names_str = ", ".join(names)
-        msg = f"\nThe variables with the following formulas are not correctly handled in the model: \n{names_str}"
-        raise CashflowModelError(msg)
-
     return variables
 
 

@@ -93,3 +93,9 @@ class TestIsRecursive(TestCase):
         assert is_recursive(cfs3, "my_func3") == 0
         assert is_recursive(cfs4, "my_func4") == 2
         assert is_recursive(cfs5, "my_func5") == 1
+
+
+class TestSplitToRanges(TestCase):
+    def test_split_to_ranges(self):
+        assert split_to_ranges(20, 3) == [(0, 6), (6, 12), (12, 20)]
+        assert split_to_ranges(2, 3) == [(0, 2)]
