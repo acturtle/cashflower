@@ -127,6 +127,7 @@ class TestSimpleModel(TestCase):
         create_model(model_name)
         model_output = start(model_name, settings, [])
         shutil.rmtree(model_name)
+        shutil.rmtree("output")
         test_output = pd.DataFrame({
             "t": range(settings["T_CALCULATION_MAX"]+1),
             "projection_year": [0] + [x for x in range(1, 101) for _ in range(12)],
