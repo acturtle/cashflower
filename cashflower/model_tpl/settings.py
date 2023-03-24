@@ -1,8 +1,8 @@
 settings = {
     "AGGREGATE": True,
+    "ID_COLUMN": "id",
     "MULTIPROCESSING": False,
     "OUTPUT_COLUMNS": [],
-    "ID_COLUMN": "id",
     "SAVE_OUTPUT": True,
     "SAVE_RUNTIME": False,
     "T_CALCULATION_MAX": 1200,
