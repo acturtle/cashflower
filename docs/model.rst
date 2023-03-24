@@ -4,6 +4,15 @@ Model
 The logic of the model is defined in the :code:`model.py` script.
 
 The components of the model are :code:`ModelVariable` and :code:`Constant`.
+Model variable depends on time and the constant doesn't.
+By default, they depend on the model point but this can be changed using the :code:`mp_dep` attribute.
+
+.. image:: https://acturtle.com/static/img/31/all.png
+   :align: center
+
+|
+
+Defining model variables and constants:
 
 ..  code-block:: python
     :caption: model.py
@@ -28,10 +37,8 @@ The components of the model are :code:`ModelVariable` and :code:`Constant`.
 Model variable
 --------------
 
-Model variable is the main building block of the actuarial cash flow model.
-
-Create model variable
-^^^^^^^^^^^^^^^^^^^^^
+The model variable is the main building block of the actuarial cash flow model.
+The model variable depends on time (:code:`t`) and returns numeric values.
 
 ..  code-block:: python
     :caption: model.py
@@ -64,9 +71,6 @@ The second step is to use the decorator :code:`@assign()` to link a formula to t
 
 |
 
-Formula
-^^^^^^^
-
 For model variables, :code:`@assign()` decorates the function with the parameter :code:`t`.
 
 .. IMPORTANT::
@@ -83,92 +87,12 @@ Model variables return numeric values.
 
 |
 
-Model point independent
-^^^^^^^^^^^^^^^^^^^^^^^
-
-The model variables are recalculated for each of the model points.
-The default value for the :code:`mp_dep` (model point dependent) parameter of :code:`ModelVariable` is :code:`True`.
-
-If the results for the given variable are the same for all model points, the parameter :code:`mp_dep` should be set
-to :code:`False`. This setting helps to decrease the runtime of the model.
-
-|
-
-Variable A: model point dependent
-
-..  code-block:: python
-
-    ModelVariable()
-
-or
-
-..  code-block:: python
-
-    ModelVariable(mp_dep=True)
-
-Variable B: model point independent
-
-..  code-block:: python
-
-    ModelVariable(mp_dep=False)
-
-|
-
-**Comparison**
-
-.. image:: https://acturtle.com/static/img/31/mp_dep.png
-   :align: center
-
-In the above image we see that:
-
-* A - variable changes for each of the model points,
-* B - variable has the same results for all model points.
-
-|
-
-**Example**
-
-Variables:
-
-* :code:`pv_premiums` - the present value of premiums differs by policyholder,
-* :code:`calendar_month` - calendar month is the same for all policyholders.
-
-..  code-block:: python
-    :caption: model.py
-
-    pv_premiums = ModelVariable()
-    calendar_month = ModelVariable(mp_dep=False)
-
-
-    @assign(pv_premiums)
-    def pv_premiums_formula(t):
-        v = 1/(1+0.001)
-        return premium(t) + pv_premiums(t+1) * v
-
-
-    @assign(calendar_month)
-    def calendar_month_formula(t):
-        valuation_month = 6
-        if t == 0:
-            return valuation_month
-        elif calendar_month(t - 1) % 12 == 1:
-            return 1
-        else:
-            return calendar_month(t - 1) + 1
-
-
-Calendar month can have the :code:`mp_dep` attribute set to :code:`False` because the results are the same for all
-model points.
-
-|
-
 Constant
 --------
 
-Constant is a **t-independent** component of the model.
-
-Create constant
-^^^^^^^^^^^^^^^
+The constant is a **t-independent** component of the model.
+The constant can return either a numeric value or a string.
+Constants can be only part of an individual output because strings can't be aggregated.
 
 ..  code-block:: python
     :caption: model.py
@@ -209,9 +133,6 @@ Constants are part of the model output only if the model outputs individual resu
 
 |
 
-Formula
-^^^^^^^
-
 For constants, :code:`@assign()` decorates the function without any parameters.
 
 .. IMPORTANT::
@@ -228,154 +149,12 @@ Constants may return numeric or character values.
 
 |
 
-Time independent
-^^^^^^^^^^^^^^^^
 
-The :code:`Constant` class is used to code time-independent model components.
-Time-independent variables have the same result for :code:`t=0`, :code:`t=1`, :code:`t=2`, ...
-
-|
-
-Variable A: time-dependent
-
-..  code-block:: python
-
-    ModelVariable()
-
-Variable B: time-independent
-
-..  code-block:: python
-
-    Constant()
-
-|
-
-**Comparison**
-
-.. image:: https://acturtle.com/static/img/31/constant.png
-   :align: center
-
-In the above image we see that:
-
-* A - variable has different results between periods,
-* B - variable has the same result for all periods.
-
-|
-
-**Example**
-
-Variables:
-
-* :code:`pv_premiums` - the present value of premiums differs by time,
-* :code:`premium` - premium is the same for all periods.
-
-
-..  code-block:: python
-    :caption: model.py
-
-    pv_premiums = ModelVariable()
-    premium = Constant()
-
-    @assign(pv_premiums)
-    def pv_premiums_formula(t):
-        v = 1/(1+0.001)
-        return premium(t) + pv_premiums(t+1) * v
-
-    @assign(premium)
-    def premium_formula():
-        return main.get("PREMIUM")
-
-Premium can be coded as an instance of the :code:`Constant` class because it is time-independent.
-Its formula does not require the :code:`t` parameter.
-
-|
-
-Comparison
+Parameters
 ----------
 
-:code:`ModelVariable` and :code:`Constant` are the main components of the model.
-
-The components differ in two areas:
-
-* dependency on time,
-* output type.
-
-The table presents the differences:
-
-.. list-table::
-   :widths: 33 33 33
-   :header-rows: 1
-
-   * - Characteristic
-     - ModelVariable
-     - Constant
-   * - is time-dependent
-     - Yes
-     - No
-   * - returns numbers
-     - Yes
-     - Yes
-   * - returns strings
-     - No
-     - Yes
-
-|
-
-Calling variables
------------------
-
-Model components can be called in each other formulas.
-
-..  code-block:: python
-    :caption: model.py
-
-    from cashflower import assign, ModelVariable, Constant
-
-    a = Constant()
-    b = ModelVariable()
-    c = ModelVariable()
-
-
-    @assign(a)
-    def a_formula():
-        return 100
-
-
-    @assign(b)
-    def b_formula(t):
-        return 3*t + a()
-
-
-    @assign(c)
-    def c_formula(t):
-        return b(t) + 1
-
-To use another variable, call an instance of the :code:`ModelVariable` or :code:`Constant` class.
-
-.. IMPORTANT::
-    To use results of :code:`a`, call :code:`a()` and **not** :code:`a_formula()`.
-
-If you are calling a model variable, pass an argument :code:`t`.
-
-A variable can also call **itself** for other :code:`t`. This functionality can be useful for discounting.
-
-..  code-block:: python
-    :caption: model.py
-
-    from cashflower import assign, ModelVariable
-
-    d = ModelVariable()
-
-    @assign(d)
-    def d_formula(t):
-        if t == 1200:
-            return 100
-        return d(t+1) * (1/1.05)
-
-|
-
-Link to model point set
------------------------
+model_point_set
+^^^^^^^^^^^^^^^
 
 Model variables and constants are associated with a model point set.
 
@@ -390,7 +169,7 @@ The default model point set is :code:`main`:
 
     ModelVariable()
 
-is equivalent to
+...is equivalent to...
 
 ..  code-block:: python
 
@@ -444,3 +223,199 @@ The model will create a separate output file for each of the model point sets:
         └── <timestamp>_fund.csv
 
 The output files will contain results for model components linked to an associated model point set.
+
+
+mp_dep
+^^^^^^
+
+The model variables are recalculated for each of the model points.
+The default value for the :code:`mp_dep` (model point dependent) parameter of :code:`ModelVariable` is :code:`True`.
+
+If the results for the given variable are the same for all model points, the parameter :code:`mp_dep` should be set
+to :code:`False`. This setting helps to decrease the runtime of the model.
+
+|
+
+**Model Variable**
+
+.. image:: https://acturtle.com/static/img/31/model_variable.png
+   :align: center
+
+In the above image, we see that:
+
+* MV_1 - variable returns different results for each of the model points,
+* MV_2 - variable returns the same results for all model points.
+
+To steer if a variable is model point dependent, use the :code:`mp_dep` attribute of the :code:`ModelVariable` class.
+
+MV_1: model point dependent
+
+..  code-block:: python
+
+    ModelVariable()
+
+...is the same as...
+
+..  code-block:: python
+
+    ModelVariable(mp_dep=True)
+
+|
+
+MV_2: model point independent
+
+..  code-block:: python
+
+    ModelVariable(mp_dep=False)
+
+|
+
+Example
+
+Variables:
+
+* :code:`pv_premiums` - the present value of premiums differs by policyholder,
+* :code:`calendar_month` - calendar month is the same for all policyholders.
+
+..  code-block:: python
+    :caption: model.py
+
+    pv_premiums = ModelVariable()
+    calendar_month = ModelVariable(mp_dep=False)
+
+
+    @assign(pv_premiums)
+    def pv_premiums_formula(t):
+        v = 1/(1+0.001)
+        return premium(t) + pv_premiums(t+1) * v
+
+
+    @assign(calendar_month)
+    def calendar_month_formula(t):
+        valuation_month = 6
+        if t == 0:
+            return valuation_month
+        elif calendar_month(t - 1) % 12 == 1:
+            return 1
+        else:
+            return calendar_month(t - 1) + 1
+
+
+Calendar month can have the :code:`mp_dep` attribute set to :code:`False` because the results are the same for all
+model points.
+
+|
+
+**Constant**
+
+Similarly to model variables, constants can also be model point independent.
+
+.. image:: https://acturtle.com/static/img/31/constant.png
+   :align: center
+
+In the above image we see that:
+
+* C_1 - there are the same results for all periods but they differ between model points,
+* C_2 - there are the same results for all periods and model points.
+
+
+..  code-block:: python
+    :caption: model.py
+
+    premium = Constant()
+    product = Constant(mp_dep=False)
+
+
+    @assign(premium)
+    def premiums_formula():
+        return main.get("PREMIUM")
+
+
+    @assign(product)
+    def product_formula():
+        return "ANNUITY"
+
+
+Calling results
+---------------
+
+Model components can be called in each other formulas.
+
+..  code-block:: python
+    :caption: model.py
+
+    from cashflower import assign, ModelVariable, Constant
+
+    a = Constant()
+    b = ModelVariable()
+    c = ModelVariable()
+
+
+    @assign(a)
+    def a_formula():
+        return 100
+
+
+    @assign(b)
+    def b_formula(t):
+        return 3*t + a()
+
+
+    @assign(c)
+    def c_formula(t):
+        return b(t) + 1
+
+To use another variable, call an instance of the :code:`ModelVariable` or :code:`Constant` class.
+
+.. IMPORTANT::
+    To use results of :code:`a`, call :code:`a()` and **not** :code:`a_formula()`.
+
+If you are calling a model variable, pass an argument :code:`t`.
+
+A variable can also call **itself** for other :code:`t`. This functionality can be useful for discounting.
+
+..  code-block:: python
+    :caption: model.py
+
+    from cashflower import assign, ModelVariable
+
+    d = ModelVariable()
+
+    @assign(d)
+    def d_formula(t):
+        if t == 1200:
+            return 100
+        return d(t+1) * (1/1.05)
+
+|
+
+Comparison
+----------
+
+:code:`ModelVariable` and :code:`Constant` are the main components of the model.
+
+The components differ in two areas:
+
+* dependency on time,
+* output type.
+
+The table presents the differences:
+
+.. list-table::
+   :widths: 33 33 33
+   :header-rows: 1
+
+   * - Characteristic
+     - ModelVariable
+     - Constant
+   * - is time-dependent
+     - Yes
+     - No
+   * - returns numbers
+     - Yes
+     - Yes
+   * - returns strings
+     - No
+     - Yes
+
+|
