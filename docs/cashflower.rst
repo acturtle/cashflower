@@ -4,14 +4,6 @@ cashflower package
 Submodules
 ----------
 
-cashflower.admin module
------------------------
-
-.. automodule:: cashflower.admin
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 cashflower.cashflow module
 --------------------------
 

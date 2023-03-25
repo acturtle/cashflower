@@ -24,6 +24,9 @@ The table below summarizes available settings.
    * - OUTPUT_COLUMNS
      - empty list of list of strings
      - List of variables to be included in the output. If empty list, all variables are included.
+   * - SAVE_OUTPUT
+     - :code:`True` / :code:`False`
+     - Flag if csv output files should be created.
    * - SAVE_RUNTIME
      - :code:`True` / :code:`False`
      - Flag if an additional file should be created which contains runtime of variables.
@@ -241,6 +244,52 @@ Only the chosen columns are in the output.
     1,1,1,3
     2,1,2,6
     3,1,3,9
+
+|
+
+Save output
+-----------
+
+The :code:`SAVE_OUTPUT` setting is a flag if the model should save results to the csv files.
+
+By default, the setting has a value :code:`True`.
+After the run, the results are saved to the :code:`output` folder, for example:
+
+..  code-block::
+
+    .
+    └── output/
+        └── <timestamp>_main.csv
+        └── <timestamp>_fund.csv
+        └── <timestamp>_coverage.csv
+
+|
+
+If you change the :code:`SAVE_OUTPUT` setting to :code:`False`, no files will be created.
+
+You can use this setting to create a custom output files or do whatever you want with the results (e.g. save to the database).
+
+To create custom output, you can use the :code:`output` variable in the :code:`run.py` script.
+
+..  code-block:: python
+    :caption: run.py
+
+    if __name__ == "__main__":
+    output = start("example", settings, sys.argv)
+
+    for model_point_set_name, data_frame in output.items():
+        data_frame.to_csv(f"results/my-{model_point_set_name}.csv", index=False)
+
+The :code:`output` variable holds a dictionary, where keys are names of model point sets and values are data frames with results.
+The above code, will create csv files in the :code:`results` folder:
+
+..  code-block::
+
+    .
+    └── results/
+        └── my_main.csv
+        └── my_fund.csv
+        └── my_coverage.csv
 
 |
 
