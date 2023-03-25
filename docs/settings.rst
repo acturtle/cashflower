@@ -15,15 +15,18 @@ The table below summarizes available settings.
    * - AGGREGATE
      - :code:`True` / :code:`False`
      - Flag if results for model pointsshould be aggregated.
+   * - ID_COLUMN
+     - a string
+     - The name of the column which contains identificators of the model points.
    * - MULTIPROCESSING
      - :code:`True` / :code:`False`
      - Flag if multiple CPUs should be used for the calculations.
    * - OUTPUT_COLUMNS
      - empty list of list of strings
      - List of variables to be included in the output. If empty list, all variables are included.
-   * - ID_COLUMN
-     - a string
-     - The name of the column which contains identificators of the model points.
+   * - SAVE_OUTPUT
+     - :code:`True` / :code:`False`
+     - Flag if csv output files should be created.
    * - SAVE_RUNTIME
      - :code:`True` / :code:`False`
      - Flag if an additional file should be created which contains runtime of variables.
@@ -79,6 +82,83 @@ You can choose the relevant output columns in the :code:`OUTPUT_COLUMNS` setting
 
 .. WARNING::
    Aggregated results for some variables may not make sense.
+
+|
+
+ID column
+---------
+
+Each model point must have a column with a key column used for identification.
+This column is also used to connect records in case of multiple model point.
+
+By default, the column must be named :code:`id`.
+The value can be changed using the :code:`ID_COLUMN` setting.
+
+.. WARNING::
+   Column names are case-sensitive. :code:`id` is something else than :code:`ID`.
+
+|
+
+The default value for the :code:`ID_COLUMN` setting is :code:`id`.
+
+..  code-block:: python
+    :caption: settings.py
+
+    settings = {
+        ...
+        "ID_COLUMN": "id",
+        ...
+    }
+
+The model point must have a column with this name.
+
+..  code-block:: python
+    :caption: input.py
+
+    from cashflower import ModelPointSet
+
+    main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}))
+
+|
+
+The key column might have other name.
+
+..  code-block:: python
+    :caption: settings.py
+
+    settings = {
+        ...
+        "ID_COLUMN": "policy_number",
+        ...
+    }
+
+The model point must have a column with this name.
+
+..  code-block:: python
+    :caption: input.py
+
+    from cashflower import ModelPointSet
+
+    main = ModelPointSet(data=pd.DataFrame({"policy_number": [1, 2]}))
+
+|
+
+Multiprocessing
+---------------
+
+By default, the model is evaluated for each model point one after another in a linear process.
+If the computer has multiple cores, it's possible to perform calculations in parallel.
+
+.. image:: https://acturtle.com/static/img/28/multiprocessing.png
+   :align: center
+
+If :code:`MULTIPROCESSING` is turned on, the model will split all model points into several parts (as many as the number of cores).
+It will calculate them in parallel on separate cores and then merge together into a single output.
+
+Thanks to that, the runtime will be decreased. The more cores, the faster calculation.
+
+It is recommended to use :code:`MULTIPROCESSING`  when the model is stable because the log message are more vague.
+For the development phase, it is recommended to use single core.
 
 |
 
@@ -167,61 +247,49 @@ Only the chosen columns are in the output.
 
 |
 
-ID column
----------
+Save output
+-----------
 
-Each model point must have a column with a key column used for identification.
-This column is also used to connect records in case of multiple model point.
+The :code:`SAVE_OUTPUT` setting is a flag if the model should save results to the csv files.
 
-By default, the column must be named :code:`id`.
-The value can be changed using the :code:`ID_COLUMN` setting.
+By default, the setting has a value :code:`True`.
+After the run, the results are saved to the :code:`output` folder, for example:
 
-.. WARNING::
-   Column names are case-sensitive. :code:`id` is something else than :code:`ID`.
+..  code-block::
 
-|
-
-The default value for the :code:`ID_COLUMN` setting is :code:`id`.
-
-..  code-block:: python
-    :caption: settings.py
-
-    settings = {
-        ...
-        "ID_COLUMN": "id",
-        ...
-    }
-
-The model point must have a column with this name.
-
-..  code-block:: python
-    :caption: input.py
-
-    from cashflower import ModelPointSet
-
-    main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}))
+    .
+    └── output/
+        └── <timestamp>_main.csv
+        └── <timestamp>_fund.csv
+        └── <timestamp>_coverage.csv
 
 |
 
-The key column might have other name.
+If you change the :code:`SAVE_OUTPUT` setting to :code:`False`, no files will be created.
+
+You can use this setting to create a custom output files or do whatever you want with the results (e.g. save to the database).
+
+To create custom output, you can use the :code:`output` variable in the :code:`run.py` script.
 
 ..  code-block:: python
-    :caption: settings.py
+    :caption: run.py
 
-    settings = {
-        ...
-        "ID_COLUMN": "policy_number",
-        ...
-    }
+    if __name__ == "__main__":
+    output = start("example", settings, sys.argv)
 
-The model point must have a column with this name.
+    for model_point_set_name, data_frame in output.items():
+        data_frame.to_csv(f"results/my-{model_point_set_name}.csv", index=False)
 
-..  code-block:: python
-    :caption: input.py
+The :code:`output` variable holds a dictionary, where keys are names of model point sets and values are data frames with results.
+The above code, will create csv files in the :code:`results` folder:
 
-    from cashflower import ModelPointSet
+..  code-block::
 
-    main = ModelPointSet(data=pd.DataFrame({"policy_number": [1, 2]}))
+    .
+    └── results/
+        └── my_main.csv
+        └── my_fund.csv
+        └── my_coverage.csv
 
 |
 
