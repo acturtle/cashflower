@@ -15,6 +15,12 @@ However, the value of bonds can also fluctuate based on changes in interest rate
 
 In the tutorial, we will build a model for a 10-year bond with an annual coupon.
 
+.. image:: https://acturtle.com/static/img/38/bond.png
+
+At the beginning, the investor pays nominal value to the borrower.
+The borrower pays coupons to the investor for 10 consecutive years.
+At the end of the term, the borrower returns the nominal to the investor.
+
 |
 
 Solution
