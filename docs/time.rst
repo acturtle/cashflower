@@ -1,5 +1,5 @@
-Time-related variables
-======================
+Time
+====
 
 The time variable (:code:`t`) is a system variable in actuarial cash flow models.
 The :code:`t` variable represents monthly periods starting from zero.
@@ -212,6 +212,9 @@ Policy year and month reflect the duration of the given policy.
 ..  code-block:: python
     :caption: model.py
 
+    pol_month = ModelVariable()
+    pol_year = ModelVariable()
+
     @assign(pol_month)
     def pol_month_formula(t):
         if t == 0:
@@ -257,7 +260,7 @@ The result for the first 13 months.
     12,2023,12,30,3,6
     13,2024,1,30,3,7
 
-Few things to note:
-    * cal_month, cal_year - starts with valuation date,
-    * elapsed_months - number of months between issue of the policy (2020-06) and the valuation date (2022-12),
-    * pol_month, pol_year - the policy was already 2 years and 6 months "old" at the valuation date.
+Notes:
+    * :code:`cal_month`, :code:`cal_year` - starts with valuation date,
+    * :code:`elapsed_months` - number of months between issue of the policy (2020-06) and the valuation date (2022-12),
+    * :code:`pol_month`, :code:`pol_year` - the policy was already 2 years and 6 months "old" at the valuation date.

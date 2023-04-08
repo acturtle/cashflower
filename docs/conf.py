@@ -11,8 +11,8 @@ sys.path.insert(0, os.path.abspath('../cashflower'))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'cashflower'
-copyright = '2022, Zuzanna'
-author = 'Zuzanna'
+copyright = '2023, Zuzanna Chmielewska'
+author = 'Zuzanna Chmielewska'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
