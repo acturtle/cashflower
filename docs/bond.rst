@@ -172,10 +172,6 @@ The interest rate is constant and amounts to 2%.
 ..  code-block:: python
     :caption: input.py
 
-    import pandas as pd
-
-    from cashflower import Runplan, ModelPointSet
-
     assumption = dict()
     assumption["INTEREST_RATE"] = 0.02
 
@@ -265,6 +261,8 @@ Each year, the investor receives a coupon. It is calculated by multiplying the n
             return main.get("nominal") * main.get("coupon_rate")
         else:
             return 0
+
+|
 
 **Nominal value**
 
