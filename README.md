@@ -43,11 +43,11 @@ assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv", index_col="age
 
 my_model/model.py
 ```python
-age = ModelVariable(model_point_set=main)
-death_prob = ModelVariable(model_point_set=main)
+age = ModelVariable()
+death_prob = ModelVariable()
 
 @assign(age)
-def age_formula(t):
+def _age(t):
     if t == 0:
         return int(main.get("AGE"))
     elif t % 12 == 0:
@@ -57,7 +57,7 @@ def age_formula(t):
 
 
 @assign(death_prob)
-def death_prob_formula(t):
+def _death_prob(t):
     if age(t) == age(t-1):
         return death_prob(t-1) 
     elif age(t) <= 100:
