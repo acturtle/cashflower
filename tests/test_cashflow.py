@@ -338,7 +338,8 @@ class TestModel(TestCase):
         b.grandchildren = [c]
         c.grandchildren = []
 
-        model = Model(None, [a, b, c], [], None, None)
+        settings = load_settings()
+        model = Model(None, [a, b, c], [], None, settings)
         model.set_queue()
         assert model.queue == [c, b, a]
 

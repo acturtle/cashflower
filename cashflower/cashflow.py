@@ -530,7 +530,18 @@ class Model:
     def set_queue(self):
         """Set an ordrer in which model components should be evaluated."""
         queue = []
-        components = sorted(self.components)
+
+        # User has chosen components, so there is no need to calculate all of them
+        if len(self.settings["OUTPUT_COLUMNS"]) > 0:
+            components = []
+            for component_name in self.settings["OUTPUT_COLUMNS"]:
+                component = self.get_component_by_name(component_name)
+                components = unique_append(components, component)
+                components = unique_extend(components, component.grandchildren)
+            components = sorted(components)
+        else:
+            components = sorted(self.components)
+
         while components:
             component = components[0]
 
