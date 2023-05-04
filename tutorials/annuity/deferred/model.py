@@ -12,7 +12,7 @@ actuarial_present_value = ModelVariable()
 
 
 @assign(survival_rate)
-def survival_rate_formula(t):
+def _survival_rate(t):
     if t == 0:
         return 1
     elif t == 1:
@@ -22,7 +22,7 @@ def survival_rate_formula(t):
 
 
 @assign(expected_payment)
-def expected_payment_formula(t):
+def _expected_payment(t):
     if t <= main.get("deferral"):
         return 0
     else:
@@ -31,5 +31,5 @@ def expected_payment_formula(t):
 
 
 @assign(actuarial_present_value)
-def actuarial_present_value_formula(t):
+def _actuarial_present_value(t):
     return expected_payment(t) + actuarial_present_value(t+1) * 1/(1+INTEREST_RATE)

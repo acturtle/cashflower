@@ -96,7 +96,7 @@ The :code:`model.py` script contains the logic of the model. You can define mode
     death_prob = ModelVariable(model_point_set=main)
 
     @assign(age)
-    def age_formula(t):
+    def _age(t):
         if t == 0:
             return int(main.get("AGE"))
         elif t % 12 == 0:
@@ -106,7 +106,7 @@ The :code:`model.py` script contains the logic of the model. You can define mode
 
 
     @assign(death_prob)
-    def death_prob_formula(t):
+    def _death_prob(t):
         if age(t) == age(t-1):
             return death_prob(t-1)
         elif age(t) <= 100:

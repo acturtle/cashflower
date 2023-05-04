@@ -12,7 +12,7 @@ present_value = ModelVariable()
 
 
 @assign(t_end)
-def t_end_formula():
+def _t_end():
     years = main.get("term") // 12
     months = main.get("term") - years * 12
 
@@ -29,7 +29,7 @@ def t_end_formula():
 
 
 @assign(cal_month)
-def cal_month_formula(t):
+def _cal_month(t):
     if t == 0:
         return runplan.get("valuation_month")
     if cal_month(t-1) == 12:
@@ -39,7 +39,7 @@ def cal_month_formula(t):
 
 
 @assign(cal_year)
-def cal_year_formula(t):
+def _cal_year(t):
     if t == 0:
         return runplan.get("valuation_year")
     if cal_month(t-1) == 12:
@@ -49,7 +49,7 @@ def cal_year_formula(t):
 
 
 @assign(coupon)
-def coupon_formula(t):
+def _coupon(t):
     if t != 0 and t <= t_end() and cal_month(t) == main.get("issue_month"):
         return main.get("nominal") * main.get("coupon_rate")
     else:
@@ -57,7 +57,7 @@ def coupon_formula(t):
 
 
 @assign(nominal_value)
-def nominal_value_formula(t):
+def _nominal_value(t):
     if t == t_end():
         return main.get("nominal")
     else:
@@ -65,6 +65,6 @@ def nominal_value_formula(t):
 
 
 @assign(present_value)
-def present_value_formula(t):
+def _present_value(t):
     i = assumption["INTEREST_RATE"]
     return coupon(t) + nominal_value(t) + present_value(t+1) * (1/(1+i))**(1/12)

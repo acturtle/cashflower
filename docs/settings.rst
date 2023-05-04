@@ -192,15 +192,15 @@ If the model has 3 variables, all of them will be in the output.
     c = ModelVariable()
 
     @assign(a)
-    def a_formula(t):
+    def _a(t):
         return 1*t
 
     @assign(b)
-    def b_formula(t):
+    def _b(t):
         return 2*t
 
     @assign(c)
-    def c_formula(t):
+    def _c(t):
         return 3*t
 
 The result contains all columns.
