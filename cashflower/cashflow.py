@@ -696,7 +696,7 @@ class Model:
 
     def save(self):
         """Only for single core (no multiprocessing)"""
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         if not os.path.exists("output"):
             os.makedirs("output")
