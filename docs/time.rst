@@ -35,7 +35,7 @@ Formulas:
 
 
     @assign(cal_month)
-    def cal_month_formula(t):
+    def _cal_month(t):
         if t == 0:
             return runplan.get("valuation_month")
         if cal_month(t-1) == 12:
@@ -45,7 +45,7 @@ Formulas:
 
 
     @assign(cal_year)
-    def cal_year_formula(t):
+    def _cal_year(t):
         if t == 0:
             return runplan.get("valuation_year")
         if cal_month(t-1) == 12:
@@ -55,7 +55,7 @@ Formulas:
 
 
     @assign(elapsed_months)
-    def elapsed_months_formula():
+    def _elapsed_months():
         issue_year = main.get("issue_year")
         issue_month = main.get("issue_month")
         valuation_year = runplan.get("valuation_year")
@@ -64,7 +64,7 @@ Formulas:
 
 
     @assign(pol_month)
-    def pol_month_formula(t):
+    def _pol_month(t):
         if t == 0:
             mnth = elapsed_months() % 12
             mnth = 12 if mnth == 0 else mnth
@@ -75,7 +75,7 @@ Formulas:
 
 
     @assign(pol_year)
-    def pol_year_formula(t):
+    def _pol_year(t):
         if t == 0:
             return math.floor(elapsed_months() / 12)
         if pol_month(t) == 1:
@@ -163,7 +163,7 @@ The valuation year and month can be read from the runplan.
     cal_year = ModelVariable(mp_dep=False)
 
     @assign(cal_month)
-    def cal_month_formula(t):
+    def _cal_month(t):
         if t == 0:
             return runplan.get("valuation_month")
         if cal_month(t-1) == 12:
@@ -173,7 +173,7 @@ The valuation year and month can be read from the runplan.
 
 
     @assign(cal_year)
-    def cal_year_formula(t):
+    def _cal_year(t):
         if t == 0:
             return runplan.get("valuation_year")
         if cal_month(t-1) == 12:
@@ -196,7 +196,7 @@ Elapsed months is time-independent so can be modelled as a :code:`Constant`.
     elapsed_months = Constant()
 
     @assign(elapsed_months)
-    def elapsed_months_formula():
+    def _elapsed_months():
         issue_year = main.get("issue_year")
         issue_month = main.get("issue_month")
         valuation_year = runplan.get("valuation_year")
@@ -216,7 +216,7 @@ Policy year and month reflect the duration of the given policy.
     pol_year = ModelVariable()
 
     @assign(pol_month)
-    def pol_month_formula(t):
+    def _pol_month(t):
         if t == 0:
             mnth = elapsed_months() % 12
             mnth = 12 if mnth == 0 else mnth
@@ -227,7 +227,7 @@ Policy year and month reflect the duration of the given policy.
 
 
     @assign(pol_year)
-    def pol_year_formula(t):
+    def _pol_year(t):
         if t == 0:
             return math.floor(elapsed_months() / 12)
         if pol_month(t) == 1:
