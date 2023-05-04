@@ -68,7 +68,7 @@ insurance.
 ..  code-block:: python
 
     @assign(survival_rate)
-    def survival_rate_formula(t):
+    def _survival_rate(t):
         if t == 0:
             return 1 - DEATH_PROB
         return survival_rate(t-1) * (1-DEATH_PROB)
@@ -78,7 +78,7 @@ The survival rate is the probability that the policyholder will survive from the
 ..  code-block:: python
 
     @assign(net_single_premium)
-    def net_single_premium_formula(t):
+    def _net_single_premium(t):
         return expected_benefit(t) + net_single_premium(t+1) * 1/(1+INTEREST_RATE)
 
 The net single premium is **the present value** of the expected benefit payments.
@@ -123,14 +123,14 @@ The policy data contains the sum assured which will be paid to the policyholder'
     net_single_premium = ModelVariable()
 
     @assign(survival_rate)
-    def survival_rate_formula(t):
+    def _survival_rate(t):
         if t == 0:
             return 1 - DEATH_PROB
         return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
     @assign(expected_benefit)
-    def expected_benefit_formula(t):
+    def _expected_benefit(t):
         sum_assured = main.get("sum_assured")
         if t == 1200:
             return survival_rate(t-1) * sum_assured
@@ -138,7 +138,7 @@ The policy data contains the sum assured which will be paid to the policyholder'
 
 
     @assign(net_single_premium)
-    def net_single_premium_formula(t):
+    def _net_single_premium(t):
         return expected_benefit(t) + net_single_premium(t+1) * 1/(1+INTEREST_RATE)
 
 
@@ -194,21 +194,21 @@ In that case, the actuary should develop additional variables or adjust the exis
 
 
     @assign(survival_rate)
-    def survival_rate_formula(t):
+    def _survival_rate(t):
         if t == 0:
             return 1 - DEATH_PROB
         return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
     @assign(expected_benefit)
-    def expected_benefit_formula(t):
+    def _expected_benefit(t):
         if t > main.get("remaining_term"):
             return 0
         return survival_rate(t-1) * DEATH_PROB * main.get("sum_assured")
 
 
     @assign(net_single_premium)
-    def net_single_premium_formula(t):
+    def _net_single_premium(t):
         return expected_benefit(t) + net_single_premium(t+1) * 1/(1+INTEREST_RATE)
 
 The person designated by the policyholder will receive the sum assured if the policyholder dies within the term.
@@ -256,21 +256,21 @@ In our case, the term is expressed as the remaining term (starting from the valu
 
 
     @assign(survival_rate)
-    def survival_rate_formula(t):
+    def _survival_rate(t):
         if t == 0:
             return 1 - DEATH_PROB
         return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
     @assign(expected_benefit)
-    def expected_benefit_formula(t):
+    def _expected_benefit(t):
         if t == main.get("remaining_term"):
             return survival_rate(t) * main.get("sum_assured")
         return 0
 
 
     @assign(net_single_premium)
-    def net_single_premium_formula(t):
+    def _net_single_premium(t):
         return expected_benefit(t) + net_single_premium(t+1) * 1/(1+INTEREST_RATE)
 
 
@@ -314,14 +314,14 @@ In our case, the term is expressed as the remaining term (so starting from the v
 
 
     @assign(survival_rate)
-    def survival_rate_formula(t):
+    def _survival_rate(t):
         if t == 0:
             return 1 - DEATH_PROB
         return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
     @assign(expected_benefit)
-    def expected_benefit_formula(t):
+    def _expected_benefit(t):
         sum_assured = main.get("sum_assured")
         remaining_term = main.get("remaining_term")
 
@@ -334,7 +334,7 @@ In our case, the term is expressed as the remaining term (so starting from the v
 
 
     @assign(net_single_premium)
-    def net_single_premium_formula(t):
+    def _net_single_premium(t):
         return expected_benefit(t) + net_single_premium(t+1) * 1/(1+INTEREST_RATE)
 
 
@@ -383,21 +383,21 @@ In our case, the deferral period is expressed starting from the valuation period
 
 
     @assign(survival_rate)
-    def survival_rate_formula(t):
+    def _survival_rate(t):
         if t == 0:
             return 1 - DEATH_PROB
         return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
     @assign(expected_benefit)
-    def expected_benefit_formula(t):
+    def _expected_benefit(t):
         if t < main.get("deferral"):
             return 0
         return survival_rate(t-1) * DEATH_PROB * main.get("sum_assured")
 
 
     @assign(net_single_premium)
-    def net_single_premium_formula(t):
+    def _net_single_premium(t):
         return expected_benefit(t) + net_single_premium(t+1) * 1/(1+INTEREST_RATE)
 
 The policyholder receives the sum assured if they die after the deferral period.

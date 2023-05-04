@@ -44,7 +44,7 @@ Formulas:
 
 
     @assign(t_end)
-    def t_end_formula():
+    def _t_end():
         years = main.get("term") // 12
         months = main.get("term") - years * 12
 
@@ -61,7 +61,7 @@ Formulas:
 
 
     @assign(cal_month)
-    def cal_month_formula(t):
+    def _cal_month(t):
         if t == 0:
             return runplan.get("valuation_month")
         if cal_month(t-1) == 12:
@@ -71,7 +71,7 @@ Formulas:
 
 
     @assign(cal_year)
-    def cal_year_formula(t):
+    def _cal_year(t):
         if t == 0:
             return runplan.get("valuation_year")
         if cal_month(t-1) == 12:
@@ -81,7 +81,7 @@ Formulas:
 
 
     @assign(coupon)
-    def coupon_formula(t):
+    def _coupon(t):
         if t != 0 and t <= t_end() and cal_month(t) == main.get("issue_month"):
             return main.get("nominal") * main.get("coupon_rate")
         else:
@@ -89,7 +89,7 @@ Formulas:
 
 
     @assign(nominal_value)
-    def nominal_value_formula(t):
+    def _nominal_value(t):
         if t == t_end():
             return main.get("nominal")
         else:
@@ -97,7 +97,7 @@ Formulas:
 
 
     @assign(present_value)
-    def present_value_formula(t):
+    def _present_value(t):
         i = assumption["INTEREST_RATE"]
         return coupon(t) + nominal_value(t) + present_value(t+1) * (1/(1+i))**(1/12)
 
@@ -202,7 +202,7 @@ It is modelled as a constant because it's time-independent.
     t_end = Constant()
 
     @assign(t_end)
-    def t_end_formula():
+    def _t_end():
         years = main.get("term") // 12
         months = main.get("term") - years * 12
 
@@ -232,7 +232,7 @@ The valuation year and month are read from the runplan.
     cal_year = ModelVariable(mp_dep=False)
 
     @assign(cal_month)
-    def cal_month_formula(t):
+    def _cal_month(t):
         if t == 0:
             return runplan.get("valuation_month")
         if cal_month(t-1) == 12:
@@ -242,7 +242,7 @@ The valuation year and month are read from the runplan.
 
 
     @assign(cal_year)
-    def cal_year_formula(t):
+    def _cal_year(t):
         if t == 0:
             return runplan.get("valuation_year")
         if cal_month(t-1) == 12:
@@ -262,7 +262,7 @@ Each year, the investor receives a coupon. It is calculated by multiplying the n
     coupon = ModelVariable()
 
     @assign(coupon)
-    def coupon_formula(t):
+    def _coupon(t):
         if t != 0 and t <= t_end() and cal_month(t) == main.get("issue_month"):
             return main.get("nominal") * main.get("coupon_rate")
         else:
@@ -280,7 +280,7 @@ At the end of the term, the investor receives back the nominal.
     nominal_value = ModelVariable()
 
     @assign(nominal_value)
-    def nominal_value_formula(t):
+    def _nominal_value(t):
         if t == t_end():
             return main.get("nominal")
         else:
@@ -299,7 +299,7 @@ Cash flows are discounted with the interest rate read from assumptions to calcul
     present_value = ModelVariable()
 
     @assign(present_value)
-    def present_value_formula(t):
+    def _present_value(t):
         i = assumption["INTEREST_RATE"]
         return coupon(t) + nominal_value(t) + present_value(t+1) * (1/(1+i))**(1/12)
 

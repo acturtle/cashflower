@@ -1,6 +1,6 @@
 import re
 
-
+from collections import deque
 from datetime import datetime
 
 
@@ -151,3 +151,36 @@ def split_to_ranges(n, num_ranges):
         range_tuple = (range_size * i, range_size * (i + 1) + add_items)
         output[i] = range_tuple
     return output
+
+
+def get_cycle(src, rest):
+    """Find a cycle in the components"""
+    q = deque([src])
+    marked = {}
+    node_from = {}
+
+    # Breadth-first search
+    first = True
+    e = q.popleft()
+    while first or e.name != src.name:
+        first = False
+        for ch in e.children:
+            if ch not in marked and ch in rest:
+                marked[ch] = True
+                node_from[ch] = e
+                q.append(ch)
+        e = q.popleft()
+
+    # Recreate list of items
+    cycle = [src]
+    e = node_from[src]
+    while e.name != src.name:
+        cycle.insert(0, e)
+        e = node_from[e]
+    return cycle
+
+
+def cycle_to_str(cycle):
+    cycle_names = [c.name for c in cycle]
+    cycle_str = " --> ".join(cycle_names) + " --> " + cycle[0].name
+    return cycle_str

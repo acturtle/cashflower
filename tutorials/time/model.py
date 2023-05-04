@@ -11,7 +11,7 @@ pol_year = ModelVariable(model_point_set=main)
 
 
 @assign(cal_month)
-def cal_month_formula(t):
+def _cal_month(t):
     if t == 0:
         return runplan.get("valuation_month")
     if cal_month(t-1) == 12:
@@ -21,7 +21,7 @@ def cal_month_formula(t):
 
 
 @assign(cal_year)
-def cal_year_formula(t):
+def _cal_year(t):
     if t == 0:
         return runplan.get("valuation_year")
     if cal_month(t-1) == 12:
@@ -31,7 +31,7 @@ def cal_year_formula(t):
 
 
 @assign(elapsed_months)
-def elapsed_months_formula():
+def _elapsed_months():
     issue_year = main.get("issue_year")
     issue_month = main.get("issue_month")
     valuation_year = runplan.get("valuation_year")
@@ -40,7 +40,7 @@ def elapsed_months_formula():
 
 
 @assign(pol_month)
-def pol_month_formula(t):
+def _pol_month(t):
     if t == 0:
         mnth = elapsed_months() % 12
         mnth = 12 if mnth == 0 else mnth
@@ -51,7 +51,7 @@ def pol_month_formula(t):
 
 
 @assign(pol_year)
-def pol_year_formula(t):
+def _pol_year(t):
     if t == 0:
         return math.floor(elapsed_months() / 12)
     if pol_month(t) == 1:

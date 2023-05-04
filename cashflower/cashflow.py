@@ -9,7 +9,7 @@ import pandas as pd
 import sys
 
 
-from .utils import clean_formula_source, is_recursive, list_called_funcs, print_log, split_to_ranges, unique_extend
+from .utils import *
 
 
 def assign(var):
@@ -533,6 +533,12 @@ class Model:
         components = sorted(self.components)
         while components:
             component = components[0]
+
+            if len(component.grandchildren) != 0:
+                cycle = get_cycle(component, rest=components)
+                msg = f"Cycle of model components detected. Please review:\n {cycle_to_str(cycle)}"
+                raise CashflowModelError(msg)
+
             queue.append(component)
             self.remove_from_grandchildren(component)
             components.remove(component)
@@ -690,7 +696,7 @@ class Model:
 
     def save(self):
         """Only for single core (no multiprocessing)"""
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         if not os.path.exists("output"):
             os.makedirs("output")

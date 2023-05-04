@@ -24,12 +24,12 @@ Defining model variables and constants:
 
 
     @assign(premium)
-    def premium_formula():
+    def _premium():
         return 100
 
 
     @assign(pv_premium)
-    def pv_premium_formula(t):
+    def _pv_premium(t):
         return pv_premium(t+1) * (1/1.05) + premium()
 
 |
@@ -48,7 +48,7 @@ The model variable depends on time (:code:`t`) and returns numeric values.
     pv_premium = ModelVariable()
 
     @assign(pv_premium)
-    def pv_premium_formula(t):
+    def _pv_premium(t):
         return pv_premium(t+1) * (1/1.05) + 100
 
 There are two steps to define a model variable:
@@ -76,11 +76,12 @@ For model variables, :code:`@assign()` decorates the function with the parameter
 .. IMPORTANT::
     The formula of the model variable must have only one parameter :code:`t`.
 
-The function contains the logic for the calculation.
+The function contains the logic for the calculation. The name of the function is not relevant.
+It's a good practice to name the function the same as the model component with the underscore as prefix (:code:`_myvariable(t)`).
 
 ..  code-block:: python
 
-    def pv_premium_formula(t):
+    def _pv_premium(t):
         return pv_premium(t+1) * (1/1.05) + 100
 
 Model variables return numeric values.
@@ -102,7 +103,7 @@ Constants can be only part of an individual output because strings can't be aggr
     premium = Constant()
 
     @assign(premium)
-    def premium_formula():
+    def _premium():
         return main.get("PREMIUM")
 
 There are two steps to define a constant:
@@ -138,11 +139,12 @@ For constants, :code:`@assign()` decorates the function without any parameters.
 .. IMPORTANT::
     The formula of the constant can not have any parameters.
 
-The function contains the logic for the constant variable.
+The function contains the logic for the constant variable. The name of the function is not relevant.
+It's a good practice to name the function the same as the model component with the underscore as prefix (:code:`_myconstant()`).
 
 ..  code-block:: python
 
-    def premium_formula():
+    def _premium():
         return main.get("PREMIUM")
 
 Constants may return numeric or character values.
@@ -206,7 +208,7 @@ The :code:`get()` method will retrieve value from the currently calculated model
 
 
     @assign(fund_value)
-    def fund_formula(t):
+    def _fund_value(t):
         if t == 0:
             return fund.get("fund_value")
         return fund_value(t-1) * 1.02
@@ -285,13 +287,13 @@ Variables:
 
 
     @assign(pv_premiums)
-    def pv_premiums_formula(t):
+    def _pv_premiums(t):
         v = 1/(1+0.001)
         return premium(t) + pv_premiums(t+1) * v
 
 
     @assign(calendar_month)
-    def calendar_month_formula(t):
+    def _calendar_month(t):
         valuation_month = 6
         if t == 0:
             return valuation_month
@@ -327,12 +329,12 @@ In the above image we see that:
 
 
     @assign(premium)
-    def premiums_formula():
+    def _premium():
         return main.get("PREMIUM")
 
 
     @assign(product)
-    def product_formula():
+    def _product():
         return "ANNUITY"
 
 
@@ -352,23 +354,23 @@ Model components can be called in each other formulas.
 
 
     @assign(a)
-    def a_formula():
+    def _a():
         return 100
 
 
     @assign(b)
-    def b_formula(t):
+    def _b(t):
         return 3*t + a()
 
 
     @assign(c)
-    def c_formula(t):
+    def _c(t):
         return b(t) + 1
 
 To use another variable, call an instance of the :code:`ModelVariable` or :code:`Constant` class.
 
 .. IMPORTANT::
-    To use results of :code:`a`, call :code:`a()` and **not** :code:`a_formula()`.
+    To use results of :code:`a`, call :code:`a()` and **not** :code:`_a()`.
 
 If you are calling a model variable, pass an argument :code:`t`.
 
@@ -382,7 +384,7 @@ A variable can also call **itself** for other :code:`t`. This functionality can 
     d = ModelVariable()
 
     @assign(d)
-    def d_formula(t):
+    def _d(t):
         if t == 1200:
             return 100
         return d(t+1) * (1/1.05)

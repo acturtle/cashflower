@@ -133,7 +133,7 @@ The model variable will read the value of the record which is currently calculat
 
 
     @assign(mortality_rate)
-    def mortality_rate_formula(t):
+    def _mortality_rate(t):
         age = main.get("age")
         sex = main.get("sex")
         return assumption["mortality"].loc[age, sex]["rate"]
@@ -158,7 +158,7 @@ This attribute can be used to calculate the total values of all records.
     :caption: model.py
 
     @assign(expected_benefit)
-    def expected_benefit_formula(t):
+    def _expected_benefit(t):
         result = 0
         for r in range(coverage.model_point_size):
             result += expected_coverage_benefit(t, r)
@@ -260,11 +260,11 @@ For example:
     shocked_mortality_rate = ModelVariable(model_point_set=main)
 
     @assign(mortality_rate)
-    def mortality_rate_formula(t):
+    def _mortality_rate(t):
         ...
 
     @assign(shocked_mortality_rate)
-    def shocked_mortality_rate_formula(t):
+    def _shocked_mortality_rate(t):
         return mortality_rate(t) * (1+runplan.get("shock"))
 
 To run model with the chosen version, source the :code:`run.py` and add the version number.

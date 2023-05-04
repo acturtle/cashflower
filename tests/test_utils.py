@@ -99,3 +99,35 @@ class TestSplitToRanges(TestCase):
     def test_split_to_ranges(self):
         assert split_to_ranges(20, 3) == [(0, 6), (6, 12), (12, 20)]
         assert split_to_ranges(2, 3) == [(0, 2)]
+
+
+class TestGetCycle(TestCase):
+    def test_get_cycle(self):
+        class Object:
+            def __init__(self, name):
+                self.name = name
+                self.children = []
+
+        a = Object(name="a")
+        b = Object(name="b")
+
+        a.children = [b]
+        b.children = [a]
+
+        result = get_cycle(a, [a, b])
+        assert result == [b, a]
+
+
+class TestCycleToStr(TestCase):
+    def test_cycle_to_str(self):
+        class Object:
+            def __init__(self, name):
+                self.name = name
+
+        a = Object(name="a")
+        b = Object(name="b")
+
+        cycle = [b, a]
+        result = cycle_to_str(cycle)
+        assert result == "b --> a --> b"
+

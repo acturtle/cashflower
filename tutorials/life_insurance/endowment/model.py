@@ -12,7 +12,7 @@ net_single_premium = ModelVariable()
 
 
 @assign(survival_rate)
-def survival_rate_formula(t):
+def _survival_rate(t):
     if t == 0:
         return 1 - DEATH_PROB
     else:
@@ -20,7 +20,7 @@ def survival_rate_formula(t):
 
 
 @assign(expected_benefit)
-def expected_benefit_formula(t):
+def _expected_benefit(t):
     sum_assured = main.get("sum_assured")
     remaining_term = main.get("remaining_term")
 
@@ -33,5 +33,5 @@ def expected_benefit_formula(t):
 
 
 @assign(net_single_premium)
-def net_single_premium_formula(t):
+def _net_single_premium(t):
     return expected_benefit(t) + net_single_premium(t+1) * 1/(1+INTEREST_RATE)
