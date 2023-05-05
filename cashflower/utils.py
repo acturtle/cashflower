@@ -184,3 +184,10 @@ def cycle_to_str(cycle):
     cycle_names = [c.name for c in cycle]
     cycle_str = " --> ".join(cycle_names) + " --> " + cycle[0].name
     return cycle_str
+
+
+def get_object_by_name(objects, name):
+    for _object in objects:
+        if _object.name == name:
+            return _object
+    return None

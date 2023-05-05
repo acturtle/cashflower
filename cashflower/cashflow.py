@@ -490,18 +490,6 @@ class Model:
         self.output = None
         self.cpu_count = cpu_count
 
-    def get_component_by_name(self, name):
-        """Get a model component object by its name."""
-        for component in self.components:
-            if component.name == name:
-                return component
-
-    def get_model_point_set_by_name(self, name):
-        """Get a model point set object by its name."""
-        for model_point_set in self.model_point_sets:
-            if model_point_set.name == name:
-                return model_point_set
-
     def set_children(self):
         """Set children of the model components. """
         component_names = [component.name for component in self.components]
@@ -509,7 +497,7 @@ class Model:
             formula_source = inspect.getsource(component.formula)
             cleaned_formula_source = clean_formula_source(formula_source)
             child_names = list_called_funcs(cleaned_formula_source, component_names)
-            component.children = [self.get_component_by_name(n) for n in child_names if n != component.name]
+            component.children = [get_object_by_name(self.components, n) for n in child_names if n != component.name]
 
     def set_grandchildren(self):
         """Set grandchildren of model components. """
@@ -535,7 +523,7 @@ class Model:
         if len(self.settings["OUTPUT_COLUMNS"]) > 0:
             components = []
             for component_name in self.settings["OUTPUT_COLUMNS"]:
-                component = self.get_component_by_name(component_name)
+                component = get_object_by_name(self.components, component_name)
                 components = unique_append(components, component)
                 components = unique_extend(components, component.grandchildren)
             components = sorted(components)
@@ -638,7 +626,8 @@ class Model:
         model_output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
         t_output_max = min(self.settings["T_OUTPUT_MAX"], self.settings["T_CALCULATION_MAX"])
-        main = self.get_model_point_set_by_name("main")
+        main = get_object_by_name(self.model_point_sets, "main")
+
         one_core = range_start == 0 or range_start is None
 
         # Calculate formulas
@@ -676,7 +665,7 @@ class Model:
         self.initialize()
 
         # Inform on the number of model points
-        main = self.get_model_point_set_by_name("main")
+        main = get_object_by_name(self.model_point_sets, "main")
         if one_core:
             print_log(f"Total number of model points: {main.model_point_set_data.shape[0]}")
         if part == 0:

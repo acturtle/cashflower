@@ -9,7 +9,7 @@ import pandas as pd
 import shutil
 
 from .cashflow import CashflowModelError, ModelVariable, ModelPointSet, Model, Constant, Runplan
-from .utils import replace_in_file, print_log
+from .utils import get_object_by_name, print_log, replace_in_file
 
 
 def create_model(model):
@@ -143,15 +143,54 @@ def prepare_model_input(model_name, settings, argv):
     return runplan, model_point_sets, variables, constants
 
 
+def get_dict_col_names(variables, constants, settings):
+    """Output depends on the settings:
+    - OUTPUT_COLUMNS    --> either all or a subset of model components
+    - AGGREGATE = True  --> only model variables because constants can be strings so they don't add up
+    - AGGREGATE = False --> both model variables and constants in the output"""
+    dict_col_names = {}
+
+    # A susbset of output columns has been chosen
+    if len(settings["OUTPUT_COLUMNS"]) > 0:
+        variables = [variable for variable in variables if variable.name in settings["OUTPUT_COLUMNS"]]
+        constants = [constant for constant in constants if constant.name in settings["OUTPUT_COLUMNS"]]
+
+    if settings["AGGREGATE"]:
+        for variable in variables:
+            if variable.model_point_set.name not in dict_col_names:
+                dict_col_names[variable.model_point_set.name] = []
+            dict_col_names[variable.model_point_set.name].append(variable.name)
+
+    if not settings["AGGREGATE"]:
+        for variable in variables:
+            if dict_col_names.get(variable.model_point_set.name) is None:
+                dict_col_names[variable.model_point_set.name] = {}
+            if "ModelVariable" not in dict_col_names[variable.model_point_set.name]:
+                dict_col_names[variable.model_point_set.name]["ModelVariable"] = []
+            dict_col_names[variable.model_point_set.name]["ModelVariable"].append(variable.name)
+
+        for constant in constants:
+            if dict_col_names.get(constant.model_point_set.name) is None:
+                dict_col_names[constant.model_point_set.name] = {}
+            if "Constant" not in dict_col_names[constant.model_point_set.name]:
+                dict_col_names[constant.model_point_set.name]["Constant"] = []
+            dict_col_names[constant.model_point_set.name]["Constant"].append(constant.name)
+
+    return dict_col_names
+
+
 def start_single_core(model_name, settings, argv):
     """Create, run and save results of a cash flow model."""
-    settings = load_settings(settings)
     runplan, model_point_sets, variables, constants = prepare_model_input(model_name, settings, argv)
+
+    dict_col_names = get_dict_col_names(variables, constants, settings)
+    print("dict_col_names:")
+    print(dict_col_names)
 
     # Run model on single core and save results
     model = Model(model_name, variables, constants, model_point_sets, settings)
     output = model.run()
-    model.save()
+    # model.save()
     return output
 
 
@@ -182,23 +221,37 @@ def merge_and_save_multiprocessing(part_outputs, settings):
         else:
             model_output[model_point_set_name] = pd.concat(part_output[model_point_set_name] for part_output in part_outputs)
 
-    if not os.path.exists("output"):
-        os.makedirs("output")
-
-    # Save output to csv
-    if settings["SAVE_OUTPUT"]:
-        print_log("Saving output:")
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        for model_point_set_name in model_point_set_names:
-            filepath = f"output/{timestamp}_{model_point_set_name}.csv"
-
-            column_names = [col for col in model_output[model_point_set_name].columns.values.tolist() if col not in ["t", "r"]]
-            if len(column_names) > 0:
-                print(f"{' ' * 10} {filepath}")
-                model_output[model_point_set_name].to_csv(filepath, index=False)
+    # if not os.path.exists("output"):
+    #     os.makedirs("output")
+    #
+    # # Save output to csv
+    # if settings["SAVE_OUTPUT"]:
+    #     print_log("Saving output:")
+    #     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    #     for model_point_set_name in model_point_set_names:
+    #         filepath = f"output/{timestamp}_{model_point_set_name}.csv"
+    #
+    #         column_names = [col for col in model_output[model_point_set_name].columns.values.tolist() if col not in ["t", "r"]]
+    #         if len(column_names) > 0:
+    #             print(f"{' ' * 10} {filepath}")
+    #             model_output[model_point_set_name].to_csv(filepath, index=False)
 
     print_log("Finished")
     return model_output
+
+
+def dict_to_csv(_dict):
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    if not os.path.exists("output"):
+        os.makedirs("output")
+
+    for key in _dict:
+        filepath = f"output/{timestamp}_{key}.csv"
+        data = _dict.get(key)
+        data.to_csv(filepath, index=False)
+
+    return timestamp
 
 
 def start(model_name, settings, argv):
@@ -213,4 +266,9 @@ def start(model_name, settings, argv):
     else:
         output = start_single_core(model_name, settings, argv)
 
+    if settings["SAVE_OUTPUT"]:
+        print_log("Saving output:")
+        dict_to_csv(output)
+
+    print_log("Finished")
     return output
