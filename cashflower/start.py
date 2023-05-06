@@ -55,8 +55,16 @@ def load_settings(settings=None):
     if settings is None:
         return initial_settings
 
+    # Update with the user settings
     for key, value in settings.items():
         initial_settings[key] = value
+
+    # Maximal output t can't exceed maximal calculation t
+    if initial_settings["T_CALCULATION_MAX"] < initial_settings["T_OUTPUT_MAX"]:
+        initial_settings["T_OUTPUT_MAX"] = initial_settings["T_CALCULATION_MAX"]
+        msg = "The T_CALCULATION_MAX setting is greater than the T_OUTPUT_MAX setting. " \
+              "T_OUTPUT_MAX has been set to T_CALCULATION_MAX."
+        print_log(msg)
 
     return initial_settings
 
@@ -143,49 +151,9 @@ def prepare_model_input(model_name, settings, argv):
     return runplan, model_point_sets, variables, constants
 
 
-def get_dict_col_names(variables, constants, settings):
-    """Output depends on the settings:
-    - OUTPUT_COLUMNS    --> either all or a subset of model components
-    - AGGREGATE = True  --> only model variables because constants can be strings so they don't add up
-    - AGGREGATE = False --> both model variables and constants in the output"""
-    dict_col_names = {}
-
-    # A susbset of output columns has been chosen
-    if len(settings["OUTPUT_COLUMNS"]) > 0:
-        variables = [variable for variable in variables if variable.name in settings["OUTPUT_COLUMNS"]]
-        constants = [constant for constant in constants if constant.name in settings["OUTPUT_COLUMNS"]]
-
-    if settings["AGGREGATE"]:
-        for variable in variables:
-            if variable.model_point_set.name not in dict_col_names:
-                dict_col_names[variable.model_point_set.name] = []
-            dict_col_names[variable.model_point_set.name].append(variable.name)
-
-    if not settings["AGGREGATE"]:
-        for variable in variables:
-            if dict_col_names.get(variable.model_point_set.name) is None:
-                dict_col_names[variable.model_point_set.name] = {}
-            if "ModelVariable" not in dict_col_names[variable.model_point_set.name]:
-                dict_col_names[variable.model_point_set.name]["ModelVariable"] = []
-            dict_col_names[variable.model_point_set.name]["ModelVariable"].append(variable.name)
-
-        for constant in constants:
-            if dict_col_names.get(constant.model_point_set.name) is None:
-                dict_col_names[constant.model_point_set.name] = {}
-            if "Constant" not in dict_col_names[constant.model_point_set.name]:
-                dict_col_names[constant.model_point_set.name]["Constant"] = []
-            dict_col_names[constant.model_point_set.name]["Constant"].append(constant.name)
-
-    return dict_col_names
-
-
 def start_single_core(model_name, settings, argv):
     """Create, run and save results of a cash flow model."""
     runplan, model_point_sets, variables, constants = prepare_model_input(model_name, settings, argv)
-
-    dict_col_names = get_dict_col_names(variables, constants, settings)
-    print("dict_col_names:")
-    print(dict_col_names)
 
     # Run model on single core and save results
     model = Model(model_name, variables, constants, model_point_sets, settings)

@@ -45,6 +45,53 @@ def updt(total, progress):
     sys.stdout.flush()
 
 
+def get_columns(variables, constants, settings):
+    """Output depends on the settings:
+    - OUTPUT_COLUMNS    --> either all or a subset of model components
+    - AGGREGATE = True  --> only model variables because constants can be strings so they don't add up
+    - AGGREGATE = False --> both model variables and constants in the output"""
+    dict_col_names = {}
+
+    # A susbset of output columns has been chosen
+    if len(settings["OUTPUT_COLUMNS"]) > 0:
+        variables = [variable for variable in variables if variable.name in settings["OUTPUT_COLUMNS"]]
+        constants = [constant for constant in constants if constant.name in settings["OUTPUT_COLUMNS"]]
+
+    for variable in variables:
+        if dict_col_names.get(variable.model_point_set.name) is None:
+            dict_col_names[variable.model_point_set.name] = {}
+        if "ModelVariable" not in dict_col_names[variable.model_point_set.name]:
+            dict_col_names[variable.model_point_set.name]["ModelVariable"] = []
+        dict_col_names[variable.model_point_set.name]["ModelVariable"].append(variable.name)
+
+    if not settings["AGGREGATE"]:
+        for constant in constants:
+            if dict_col_names.get(constant.model_point_set.name) is None:
+                dict_col_names[constant.model_point_set.name] = {}
+            if "Constant" not in dict_col_names[constant.model_point_set.name]:
+                dict_col_names[constant.model_point_set.name]["Constant"] = []
+            dict_col_names[constant.model_point_set.name]["Constant"].append(constant.name)
+
+    return dict_col_names
+
+
+def columns_to_matrices(columns, settings, records=None):
+    matrices = copy.deepcopy(columns)
+
+    # key1 = model_point_set.name; key2 = ModelVariable/Constant
+    for key1 in columns.keys():
+        for key2 in columns[key1]:
+            if key2 == "ModelVariable":
+                matrices[key1][key2] = np.zeros((settings["T_OUTPUT_MAX"]+1,
+                                                 len(columns[key1][key2])), dtype=np.float64)
+            elif key2 == "Constant":
+                matrices[key1][key2] = np.zeros((settings["T_OUTPUT_MAX"]+1,
+                                                 len(columns[key1][key2])), dtype=np.str_)
+
+    #TODO Individual case
+    return matrices
+
+
 class CashflowModelError(Exception):
     pass
 
@@ -577,13 +624,22 @@ class Model:
         self.set_grandchildren()
         self.set_queue()
 
-    def calculate_single_model_point(self, row, pb_max, main, one_core=None):
+    def calculate_single_model_point(self, row, pb_max, main, columns, one_core=None):
         """Calculate results for a model point currently indicated in the model point set."""
         model_point_id = main.model_point_set_data.index[row]
         for model_point_set in self.model_point_sets:
             model_point_set.id = model_point_id
 
-        model_point_output = copy.deepcopy(self.empty_output)
+        # model_point_output = copy.deepcopy(self.empty_output)
+        matrices = columns_to_matrices(columns, self.settings)
+
+        # TODO Make a function
+        lst = []
+        for key1 in columns.keys():
+            for key2 in columns[key1]:
+                lst.append(columns[key1][key2])
+        column_components = [item for sublist in lst for item in sublist]
+
         aggregate = self.settings["AGGREGATE"]
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
         t_output_max = min(self.settings["T_OUTPUT_MAX"], t_calculation_max)
@@ -595,45 +651,57 @@ class Model:
                 c.calculate()
             except:
                 raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
-            else:
-                # User can choose output columns
-                if c.in_output(output_columns):
-                    # Variables are always in the output (individual and aggregate)
-                    if isinstance(c, ModelVariable):
-                        if aggregate:
-                            model_point_output[c.model_point_set.name][c.name] = sum(c.result[:, :t_output_max + 1])
-                        else:
-                            model_point_output[c.model_point_set.name][c.name] = c.result[:, :t_output_max + 1].flatten()
-                    # Constants are added only to individual output
-                    if isinstance(c, Constant) and not aggregate:
-                        model_point_output[c.model_point_set.name][c.name] = np.repeat(c.result, t_output_max + 1)
+
+            if c.name in column_components:
+                if isinstance(c, ModelVariable):
+                    index = columns[c.model_point_set.name]["ModelVariable"].index(c.name)
+                    matrices[c.model_point_set.name]["ModelVariable"][:, index] = sum(c.result[:, :t_output_max+1])
+                if isinstance(c, Constant):
+                    index = columns[c.model_point_set.name]["Constant"].index(c.name)
+                    matrices[c.model_point_set.name]["Constant"][:, index] = sum(c.result[:, :t_output_max+1])
+
+                # # User can choose output columns
+                # if c.in_output(output_columns):
+                #     # Variables are always in the output (individual and aggregate)
+                #     if isinstance(c, ModelVariable):
+                #         if aggregate:
+                #             model_point_output[c.model_point_set.name][c.name] = sum(c.result[:, :t_output_max + 1])
+                #         else:
+                #             model_point_output[c.model_point_set.name][c.name] = c.result[:, :t_output_max + 1].flatten()
+                #     # Constants are added only to individual output
+                #     if isinstance(c, Constant) and not aggregate:
+                #         model_point_output[c.model_point_set.name][c.name] = np.repeat(c.result, t_output_max + 1)
             c.runtime += time.time() - start
 
+
         # Add time and record number to the individual output
-        if not aggregate:
-            for model_point_set in self.model_point_sets:
-                model_point_output[model_point_set.name]["t"] = np.tile(np.arange(t_output_max + 1), model_point_set.model_point_size)
-                model_point_output[model_point_set.name]["r"] = np.repeat(np.arange(1, model_point_set.model_point_size + 1), t_output_max + 1)
+        # if not aggregate:
+        #     for model_point_set in self.model_point_sets:
+        #         model_point_output[model_point_set.name]["t"] = np.tile(np.arange(t_output_max + 1), model_point_set.model_point_size)
+        #         model_point_output[model_point_set.name]["r"] = np.repeat(np.arange(1, model_point_set.model_point_size + 1), t_output_max + 1)
 
         if one_core:
             updt(pb_max, row + 1)
 
-        return model_point_output
+        return matrices
 
     def calculate(self, range_start=None, range_end=None):
         """Calculate results for all model points."""
         # Configuration
         model_output = copy.deepcopy(self.empty_output)
         aggregate = self.settings["AGGREGATE"]
-        t_output_max = min(self.settings["T_OUTPUT_MAX"], self.settings["T_CALCULATION_MAX"])
+        t_output_max = self.settings["T_OUTPUT_MAX"]
         main = get_object_by_name(self.model_point_sets, "main")
 
         one_core = range_start == 0 or range_start is None
 
         # Calculate formulas
+
+        columns = get_columns(self.variables, self.constants, self.settings)
+
         n_pols = len(main)
         pb_max = n_pols if range_end is None else range_end
-        calculate = functools.partial(self.calculate_single_model_point, pb_max=pb_max, main=main, one_core=one_core)
+        calculate = functools.partial(self.calculate_single_model_point, pb_max=pb_max, main=main, columns=columns, one_core=one_core)
         if range_start is None:
             model_point_outputs = [*map(calculate, range(n_pols))]
         else:
@@ -643,13 +711,25 @@ class Model:
         if one_core:
             print_log("Preparing results")
 
-        for model_point_set in self.model_point_sets:
-            if aggregate:
-                model_output[model_point_set.name] = sum(model_point_output[model_point_set.name] for model_point_output in model_point_outputs)
-                if not self.settings["MULTIPROCESSING"]:
-                    model_output[model_point_set.name]["t"] = np.arange(t_output_max + 1)
-            else:
-                model_output[model_point_set.name] = pd.concat(model_point_output[model_point_set.name] for model_point_output in model_point_outputs)
+        matrices = {}
+        for key in columns.keys():
+            matrices[key] = sum(model_point_output[key]["ModelVariable"] for model_point_output in model_point_outputs)
+
+        model_output = {}
+        for key in columns.keys():
+            model_output[key] = pd.DataFrame(matrices[key], columns=columns[key]["ModelVariable"])
+
+
+        # TODO add invidiaul case
+
+
+        # for model_point_set in self.model_point_sets:
+        #     if aggregate:
+        #         model_output[model_point_set.name] = sum(model_point_output[model_point_set.name] for model_point_output in model_point_outputs)
+        #         if not self.settings["MULTIPROCESSING"]:
+        #             model_output[model_point_set.name]["t"] = np.arange(t_output_max + 1)
+        #     else:
+        #         model_output[model_point_set.name] = pd.concat(model_point_output[model_point_set.name] for model_point_output in model_point_outputs)
 
         self.output = model_output
         return model_output
