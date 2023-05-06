@@ -386,7 +386,7 @@ class TestModel(TestCase):
 
         model = Model(None, [premium], [], [main], settings)
         model.initialize()
-        model_point_output = model.calculate_single_model_point(0, 1, main)
+        model_point_output = model.calculate_model_point(0, 1, main, )
         test_output = pd.DataFrame({
             "premium": [1.0] * (settings.get("T_OUTPUT_MAX") + 1)
         })

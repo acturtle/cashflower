@@ -152,60 +152,40 @@ def prepare_model_input(model_name, settings, argv):
 
 
 def start_single_core(model_name, settings, argv):
-    """Create, run and save results of a cash flow model."""
+    """Create and run a cash flow model."""
     runplan, model_point_sets, variables, constants = prepare_model_input(model_name, settings, argv)
 
-    # Run model on single core and save results
+    # Run model on single core
     model = Model(model_name, variables, constants, model_point_sets, settings)
     output = model.run()
-    # model.save()
     return output
 
 
-def execute_multiprocessing(part, model_name, settings, cpu_count, argv):
+def start_multiprocessing(part, cpu_count, model_name, settings, argv):
     """Run subset of the model points using multiprocessing."""
     runplan, model_point_sets, variables, constants = prepare_model_input(model_name, settings, argv)
 
     # Run model on multiple cores
     model = Model(model_name, variables, constants, model_point_sets, settings, cpu_count)
-    output = model.run(part)
-    return output
+    part_output = model.run(part)
+    return part_output
 
 
-def merge_and_save_multiprocessing(part_outputs, settings):
+def merge_multiprocessing(part_outputs, settings):
     """Merge outputs from multiprocessing and save to files."""
-    t_output_max = min(settings["T_OUTPUT_MAX"], settings["T_CALCULATION_MAX"])
-
     # Nones are returned, when number of policies < number of cpus
     part_outputs = [part_output for part_output in part_outputs if part_output is not None]
 
     # Merge outputs into one
     model_point_set_names = part_outputs[0].keys()
-    model_output = {}
+    output = {}
     for model_point_set_name in model_point_set_names:
         if settings["AGGREGATE"]:
-            model_output[model_point_set_name] = sum(part_output[model_point_set_name] for part_output in part_outputs)
-            model_output[model_point_set_name]["t"] = np.arange(t_output_max + 1)
+            output[model_point_set_name] = sum(part_output[model_point_set_name] for part_output in part_outputs)
+            output[model_point_set_name]["t"] = np.arange(settings["T_OUTPUT_MAX"] + 1)
         else:
-            model_output[model_point_set_name] = pd.concat(part_output[model_point_set_name] for part_output in part_outputs)
-
-    # if not os.path.exists("output"):
-    #     os.makedirs("output")
-    #
-    # # Save output to csv
-    # if settings["SAVE_OUTPUT"]:
-    #     print_log("Saving output:")
-    #     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    #     for model_point_set_name in model_point_set_names:
-    #         filepath = f"output/{timestamp}_{model_point_set_name}.csv"
-    #
-    #         column_names = [col for col in model_output[model_point_set_name].columns.values.tolist() if col not in ["t", "r"]]
-    #         if len(column_names) > 0:
-    #             print(f"{' ' * 10} {filepath}")
-    #             model_output[model_point_set_name].to_csv(filepath, index=False)
-
-    print_log("Finished")
-    return model_output
+            output[model_point_set_name] = pd.concat(part_output[model_point_set_name] for part_output in part_outputs)
+    return output
 
 
 def dict_to_csv(_dict):
@@ -218,6 +198,7 @@ def dict_to_csv(_dict):
         filepath = f"output/{timestamp}_{key}.csv"
         data = _dict.get(key)
         data.to_csv(filepath, index=False)
+        print(f"{' ' * 10} {filepath}")
 
     return timestamp
 
@@ -227,10 +208,11 @@ def start(model_name, settings, argv):
 
     if settings.get("MULTIPROCESSING"):
         cpu_count = multiprocessing.cpu_count()
-        p = functools.partial(execute_multiprocessing, model_name=model_name, settings=settings, cpu_count=cpu_count, argv=argv)
+        p = functools.partial(start_multiprocessing, cpu_count=cpu_count, model_name=model_name, settings=settings,
+                              argv=argv)
         with multiprocessing.Pool(cpu_count) as pool:
             part_outputs = pool.map(p, range(cpu_count))
-        output = merge_and_save_multiprocessing(part_outputs, settings)
+        output = merge_multiprocessing(part_outputs, settings)
     else:
         output = start_single_core(model_name, settings, argv)
 

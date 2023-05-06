@@ -45,51 +45,64 @@ def updt(total, progress):
     sys.stdout.flush()
 
 
-def get_columns(variables, constants, settings):
-    """Output depends on the settings:
-    - OUTPUT_COLUMNS    --> either all or a subset of model components
-    - AGGREGATE = True  --> only model variables because constants can be strings so they don't add up
-    - AGGREGATE = False --> both model variables and constants in the output"""
-    dict_col_names = {}
+def get_col_dict(variables, constants, settings):
+    """
+    | policy | ModelVariable = ["a", "b"]
+    |        | Constant      = ["x"]
+    | fund   | ModelVariable = ["c"]
+    |        | Constant      = ["y", "z"]
+    """
+    col_dict = {}
 
-    # A susbset of output columns has been chosen
+    # A subset of output columns has been chosen
     if len(settings["OUTPUT_COLUMNS"]) > 0:
         variables = [variable for variable in variables if variable.name in settings["OUTPUT_COLUMNS"]]
         constants = [constant for constant in constants if constant.name in settings["OUTPUT_COLUMNS"]]
 
     for variable in variables:
-        if dict_col_names.get(variable.model_point_set.name) is None:
-            dict_col_names[variable.model_point_set.name] = {}
-        if "ModelVariable" not in dict_col_names[variable.model_point_set.name]:
-            dict_col_names[variable.model_point_set.name]["ModelVariable"] = []
-        dict_col_names[variable.model_point_set.name]["ModelVariable"].append(variable.name)
+        if col_dict.get(variable.model_point_set.name) is None:
+            col_dict[variable.model_point_set.name] = {}
+        if "ModelVariable" not in col_dict[variable.model_point_set.name]:
+            col_dict[variable.model_point_set.name]["ModelVariable"] = []
+        col_dict[variable.model_point_set.name]["ModelVariable"].append(variable.name)
 
+    # Aggregate output does not contain Constants (they don't add up)
     if not settings["AGGREGATE"]:
         for constant in constants:
-            if dict_col_names.get(constant.model_point_set.name) is None:
-                dict_col_names[constant.model_point_set.name] = {}
-            if "Constant" not in dict_col_names[constant.model_point_set.name]:
-                dict_col_names[constant.model_point_set.name]["Constant"] = []
-            dict_col_names[constant.model_point_set.name]["Constant"].append(constant.name)
+            if col_dict.get(constant.model_point_set.name) is None:
+                col_dict[constant.model_point_set.name] = {}
+            if "Constant" not in col_dict[constant.model_point_set.name]:
+                col_dict[constant.model_point_set.name]["Constant"] = []
+            col_dict[constant.model_point_set.name]["Constant"].append(constant.name)
 
-    return dict_col_names
+    return col_dict
 
 
-def columns_to_matrices(columns, settings, records=None):
-    matrices = copy.deepcopy(columns)
+def col_dict_to_model_point_output(col_dict, settings, records=None):
+    """
+    | policy | ModelVariable = matrix(n1 x m1)
+    |        | Constant      = matrix(n2 x m2)
+    | fund   | ModelVariable = matrix(n3 x m3)
+    |        | Constant      = matrix(n4 x m4)
+    m_x = num_components
+    n_x = t_output_max (* num_records if individual output)
+    """
+    model_point_output = copy.deepcopy(col_dict)
 
     # key1 = model_point_set.name; key2 = ModelVariable/Constant
-    for key1 in columns.keys():
-        for key2 in columns[key1]:
-            if key2 == "ModelVariable":
-                matrices[key1][key2] = np.zeros((settings["T_OUTPUT_MAX"]+1,
-                                                 len(columns[key1][key2])), dtype=np.float64)
-            elif key2 == "Constant":
-                matrices[key1][key2] = np.zeros((settings["T_OUTPUT_MAX"]+1,
-                                                 len(columns[key1][key2])), dtype=np.str_)
+    for key1 in col_dict.keys():
+        for key2 in col_dict[key1]:
+            m = len(col_dict[key1][key2])
 
-    #TODO Individual case
-    return matrices
+            num_records = 1 if settings["AGGREGATE"] else records[key1]
+            n = (settings["T_OUTPUT_MAX"]+1) * num_records
+
+            if key2 == "ModelVariable":
+                model_point_output[key1][key2] = np.zeros((n, m), dtype=np.float64)
+            elif key2 == "Constant":
+                model_point_output[key1][key2] = np.zeros((n, m), dtype=np.str_)
+
+    return model_point_output
 
 
 class CashflowModelError(Exception):
@@ -591,53 +604,53 @@ class Model:
             components = sorted(components)
         self.queue = queue
 
-    def set_empty_output(self):
-        """Create empty output to be populated with results. """
-        empty_output = dict()
-        aggregate = self.settings["AGGREGATE"]
-        output_columns = self.settings["OUTPUT_COLUMNS"]
-
-        # Each model_point_set has a separate output file
-        for modelpointset in self.model_point_sets:
-            empty_output[modelpointset.name] = pd.DataFrame()
-            empty_output[modelpointset.name]["t"] = None
-            # Individual output contains record numbers
-            if not aggregate:
-                empty_output[modelpointset.name]["r"] = None
-
-        # Aggregated output contains only variables
-        # Individual output contains all components (variables and constants)
-        if aggregate:
-            output_variables = [v for v in self.variables if v.in_output(output_columns)]
-            for output_variable in output_variables:
-                empty_output[output_variable.model_point_set.name][output_variable.name] = None
-        else:
-            output_components = [c for c in self.components if c.in_output(output_columns)]
-            for output_component in output_components:
-                empty_output[output_component.model_point_set.name][output_component.name] = None
-
-        self.empty_output = empty_output
+    # def set_empty_output(self):
+    #     """Create empty output to be populated with results. """
+    #     empty_output = dict()
+    #     aggregate = self.settings["AGGREGATE"]
+    #     output_columns = self.settings["OUTPUT_COLUMNS"]
+    #
+    #     # Each model_point_set has a separate output file
+    #     for modelpointset in self.model_point_sets:
+    #         empty_output[modelpointset.name] = pd.DataFrame()
+    #         empty_output[modelpointset.name]["t"] = None
+    #         # Individual output contains record numbers
+    #         if not aggregate:
+    #             empty_output[modelpointset.name]["r"] = None
+    #
+    #     # Aggregated output contains only variables
+    #     # Individual output contains all components (variables and constants)
+    #     if aggregate:
+    #         output_variables = [v for v in self.variables if v.in_output(output_columns)]
+    #         for output_variable in output_variables:
+    #             empty_output[output_variable.model_point_set.name][output_variable.name] = None
+    #     else:
+    #         output_components = [c for c in self.components if c.in_output(output_columns)]
+    #         for output_component in output_components:
+    #             empty_output[output_component.model_point_set.name][output_component.name] = None
+    #
+    #     self.empty_output = empty_output
 
     def initialize(self):
-        self.set_empty_output()
+        # self.set_empty_output()
         self.set_children()
         self.set_grandchildren()
         self.set_queue()
 
-    def calculate_single_model_point(self, row, pb_max, main, columns, one_core=None):
+    def calculate_model_point(self, row, pb_max, main, col_dict, one_core=None):
         """Calculate results for a model point currently indicated in the model point set."""
         model_point_id = main.model_point_set_data.index[row]
         for model_point_set in self.model_point_sets:
             model_point_set.id = model_point_id
 
         # model_point_output = copy.deepcopy(self.empty_output)
-        matrices = columns_to_matrices(columns, self.settings)
+        matrices = col_dict_to_model_point_output(col_dict, self.settings)
 
         # TODO Make a function
         lst = []
-        for key1 in columns.keys():
-            for key2 in columns[key1]:
-                lst.append(columns[key1][key2])
+        for key1 in col_dict.keys():
+            for key2 in col_dict[key1]:
+                lst.append(col_dict[key1][key2])
         column_components = [item for sublist in lst for item in sublist]
 
         aggregate = self.settings["AGGREGATE"]
@@ -654,10 +667,10 @@ class Model:
 
             if c.name in column_components:
                 if isinstance(c, ModelVariable):
-                    index = columns[c.model_point_set.name]["ModelVariable"].index(c.name)
+                    index = col_dict[c.model_point_set.name]["ModelVariable"].index(c.name)
                     matrices[c.model_point_set.name]["ModelVariable"][:, index] = sum(c.result[:, :t_output_max+1])
                 if isinstance(c, Constant):
-                    index = columns[c.model_point_set.name]["Constant"].index(c.name)
+                    index = col_dict[c.model_point_set.name]["Constant"].index(c.name)
                     matrices[c.model_point_set.name]["Constant"][:, index] = sum(c.result[:, :t_output_max+1])
 
                 # # User can choose output columns
@@ -687,41 +700,39 @@ class Model:
 
     def calculate(self, range_start=None, range_end=None):
         """Calculate results for all model points."""
-        # Configuration
-        model_output = copy.deepcopy(self.empty_output)
-        aggregate = self.settings["AGGREGATE"]
-        t_output_max = self.settings["T_OUTPUT_MAX"]
         main = get_object_by_name(self.model_point_sets, "main")
 
+        # Calculation on single core or the first part in multiprocessing
         one_core = range_start == 0 or range_start is None
 
-        # Calculate formulas
-
-        columns = get_columns(self.variables, self.constants, self.settings)
-
-        n_pols = len(main)
-        pb_max = n_pols if range_end is None else range_end
-        calculate = functools.partial(self.calculate_single_model_point, pb_max=pb_max, main=main, columns=columns, one_core=one_core)
+        # Calculate model points
+        num_mp = len(main)
+        pb_max = num_mp if range_end is None else range_end
+        col_dict = get_col_dict(self.variables, self.constants, self.settings)
+        p = functools.partial(self.calculate_model_point, pb_max=pb_max, main=main, col_dict=col_dict, one_core=one_core)
         if range_start is None:
-            model_point_outputs = [*map(calculate, range(n_pols))]
+            model_point_outputs = [*map(p, range(num_mp))]
         else:
-            model_point_outputs = [*map(calculate, range(range_start, range_end))]
+            model_point_outputs = [*map(p, range(range_start, range_end))]
 
-        # Merge results from single model points
+        # Merge results from model points
         if one_core:
             print_log("Preparing results")
 
-        matrices = {}
-        for key in columns.keys():
-            matrices[key] = sum(model_point_output[key]["ModelVariable"] for model_point_output in model_point_outputs)
-
         model_output = {}
-        for key in columns.keys():
-            model_output[key] = pd.DataFrame(matrices[key], columns=columns[key]["ModelVariable"])
-
-
-        # TODO add invidiaul case
-
+        for key in col_dict.keys():
+            if self.settings["AGGREGATE"]:
+                data = sum(mpo[key]["ModelVariable"] for mpo in model_point_outputs)
+                model_output[key] = pd.DataFrame(data, columns=col_dict[key]["ModelVariable"])
+                model_output[key]
+                #TODO - add t
+            else:
+                data1 = np.concatenate([mpo[key]["Constant"] for mpo in model_point_outputs], axis=0)
+                data2 = np.concatenate([mpo[key]["ModelVariable"] for mpo in model_point_outputs], axis=0)
+                data = np.concatenate([data1, data2], axis=1)
+                columns = col_dict[key]["Constant"] + col_dict[key]["ModelVariable"]
+                model_output[key] = pd.DataFrame(data, columns=columns)
+                # TODO - add t and r
 
         # for model_point_set in self.model_point_sets:
         #     if aggregate:
