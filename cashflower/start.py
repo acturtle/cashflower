@@ -235,8 +235,9 @@ def start(model_name, settings, argv):
         output, runtime = start_single_core(model_name, settings, argv)
 
     # Add time column
-    values = [*range(settings["T_OUTPUT_MAX"]+1)] * (output["main"].shape[0] / settings["T_OUTPUT_MAX"]+1)
-    output.insert(0, "t", values)
+    for key in output.keys():
+        values = [*range(settings["T_OUTPUT_MAX"]+1)] * int(output[key].shape[0] / (settings["T_OUTPUT_MAX"]+1))
+        output[key].insert(0, "t", values)
 
     if settings["SAVE_OUTPUT"]:
         print_log("Saving output:")

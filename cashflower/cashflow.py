@@ -47,10 +47,10 @@ def updt(total, progress):
 
 def get_col_dict(variables, constants, settings):
     """
-    | policy | ModelVariable = ["a", "b"]
-    |        | Constant      = ["x"]
-    | fund   | ModelVariable = ["c"]
-    |        | Constant      = ["y", "z"]
+    | main | ModelVariable = ["a", "b"]
+    |      | Constant      = ["x"]
+    | fund | ModelVariable = ["c"]
+    |      | Constant      = ["y", "z"]
     """
     col_dict = {}
 
@@ -80,10 +80,10 @@ def get_col_dict(variables, constants, settings):
 
 def col_dict_to_model_point_output(col_dict, settings, records=None):
     """
-    | policy | ModelVariable = matrix(n1 x m1)
-    |        | Constant      = matrix(n2 x m2)
-    | fund   | ModelVariable = matrix(n3 x m3)
-    |        | Constant      = matrix(n4 x m4)
+    | main | ModelVariable = matrix(n1 x m1)
+    |      | Constant      = matrix(n2 x m2)
+    | fund | ModelVariable = matrix(n3 x m3)
+    |      | Constant      = matrix(n4 x m4)
     m_x = num_components
     n_x = t_output_max (* num_records if individual output)
     """
@@ -620,16 +620,18 @@ class Model:
     def calculate_model_point(self, row, pb_max, main, col_dict, one_core=None):
         """Calculate results for a model point currently indicated in the model point set."""
         model_point_id = main.model_point_set_data.index[row]
+        records = {}
         for model_point_set in self.model_point_sets:
             model_point_set.id = model_point_id
+            records[model_point_set.name] = model_point_set.model_point_data.shape[0]
 
-        model_point_output = col_dict_to_model_point_output(col_dict, self.settings)
+        model_point_output = col_dict_to_model_point_output(col_dict, self.settings, records)
         col_components = flatten_col_dict(col_dict)
 
         for c in self.queue:
             start = time.time()
             try:
-                c.calculate_model()
+                c.calculate()
             except:
                 raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
 
@@ -640,7 +642,7 @@ class Model:
                     model_point_output[c.model_point_set.name]["ModelVariable"][:, index] = result
                 if isinstance(c, Constant):
                     index = col_dict[c.model_point_set.name]["Constant"].index(c.name)
-                    result = sum(c.result[:, :self.settings["T_OUTPUT_MAX"] + 1])
+                    result = np.repeat(c.result, self.settings["T_OUTPUT_MAX"] + 1)
                     model_point_output[c.model_point_set.name]["Constant"][:, index] = result
             c.runtime += time.time() - start
 
@@ -681,7 +683,7 @@ class Model:
                 model_output[key] = pd.DataFrame(data, columns=columns)
                 model_point_set = get_object_by_name(self.model_point_sets, key)
                 records = lst_to_records(model_point_set.model_point_set_data[self.settings["ID_COLUMN"]])
-                model_output[key].insert(0, "r", records)
+                model_output[key].insert(0, "r", np.repeat(records, self.settings["T_OUTPUT_MAX"]+1))
 
         self.output = model_output
         return model_output
