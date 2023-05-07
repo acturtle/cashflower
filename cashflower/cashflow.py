@@ -105,6 +105,14 @@ def col_dict_to_model_point_output(col_dict, settings, records=None):
     return model_point_output
 
 
+def flatten_col_dict(col_dict):
+    lst = []
+    for key1 in col_dict.keys():
+        for key2 in col_dict[key1]:
+            lst.append(col_dict[key1][key2])
+    return [item for sublist in lst for item in sublist]
+
+
 class CashflowModelError(Exception):
     pass
 
@@ -604,35 +612,7 @@ class Model:
             components = sorted(components)
         self.queue = queue
 
-    # def set_empty_output(self):
-    #     """Create empty output to be populated with results. """
-    #     empty_output = dict()
-    #     aggregate = self.settings["AGGREGATE"]
-    #     output_columns = self.settings["OUTPUT_COLUMNS"]
-    #
-    #     # Each model_point_set has a separate output file
-    #     for modelpointset in self.model_point_sets:
-    #         empty_output[modelpointset.name] = pd.DataFrame()
-    #         empty_output[modelpointset.name]["t"] = None
-    #         # Individual output contains record numbers
-    #         if not aggregate:
-    #             empty_output[modelpointset.name]["r"] = None
-    #
-    #     # Aggregated output contains only variables
-    #     # Individual output contains all components (variables and constants)
-    #     if aggregate:
-    #         output_variables = [v for v in self.variables if v.in_output(output_columns)]
-    #         for output_variable in output_variables:
-    #             empty_output[output_variable.model_point_set.name][output_variable.name] = None
-    #     else:
-    #         output_components = [c for c in self.components if c.in_output(output_columns)]
-    #         for output_component in output_components:
-    #             empty_output[output_component.model_point_set.name][output_component.name] = None
-    #
-    #     self.empty_output = empty_output
-
     def initialize(self):
-        # self.set_empty_output()
         self.set_children()
         self.set_grandchildren()
         self.set_queue()
@@ -643,66 +623,35 @@ class Model:
         for model_point_set in self.model_point_sets:
             model_point_set.id = model_point_id
 
-        # model_point_output = copy.deepcopy(self.empty_output)
-        matrices = col_dict_to_model_point_output(col_dict, self.settings)
-
-        # TODO Make a function
-        lst = []
-        for key1 in col_dict.keys():
-            for key2 in col_dict[key1]:
-                lst.append(col_dict[key1][key2])
-        column_components = [item for sublist in lst for item in sublist]
-
-        aggregate = self.settings["AGGREGATE"]
-        t_calculation_max = self.settings["T_CALCULATION_MAX"]
-        t_output_max = min(self.settings["T_OUTPUT_MAX"], t_calculation_max)
-        output_columns = self.settings["OUTPUT_COLUMNS"]
+        model_point_output = col_dict_to_model_point_output(col_dict, self.settings)
+        col_components = flatten_col_dict(col_dict)
 
         for c in self.queue:
             start = time.time()
             try:
-                c.calculate()
+                c.calculate_model()
             except:
                 raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
 
-            if c.name in column_components:
+            if c.name in col_components:
                 if isinstance(c, ModelVariable):
                     index = col_dict[c.model_point_set.name]["ModelVariable"].index(c.name)
-                    matrices[c.model_point_set.name]["ModelVariable"][:, index] = sum(c.result[:, :t_output_max+1])
+                    result = sum(c.result[:, :self.settings["T_OUTPUT_MAX"] + 1])
+                    model_point_output[c.model_point_set.name]["ModelVariable"][:, index] = result
                 if isinstance(c, Constant):
                     index = col_dict[c.model_point_set.name]["Constant"].index(c.name)
-                    matrices[c.model_point_set.name]["Constant"][:, index] = sum(c.result[:, :t_output_max+1])
-
-                # # User can choose output columns
-                # if c.in_output(output_columns):
-                #     # Variables are always in the output (individual and aggregate)
-                #     if isinstance(c, ModelVariable):
-                #         if aggregate:
-                #             model_point_output[c.model_point_set.name][c.name] = sum(c.result[:, :t_output_max + 1])
-                #         else:
-                #             model_point_output[c.model_point_set.name][c.name] = c.result[:, :t_output_max + 1].flatten()
-                #     # Constants are added only to individual output
-                #     if isinstance(c, Constant) and not aggregate:
-                #         model_point_output[c.model_point_set.name][c.name] = np.repeat(c.result, t_output_max + 1)
+                    result = sum(c.result[:, :self.settings["T_OUTPUT_MAX"] + 1])
+                    model_point_output[c.model_point_set.name]["Constant"][:, index] = result
             c.runtime += time.time() - start
-
-
-        # Add time and record number to the individual output
-        # if not aggregate:
-        #     for model_point_set in self.model_point_sets:
-        #         model_point_output[model_point_set.name]["t"] = np.tile(np.arange(t_output_max + 1), model_point_set.model_point_size)
-        #         model_point_output[model_point_set.name]["r"] = np.repeat(np.arange(1, model_point_set.model_point_size + 1), t_output_max + 1)
 
         if one_core:
             updt(pb_max, row + 1)
 
-        return matrices
+        return model_point_output
 
-    def calculate(self, range_start=None, range_end=None):
+    def calculate_model(self, range_start=None, range_end=None):
         """Calculate results for all model points."""
         main = get_object_by_name(self.model_point_sets, "main")
-
-        # Calculation on single core or the first part in multiprocessing
         one_core = range_start == 0 or range_start is None
 
         # Calculate model points
@@ -724,23 +673,15 @@ class Model:
             if self.settings["AGGREGATE"]:
                 data = sum(mpo[key]["ModelVariable"] for mpo in model_point_outputs)
                 model_output[key] = pd.DataFrame(data, columns=col_dict[key]["ModelVariable"])
-                model_output[key]
-                #TODO - add t
             else:
                 data1 = np.concatenate([mpo[key]["Constant"] for mpo in model_point_outputs], axis=0)
                 data2 = np.concatenate([mpo[key]["ModelVariable"] for mpo in model_point_outputs], axis=0)
                 data = np.concatenate([data1, data2], axis=1)
                 columns = col_dict[key]["Constant"] + col_dict[key]["ModelVariable"]
                 model_output[key] = pd.DataFrame(data, columns=columns)
-                # TODO - add t and r
-
-        # for model_point_set in self.model_point_sets:
-        #     if aggregate:
-        #         model_output[model_point_set.name] = sum(model_point_output[model_point_set.name] for model_point_output in model_point_outputs)
-        #         if not self.settings["MULTIPROCESSING"]:
-        #             model_output[model_point_set.name]["t"] = np.arange(t_output_max + 1)
-        #     else:
-        #         model_output[model_point_set.name] = pd.concat(model_point_output[model_point_set.name] for model_point_output in model_point_outputs)
+                model_point_set = get_object_by_name(self.model_point_sets, key)
+                records = lst_to_records(model_point_set.model_point_set_data[self.settings["ID_COLUMN"]])
+                model_output[key].insert(0, "r", records)
 
         self.output = model_output
         return model_output
@@ -764,12 +705,12 @@ class Model:
             if self.settings["SAVE_RUNTIME"]:
                 print_log(f"The SAVE_RUNTIME setting is not applicable for multiprocessing.\n"
                           f"{' '*10} Set the MULTIPROCESSING setting to 'False' to save the runtime.")
-            if main.model_point_set_data.shape[0] > self.cpu_count:
+            if len(main) > self.cpu_count:
                 print_log(f"Multiprocessing on {self.cpu_count} cores")
                 print_log(f"Calculation of ca. {len(main) // self.cpu_count} model points per core")
                 print_log("The progressbar for the calculations on the 1st core:")
 
-        # In multiprocessing mode, the subset of policies is calculated
+        # Calculate all or subset of model points
         if self.settings["MULTIPROCESSING"]:
             main_ranges = split_to_ranges(len(main), self.cpu_count)
 
@@ -778,12 +719,19 @@ class Model:
                 return None
 
             main_range = main_ranges[part]
-            self.calculate(range_start=main_range[0], range_end=main_range[1])
-        # Otherwise, all policies are calculated
+            model_output = self.calculate_model(range_start=main_range[0], range_end=main_range[1])
         else:
-            self.calculate()
+            model_output = self.calculate_model()
 
-        return self.output
+        # Get runtime
+        runtime = None
+        if self.settings["SAVE_RUNTIME"]:
+            runtime = pd.DataFrame({
+                "component": [c.name for c in self.components],
+                "runtime": [c.runtime for c in self.components]
+            })
+
+        return model_output, runtime
 
     def save(self):
         """Only for single core (no multiprocessing)"""

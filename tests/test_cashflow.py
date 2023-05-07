@@ -408,7 +408,7 @@ class TestModel(TestCase):
         model = Model(None, [premium], [], [main], settings)
         model.initialize()
 
-        model_output = model.calculate()
+        model_output = model.calculate_model()
         test_output = pd.DataFrame({
             "t": list(range(1201)),
             "a": [2 * (i + 100) for i in range(1201)]
@@ -421,7 +421,7 @@ class TestModel(TestCase):
         model = Model(None, [premium], [], [main], settings)
         model.initialize()
 
-        model_output = model.calculate()
+        model_output = model.calculate_model()
         test_output = pd.DataFrame({
             "t": list(range(1201)) * 2,
             "r": [1 for _ in range(1201 * 2)],

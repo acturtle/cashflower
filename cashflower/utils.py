@@ -191,3 +191,19 @@ def get_object_by_name(objects, name):
         if _object.name == name:
             return _object
     return None
+
+
+def lst_to_records(lst):
+    """['a', 'b', 'b', 'c', 'd', 'd', 'd', 'd', 'b'] ---> [1, 1, 2, 1, 1, 2, 3, 4, 1]"""
+    prev = None
+    output = []
+    for i, curr in enumerate(lst):
+        if i == 0:
+            output.append(1)
+        else:
+            if curr == prev:
+                output.append(output[i-1]+1)
+            else:
+                output.append(1)
+        prev = curr
+    return output
