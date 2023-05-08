@@ -1,9 +1,7 @@
 import copy
-import datetime
 import functools
 import inspect
 import numpy as np
-import os
 import time
 import pandas as pd
 import sys
@@ -45,14 +43,18 @@ def updt(total, progress):
     sys.stdout.flush()
 
 
-def get_col_dict(variables, constants, settings):
+def get_col_dict(model_point_sets, variables, constants, settings):
     """
     | main | ModelVariable = ["a", "b"]
-    |      | Constant      = ["x"]
-    | fund | ModelVariable = ["c"]
-    |      | Constant      = ["y", "z"]
+    |      | Constant      = ["c"]
+    | fund | ModelVariable = ["d"]
+    |      | Constant      = []
     """
     col_dict = {}
+    for model_point_set in model_point_sets:
+        col_dict[model_point_set.name] = {}
+        col_dict[model_point_set.name]["ModelVariable"] = []
+        col_dict[model_point_set.name]["Constant"] = []
 
     # A subset of output columns has been chosen
     if len(settings["OUTPUT_COLUMNS"]) > 0:
@@ -60,48 +62,36 @@ def get_col_dict(variables, constants, settings):
         constants = [constant for constant in constants if constant.name in settings["OUTPUT_COLUMNS"]]
 
     for variable in variables:
-        if col_dict.get(variable.model_point_set.name) is None:
-            col_dict[variable.model_point_set.name] = {}
-        if "ModelVariable" not in col_dict[variable.model_point_set.name]:
-            col_dict[variable.model_point_set.name]["ModelVariable"] = []
         col_dict[variable.model_point_set.name]["ModelVariable"].append(variable.name)
 
-    # Aggregate output does not contain Constants (they don't add up)
+    # Aggregate output does not contain Constants (because they don't add up)
     if not settings["AGGREGATE"]:
         for constant in constants:
-            if col_dict.get(constant.model_point_set.name) is None:
-                col_dict[constant.model_point_set.name] = {}
-            if "Constant" not in col_dict[constant.model_point_set.name]:
-                col_dict[constant.model_point_set.name]["Constant"] = []
             col_dict[constant.model_point_set.name]["Constant"].append(constant.name)
 
     return col_dict
 
 
-def col_dict_to_model_point_output(col_dict, settings, records=None):
+def col_dict_to_model_point_output(col_dict, settings, records):
     """
     | main | ModelVariable = matrix(n1 x m1)
     |      | Constant      = matrix(n2 x m2)
     | fund | ModelVariable = matrix(n3 x m3)
     |      | Constant      = matrix(n4 x m4)
-    m_x = num_components
+    m_x = num_components (may be zero)
     n_x = t_output_max (* num_records if individual output)
     """
     model_point_output = copy.deepcopy(col_dict)
 
-    # key1 = model_point_set.name; key2 = ModelVariable/Constant
-    for key1 in col_dict.keys():
-        for key2 in col_dict[key1]:
-            m = len(col_dict[key1][key2])
+    for model_point_set_name in col_dict.keys():
+        num_records = 1 if settings["AGGREGATE"] else records[model_point_set_name]
+        n = (settings["T_OUTPUT_MAX"]+1) * num_records
 
-            num_records = 1 if settings["AGGREGATE"] else records[key1]
-            n = (settings["T_OUTPUT_MAX"]+1) * num_records
+        m = len(col_dict[model_point_set_name]["ModelVariable"])
+        model_point_output[model_point_set_name]["ModelVariable"] = np.zeros((n, m), dtype=np.float64)
 
-            if key2 == "ModelVariable":
-                model_point_output[key1][key2] = np.zeros((n, m), dtype=np.float64)
-            elif key2 == "Constant":
-                model_point_output[key1][key2] = np.zeros((n, m), dtype=np.str_)
-
+        m = len(col_dict[model_point_set_name]["Constant"])
+        model_point_output[model_point_set_name]["Constant"] = np.zeros((n, m), dtype=np.object_)
     return model_point_output
 
 
@@ -638,11 +628,15 @@ class Model:
             if c.name in col_components:
                 if isinstance(c, ModelVariable):
                     index = col_dict[c.model_point_set.name]["ModelVariable"].index(c.name)
-                    result = sum(c.result[:, :self.settings["T_OUTPUT_MAX"] + 1])
+                    if self.settings["AGGREGATE"]:
+                        result = sum(c.result[:, :self.settings["T_OUTPUT_MAX"] + 1])
+                    else:
+                        result = (c.result[:, :self.settings["T_OUTPUT_MAX"] + 1]).flatten()
                     model_point_output[c.model_point_set.name]["ModelVariable"][:, index] = result
                 if isinstance(c, Constant):
                     index = col_dict[c.model_point_set.name]["Constant"].index(c.name)
                     result = np.repeat(c.result, self.settings["T_OUTPUT_MAX"] + 1)
+                    result = result.astype(np.object_, copy=False)
                     model_point_output[c.model_point_set.name]["Constant"][:, index] = result
             c.runtime += time.time() - start
 
@@ -659,7 +653,7 @@ class Model:
         # Calculate model points
         num_mp = len(main)
         pb_max = num_mp if range_end is None else range_end
-        col_dict = get_col_dict(self.variables, self.constants, self.settings)
+        col_dict = get_col_dict(self.model_point_sets, self.variables, self.constants, self.settings)
         p = functools.partial(self.calculate_model_point, pb_max=pb_max, main=main, col_dict=col_dict, one_core=one_core)
         if range_start is None:
             model_point_outputs = [*map(p, range(num_mp))]
@@ -673,17 +667,25 @@ class Model:
         model_output = {}
         for key in col_dict.keys():
             if self.settings["AGGREGATE"]:
-                data = sum(mpo[key]["ModelVariable"] for mpo in model_point_outputs)
-                model_output[key] = pd.DataFrame(data, columns=col_dict[key]["ModelVariable"])
+                columns = col_dict[key]["ModelVariable"]
+                if len(columns) > 0:
+                    data = sum(mpo[key]["ModelVariable"] for mpo in model_point_outputs)
+                    model_output[key] = pd.DataFrame(data, columns=col_dict[key]["ModelVariable"])
             else:
-                data1 = np.concatenate([mpo[key]["Constant"] for mpo in model_point_outputs], axis=0)
-                data2 = np.concatenate([mpo[key]["ModelVariable"] for mpo in model_point_outputs], axis=0)
-                data = np.concatenate([data1, data2], axis=1)
                 columns = col_dict[key]["Constant"] + col_dict[key]["ModelVariable"]
-                model_output[key] = pd.DataFrame(data, columns=columns)
-                model_point_set = get_object_by_name(self.model_point_sets, key)
-                records = lst_to_records(model_point_set.model_point_set_data[self.settings["ID_COLUMN"]])
-                model_output[key].insert(0, "r", np.repeat(records, self.settings["T_OUTPUT_MAX"]+1))
+                if len(columns) > 0:
+                    data1 = np.concatenate([mpo[key]["Constant"] for mpo in model_point_outputs], axis=0)
+                    data2 = np.concatenate([mpo[key]["ModelVariable"] for mpo in model_point_outputs], axis=0)
+                    data = np.concatenate([data1, data2], axis=1)
+                    model_output[key] = pd.DataFrame(data, columns=columns)
+
+                    # Add records
+                    model_point_set = get_object_by_name(self.model_point_sets, key)
+                    ids = model_point_set.model_point_set_data[self.settings["ID_COLUMN"]]
+                    if range_start is not None:
+                        ids = ids[range_start:range_end]
+                    records = lst_to_records(ids)
+                    model_output[key].insert(0, "r", np.repeat(records, self.settings["T_OUTPUT_MAX"]+1))
 
         self.output = model_output
         return model_output
@@ -734,31 +736,3 @@ class Model:
             })
 
         return model_output, runtime
-
-    def save(self):
-        """Only for single core (no multiprocessing)"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-        if not os.path.exists("output"):
-            os.makedirs("output")
-
-        # Save output to csv
-        if self.settings["SAVE_OUTPUT"]:
-            print_log("Saving output:")
-            for model_point_set in self.model_point_sets:
-                filepath = f"output/{timestamp}_{model_point_set.name}.csv"
-                model_point_set_output = self.output.get(model_point_set.name)
-                column_names = [col for col in model_point_set_output.columns.values.tolist() if col not in ["t", "r"]]
-                if len(column_names) > 0:
-                    print(f"{' ' * 10} {filepath}")
-                    model_point_set_output.to_csv(filepath, index=False)
-
-        # Save runtime
-        if self.settings["SAVE_RUNTIME"]:
-            data = [(c.name, c.runtime) for c in self.components]
-            runtime = pd.DataFrame(data, columns=["component", "runtime"])
-            runtime.to_csv(f"output/{timestamp}_runtime.csv", index=False)
-            print(f"{' '*10} output/{timestamp}_runtime.csv")
-
-        print_log("Finished")
-        return timestamp
