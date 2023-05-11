@@ -11,3 +11,4 @@ User guide
    model
    settings
    run
+   output
