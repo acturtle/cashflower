@@ -151,6 +151,25 @@ def prepare_model_input(model_name, settings, argv):
     return runplan, model_point_sets, variables, constants
 
 
+def dict_to_csv(_dict, timestamp):
+    if not os.path.exists("output"):
+        os.makedirs("output")
+
+    for key in _dict:
+        filepath = f"output/{timestamp}_{key}.csv"
+        data = _dict.get(key)
+        data.to_csv(filepath, index=False)
+        print(f"{' ' * 10} {filepath}")
+
+    return None
+
+
+def df_to_csv(df, timestamp):
+    df.to_csv(f"output/{timestamp}_runtime.csv", index=False)
+    print(f"{' ' * 10} output/{timestamp}_runtime.csv")
+    return None
+
+
 def start_single_core(model_name, settings, argv):
     """Create and run a cash flow model."""
     runplan, model_point_sets, variables, constants = prepare_model_input(model_name, settings, argv)
@@ -167,7 +186,12 @@ def start_multiprocessing(part, cpu_count, model_name, settings, argv):
 
     # Run model on multiple cores
     model = Model(model_name, variables, constants, model_point_sets, settings, cpu_count)
-    part_model_output, part_runtime = model.run(part)
+
+    output = model.run(part)
+    if output is None:
+        part_model_output, part_runtime = None, None
+    else:
+        part_model_output, part_runtime = output
     return part_model_output, part_runtime
 
 
@@ -197,25 +221,6 @@ def merge_part_runtimes(part_runtimes):
     return runtimes
 
 
-def dict_to_csv(_dict, timestamp):
-    if not os.path.exists("output"):
-        os.makedirs("output")
-
-    for key in _dict:
-        filepath = f"output/{timestamp}_{key}.csv"
-        data = _dict.get(key)
-        data.to_csv(filepath, index=False)
-        print(f"{' ' * 10} {filepath}")
-
-    return None
-
-
-def df_to_cf(df, timestamp):
-    df.to_csv(f"output/{timestamp}_runtime.csv", index=False)
-    print(f"{' ' * 10} output/{timestamp}_runtime.csv")
-    return None
-
-
 def start(model_name, settings, argv):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     settings = load_settings(settings)
@@ -240,12 +245,12 @@ def start(model_name, settings, argv):
         output[key].insert(0, "t", values)
 
     if settings["SAVE_OUTPUT"]:
-        print_log("Saving output:")
+        print_log("Saving results:")
         dict_to_csv(output, timestamp)
 
     if settings["SAVE_RUNTIME"]:
         print_log("Saving runtime:")
-        df_to_cf(runtime, timestamp)
+        df_to_csv(runtime, timestamp)
 
     print_log("Finished")
     return output

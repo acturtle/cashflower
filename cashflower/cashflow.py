@@ -576,12 +576,16 @@ class Model:
     def set_queue(self):
         """Set an ordrer in which model components should be evaluated."""
         queue = []
+        log = None
 
         # User has chosen components, so there is no need to calculate all of them
         if len(self.settings["OUTPUT_COLUMNS"]) > 0:
             components = []
             for component_name in self.settings["OUTPUT_COLUMNS"]:
                 component = get_object_by_name(self.components, component_name)
+                if component is None:
+                    log = f"'{component_name}' is not one of the model components and will be ignored."
+                    continue
                 components = unique_append(components, component)
                 components = unique_extend(components, component.grandchildren)
             components = sorted(components)
@@ -601,11 +605,7 @@ class Model:
             components.remove(component)
             components = sorted(components)
         self.queue = queue
-
-    def initialize(self):
-        self.set_children()
-        self.set_grandchildren()
-        self.set_queue()
+        return log
 
     def calculate_model_point(self, row, pb_max, main, col_dict, one_core=None):
         """Calculate results for a model point currently indicated in the model point set."""
@@ -680,10 +680,15 @@ class Model:
                     model_output[key] = pd.DataFrame(data, columns=columns)
 
                     # Add records
+                    main = get_object_by_name(self.model_point_sets, "main")
+                    main_ids = main.model_point_set_data[self.settings["ID_COLUMN"]]
+                    if range_start is not None:
+                        main_ids = main_ids[range_start:range_end]
+
                     model_point_set = get_object_by_name(self.model_point_sets, key)
                     ids = model_point_set.model_point_set_data[self.settings["ID_COLUMN"]]
-                    if range_start is not None:
-                        ids = ids[range_start:range_end]
+                    ids = [_id for _id in ids if _id in main_ids]
+
                     records = lst_to_records(ids)
                     model_output[key].insert(0, "r", np.repeat(records, self.settings["T_OUTPUT_MAX"]+1))
 
@@ -698,17 +703,17 @@ class Model:
             print_log(f"Start run for model '{self.name}'")
 
         # Prepare the order of variables for the calculation
-        self.initialize()
+        self.set_children()
+        self.set_grandchildren()
+        log = self.set_queue()
+        if log is not None and one_core:
+            print_log(log)
 
         # Inform on the number of model points
         main = get_object_by_name(self.model_point_sets, "main")
         if one_core:
             print_log(f"Total number of model points: {main.model_point_set_data.shape[0]}")
         if part == 0:
-            # Runtime is not saved when multiprocessing
-            if self.settings["SAVE_RUNTIME"]:
-                print_log(f"The SAVE_RUNTIME setting is not applicable for multiprocessing.\n"
-                          f"{' '*10} Set the MULTIPROCESSING setting to 'False' to save the runtime.")
             if len(main) > self.cpu_count:
                 print_log(f"Multiprocessing on {self.cpu_count} cores")
                 print_log(f"Calculation of ca. {len(main) // self.cpu_count} model points per core")
