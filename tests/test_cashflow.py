@@ -151,10 +151,10 @@ class TestModelVariable(TestCase):
         premium = ModelVariable()
 
         @assign(premium)
-        def mv_formula(t):
+        def _mv(t):
             pass
 
-        assert premium.assigned_formula == mv_formula
+        assert premium.assigned_formula == _mv
 
         premium.name = "premium"
         assert repr(premium) == "ModelVariable: premium"
@@ -258,7 +258,16 @@ class TestModelVariable(TestCase):
 
 class TestConstant(TestCase):
     def test_constant(self):
-        Constant()
+        premium = Constant()
+
+        @assign(premium)
+        def _c():
+            pass
+
+        assert premium.assigned_formula == _c
+
+        premium.name = "premium"
+        assert repr(premium) == "Constant: premium"
 
     def test_constant_is_lower_when_fewer_grandchildren(self):
         p1 = Constant()
@@ -394,6 +403,8 @@ class TestModel(TestCase):
         assert model.queue == [c, b, a]
 
     def test_queue_with_columns_subset(self):
+        settings = load_settings()
+
         a = ModelVariable(name="a")
         b = ModelVariable(name="b")
         c = ModelVariable(name="c")
@@ -402,11 +413,43 @@ class TestModel(TestCase):
         b.grandchildren = [c]
         c.grandchildren = []
 
-        settings = load_settings()
         settings["OUTPUT_COLUMNS"] = ["a", "c"]
         model = Model(None, [a, b, c], [], None, settings)
         model.set_queue()
         assert model.queue == [c, a]
+
+    def test_queue_with_columns_subset_and_unnecessary_col(self):
+        settings = load_settings()
+
+        a = ModelVariable(name="a")
+        b = ModelVariable(name="b")
+        c = ModelVariable(name="c")
+
+        a.grandchildren = [c]
+        b.grandchildren = [c]
+        c.grandchildren = []
+
+        settings["OUTPUT_COLUMNS"] = ["a", "z", "c"]
+        model = Model(None, [a, b, c], [], None, settings)
+        model.set_queue()
+
+        assert model.queue == [c, a]
+
+    def test_queue_with_cycle(self):
+        settings = load_settings()
+
+        a = ModelVariable(name="a")
+        b = ModelVariable(name="b")
+        c = ModelVariable(name="c")
+
+        a.children = [b]
+        b.children = [c]
+        c.children = [a]
+
+        model = Model(None, [a, b, c], [], None, settings)
+        model.set_grandchildren()
+        with pytest.raises(CashflowModelError):
+            model.set_queue()
 
     def test_calculate_model_point(self):
         settings = load_settings()
