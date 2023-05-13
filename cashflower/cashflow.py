@@ -413,9 +413,6 @@ class ModelVariable:
 
         self.formula = self.assigned_formula
 
-    def in_output(self, output_columns):
-        return output_columns == [] or self.name in output_columns
-
 
 class Constant:
     """Constant of a cash flow model.
@@ -508,9 +505,6 @@ class Constant:
 
         self.formula = self.assigned_formula
 
-    def in_output(self, output_columns):
-        return output_columns == [] or self.name in output_columns
-
 
 class Model:
     """Actuarial cash flow model.
@@ -592,6 +586,7 @@ class Model:
         else:
             components = sorted(self.components)
 
+        # Create a queue based on number of grandchildren
         while components:
             component = components[0]
 
@@ -605,6 +600,12 @@ class Model:
             components.remove(component)
             components = sorted(components)
         self.queue = queue
+        return log
+
+    def initialize(self):
+        self.set_children()
+        self.set_grandchildren()
+        log = self.set_queue()
         return log
 
     def calculate_model_point(self, row, pb_max, main, col_dict, one_core=None):
@@ -681,7 +682,7 @@ class Model:
 
                     # Add records
                     main = get_object_by_name(self.model_point_sets, "main")
-                    main_ids = main.model_point_set_data[self.settings["ID_COLUMN"]]
+                    main_ids = main.model_point_set_data[self.settings["ID_COLUMN"]].tolist()
                     if range_start is not None:
                         main_ids = main_ids[range_start:range_end]
 
@@ -703,9 +704,7 @@ class Model:
             print_log(f"Start run for model '{self.name}'")
 
         # Prepare the order of variables for the calculation
-        self.set_children()
-        self.set_grandchildren()
-        log = self.set_queue()
+        log = self.initialize()
         if log is not None and one_core:
             print_log(log)
 
