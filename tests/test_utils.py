@@ -131,3 +131,23 @@ class TestCycleToStr(TestCase):
         result = cycle_to_str(cycle)
         assert result == "b --> a --> b"
 
+
+class TestGetObjectByName(TestCase):
+    def test_get_object_by_name(self):
+        class Object:
+            def __init__(self, name):
+                self.name = name
+
+        a = Object(name="a")
+        b = Object(name="b")
+        objects = [a, b]
+
+        assert get_object_by_name(objects, "a") == a
+        assert get_object_by_name(objects, "c") is None
+
+
+class TestLstToRecords(TestCase):
+    def test_lst_to_records(self):
+        left = ['a', 'b', 'b', 'c', 'd', 'd', 'd', 'd', 'b']
+        right = [1, 1, 2, 1, 1, 2, 3, 4, 1]
+        assert lst_to_records(left) == right

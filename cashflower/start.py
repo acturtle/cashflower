@@ -3,13 +3,12 @@ import functools
 import importlib
 import inspect
 import multiprocessing
-import numpy as np
 import os
 import pandas as pd
 import shutil
 
 from .cashflow import CashflowModelError, ModelVariable, ModelPointSet, Model, Constant, Runplan
-from .utils import replace_in_file, print_log
+from .utils import print_log, replace_in_file
 
 
 def create_model(model):
@@ -55,8 +54,16 @@ def load_settings(settings=None):
     if settings is None:
         return initial_settings
 
+    # Update with the user settings
     for key, value in settings.items():
         initial_settings[key] = value
+
+    # Maximal output t can't exceed maximal calculation t
+    if initial_settings["T_CALCULATION_MAX"] < initial_settings["T_OUTPUT_MAX"]:
+        initial_settings["T_OUTPUT_MAX"] = initial_settings["T_CALCULATION_MAX"]
+        msg = "The T_CALCULATION_MAX setting is greater than the T_OUTPUT_MAX setting. " \
+              "T_OUTPUT_MAX has been set to T_CALCULATION_MAX."
+        print_log(msg)
 
     return initial_settings
 
@@ -143,74 +150,106 @@ def prepare_model_input(model_name, settings, argv):
     return runplan, model_point_sets, variables, constants
 
 
+def dict_to_csv(_dict, timestamp):
+    if not os.path.exists("output"):
+        os.makedirs("output")
+
+    for key in _dict:
+        filepath = f"output/{timestamp}_{key}.csv"
+        data = _dict.get(key)
+        data.to_csv(filepath, index=False)
+        print(f"{' ' * 10} {filepath}")
+
+    return None
+
+
+def df_to_csv(df, timestamp):
+    df.to_csv(f"output/{timestamp}_runtime.csv", index=False)
+    print(f"{' ' * 10} output/{timestamp}_runtime.csv")
+    return None
+
+
 def start_single_core(model_name, settings, argv):
-    """Create, run and save results of a cash flow model."""
-    settings = load_settings(settings)
+    """Create and run a cash flow model."""
     runplan, model_point_sets, variables, constants = prepare_model_input(model_name, settings, argv)
 
-    # Run model on single core and save results
+    # Run model on single core
     model = Model(model_name, variables, constants, model_point_sets, settings)
-    output = model.run()
-    model.save()
-    return output
+    model_output, runtime = model.run()
+    return model_output, runtime
 
 
-def execute_multiprocessing(part, model_name, settings, cpu_count, argv):
+def start_multiprocessing(part, cpu_count, model_name, settings, argv):
     """Run subset of the model points using multiprocessing."""
     runplan, model_point_sets, variables, constants = prepare_model_input(model_name, settings, argv)
 
     # Run model on multiple cores
     model = Model(model_name, variables, constants, model_point_sets, settings, cpu_count)
+
     output = model.run(part)
-    return output
+    if output is None:
+        part_model_output, part_runtime = None, None
+    else:
+        part_model_output, part_runtime = output
+    return part_model_output, part_runtime
 
 
-def merge_and_save_multiprocessing(part_outputs, settings):
+def merge_part_model_outputs(part_model_outputs, settings):
     """Merge outputs from multiprocessing and save to files."""
-    t_output_max = min(settings["T_OUTPUT_MAX"], settings["T_CALCULATION_MAX"])
-
     # Nones are returned, when number of policies < number of cpus
-    part_outputs = [part_output for part_output in part_outputs if part_output is not None]
+    part_model_outputs = [pmo for pmo in part_model_outputs if pmo is not None]
+    first = part_model_outputs[0]
 
     # Merge outputs into one
-    model_point_set_names = part_outputs[0].keys()
     model_output = {}
-    for model_point_set_name in model_point_set_names:
+    for key in first.keys():
         if settings["AGGREGATE"]:
-            model_output[model_point_set_name] = sum(part_output[model_point_set_name] for part_output in part_outputs)
-            model_output[model_point_set_name]["t"] = np.arange(t_output_max + 1)
+            model_output[key] = sum(pmo[key] for pmo in part_model_outputs)
         else:
-            model_output[model_point_set_name] = pd.concat(part_output[model_point_set_name] for part_output in part_outputs)
-
-    if not os.path.exists("output"):
-        os.makedirs("output")
-
-    # Save output to csv
-    if settings["SAVE_OUTPUT"]:
-        print_log("Saving output:")
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        for model_point_set_name in model_point_set_names:
-            filepath = f"output/{timestamp}_{model_point_set_name}.csv"
-
-            column_names = [col for col in model_output[model_point_set_name].columns.values.tolist() if col not in ["t", "r"]]
-            if len(column_names) > 0:
-                print(f"{' ' * 10} {filepath}")
-                model_output[model_point_set_name].to_csv(filepath, index=False)
-
-    print_log("Finished")
+            model_output[key] = pd.concat(pmo[key] for pmo in part_model_outputs)
     return model_output
 
 
+def merge_part_runtimes(part_runtimes):
+    total_runtimes = sum([pr["runtime"] for pr in part_runtimes])
+    first = part_runtimes[0]
+    runtimes = pd.DataFrame({
+        "component": first["component"],
+        "runtime": total_runtimes
+    })
+    return runtimes
+
+
 def start(model_name, settings, argv):
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     settings = load_settings(settings)
 
-    if settings.get("MULTIPROCESSING"):
+    if settings["MULTIPROCESSING"]:
         cpu_count = multiprocessing.cpu_count()
-        p = functools.partial(execute_multiprocessing, model_name=model_name, settings=settings, cpu_count=cpu_count, argv=argv)
+        p = functools.partial(start_multiprocessing, cpu_count=cpu_count, model_name=model_name, settings=settings,
+                              argv=argv)
         with multiprocessing.Pool(cpu_count) as pool:
-            part_outputs = pool.map(p, range(cpu_count))
-        output = merge_and_save_multiprocessing(part_outputs, settings)
+            parts = pool.map(p, range(cpu_count))
+        part_model_outputs = [p[0] for p in parts]
+        output = merge_part_model_outputs(part_model_outputs, settings)
+        if settings["SAVE_RUNTIME"]:
+            part_runtimes = [p[1] for p in parts]
+            runtime = merge_part_runtimes(part_runtimes)
     else:
-        output = start_single_core(model_name, settings, argv)
+        output, runtime = start_single_core(model_name, settings, argv)
 
+    # Add time column
+    for key in output.keys():
+        values = [*range(settings["T_OUTPUT_MAX"]+1)] * int(output[key].shape[0] / (settings["T_OUTPUT_MAX"]+1))
+        output[key].insert(0, "t", values)
+
+    if settings["SAVE_OUTPUT"]:
+        print_log("Saving results:")
+        dict_to_csv(output, timestamp)
+
+    if settings["SAVE_RUNTIME"]:
+        print_log("Saving runtime:")
+        df_to_csv(runtime, timestamp)
+
+    print_log("Finished")
     return output
