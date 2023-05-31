@@ -7,7 +7,7 @@ projection_year = ModelVariable(model_point_set=main)
 
 
 @assign(projection_year)
-def projection_year_formula(t):
+def _projection_year(t):
     if t == 0:
         return 0
     elif t % 12 == 1:

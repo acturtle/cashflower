@@ -321,7 +321,6 @@ class ModelVariable:
     def calculate(self):
         """Calculate result for all records of the model point."""
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
-        self.result = np.empty((self.model_point_set.model_point_size, t_calculation_max + 1), dtype=float)
 
         for r in range(self.model_point_set.model_point_size):
             self.clear()
@@ -345,6 +344,12 @@ class ModelVariable:
                     for t in range(t_calculation_max, -1, -1):
                         self.result[r, t] = self.formula(t)
 
+    def calculate_t(self, t):
+        for r in range(self.model_point_set.model_point_size):
+            self.clear()
+            self.model_point_set.model_point_record_num = r
+            self.result[r, t] = self.formula(t)
+
     def initialize(self, main=None):
         if self.assigned_formula is None:
             msg = f"\nThe '{self.name}' variable has no formula. Please check the 'model.py' script."
@@ -354,6 +359,8 @@ class ModelVariable:
             self.model_point_set = main
 
         self.formula = self.assigned_formula
+        self.result = np.empty((self.model_point_set.model_point_size, self.settings["T_CALCULATION_MAX"] + 1),
+                               dtype=float)
 
     def in_output(self, output_columns):
         return output_columns == [] or self.name in output_columns
@@ -531,7 +538,7 @@ class Model:
         """Set an ordrer in which model components should be evaluated."""
         queue = []
 
-        # User has chosen components, so there is no need to calculate all of them
+        # User has chosen components, so limit them
         if len(self.settings["OUTPUT_COLUMNS"]) > 0:
             components = []
             for component_name in self.settings["OUTPUT_COLUMNS"]:
@@ -542,17 +549,24 @@ class Model:
         else:
             components = sorted(self.components)
 
+        # Set a queue
         while components:
             component = components[0]
 
+            # Component doesn't have zero grandchildren --> cycle
             if len(component.grandchildren) != 0:
                 cycle = get_cycle(component, rest=components)
-                msg = f"Cycle of model components detected. Please review:\n {cycle_to_str(cycle)}"
-                raise CashflowModelError(msg)
+                # msg = f"Cycle of model components detected. Please review:\n {cycle_to_str(cycle)}"
+                # raise CashflowModelError(msg)
+                queue.append(cycle)
+                for item in cycle:
+                    self.remove_from_grandchildren(item)
+                    components.remove(item)
+            else:
+                queue.append(component)
+                self.remove_from_grandchildren(component)
+                components.remove(component)
 
-            queue.append(component)
-            self.remove_from_grandchildren(component)
-            components.remove(component)
             components = sorted(components)
         self.queue = queue
 
@@ -601,25 +615,34 @@ class Model:
         t_output_max = min(self.settings["T_OUTPUT_MAX"], t_calculation_max)
         output_columns = self.settings["OUTPUT_COLUMNS"]
 
+        # Calculate values
         for c in self.queue:
-            start = time.time()
-            try:
-                c.calculate()
-            except:
-                raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
+            if type(c) is not list:
+                start = time.time()
+                try:
+                    c.calculate()
+                except:
+                    raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
+                c.runtime += time.time() - start
             else:
-                # User can choose output columns
-                if c.in_output(output_columns):
-                    # Variables are always in the output (individual and aggregate)
-                    if isinstance(c, ModelVariable):
-                        if aggregate:
-                            model_point_output[c.model_point_set.name][c.name] = sum(c.result[:, :t_output_max + 1])
-                        else:
-                            model_point_output[c.model_point_set.name][c.name] = c.result[:, :t_output_max + 1].flatten()
-                    # Constants are added only to individual output
-                    if isinstance(c, Constant) and not aggregate:
-                        model_point_output[c.model_point_set.name][c.name] = np.repeat(c.result, t_output_max + 1)
-            c.runtime += time.time() - start
+                for t in range(t_calculation_max + 1):
+
+                    self.result[r, t] = self.formula(t)
+                for item in c:
+
+
+        # Add results to model_point_output
+        for c in self.queue:
+            if c.in_output(output_columns):
+                # Variables are always in the output (individual and aggregate)
+                if isinstance(c, ModelVariable):
+                    if aggregate:
+                        model_point_output[c.model_point_set.name][c.name] = sum(c.result[:, :t_output_max + 1])
+                    else:
+                        model_point_output[c.model_point_set.name][c.name] = c.result[:, :t_output_max + 1].flatten()
+                # Constants are added only to individual output
+                if isinstance(c, Constant) and not aggregate:
+                    model_point_output[c.model_point_set.name][c.name] = np.repeat(c.result, t_output_max + 1)
 
         # Add time and record number to the individual output
         if not aggregate:
