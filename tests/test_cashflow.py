@@ -5,6 +5,7 @@ from unittest import TestCase
 
 from cashflower.start import *
 from cashflower.cashflow import *
+from cashflower.utils import get_object_by_name
 
 
 class TestAssign(TestCase):
@@ -23,6 +24,51 @@ class TestUpdt(TestCase):
     def test_updt(self):
         assert updt(100, 20) is None
         assert updt(100, 110) is None
+
+
+class TestGetColDict(TestCase):
+    def test_get_col_dict(self):
+        settings = load_settings()
+        main = ModelPointSet(data=pd.DataFrame({"id": [1]}), name="main")
+        premium = ModelVariable(name="premium", model_point_set=main)
+        col_dict = get_col_dict(model_point_sets=[main], variables=[premium], constants=[], settings=settings)
+        output_dict = {
+            "main": {
+                "ModelVariable": ["premium"],
+                "Constant": []
+            }
+        }
+        assert col_dict == output_dict
+
+    def test_get_col_dict_with_column_subset(self):
+        settings = load_settings()
+        settings["OUTPUT_COLUMNS"] = ["b"]
+        main = ModelPointSet(data=pd.DataFrame({"id": [1]}), name="main")
+        a = ModelVariable(name="a", model_point_set=main)
+        b = ModelVariable(name="b", model_point_set=main)
+        col_dict = get_col_dict(model_point_sets=[main], variables=[a, b], constants=[], settings=settings)
+        output_dict = {
+            "main": {
+                "ModelVariable": ["b"],
+                "Constant": []
+            }
+        }
+        assert col_dict == output_dict
+
+    def test_get_col_dict_with_constant(self):
+        settings = load_settings()
+        settings["AGGREGATE"] = False
+        main = ModelPointSet(data=pd.DataFrame({"id": [1]}), name="main")
+        a = ModelVariable(name="a", model_point_set=main)
+        b = Constant(name="b", model_point_set=main)
+        col_dict = get_col_dict(model_point_sets=[main], variables=[a], constants=[b], settings=settings)
+        output_dict = {
+            "main": {
+                "ModelVariable": ["a"],
+                "Constant": ["b"]
+            }
+        }
+        assert col_dict == output_dict
 
 
 class TestRunplan(TestCase):
@@ -105,10 +151,10 @@ class TestModelVariable(TestCase):
         premium = ModelVariable()
 
         @assign(premium)
-        def mv_formula(t):
+        def _mv(t):
             pass
 
-        assert premium.assigned_formula == mv_formula
+        assert premium.assigned_formula == _mv
 
         premium.name = "premium"
         assert repr(premium) == "ModelVariable: premium"
@@ -121,10 +167,11 @@ class TestModelVariable(TestCase):
         assert mv > other_mv
 
     def test_model_variable_gets_called(self):
+        settings = load_settings()
         policy = ModelPointSet(
             data=pd.DataFrame({"id": [1]}),
             name="policy",
-            settings=load_settings()
+            settings=settings
         )
         policy.initialize()
 
@@ -211,7 +258,16 @@ class TestModelVariable(TestCase):
 
 class TestConstant(TestCase):
     def test_constant(self):
-        Constant()
+        premium = Constant()
+
+        @assign(premium)
+        def _c():
+            pass
+
+        assert premium.assigned_formula == _c
+
+        premium.name = "premium"
+        assert repr(premium) == "Constant: premium"
 
     def test_constant_is_lower_when_fewer_grandchildren(self):
         p1 = Constant()
@@ -237,6 +293,9 @@ class TestConstant(TestCase):
         p.initialize()
         p.calculate()
         assert p() == 10
+        assert p(0) == 10
+        with pytest.raises(CashflowModelError):
+            p(1)
 
     def test_constant_raises_error_when_formula_has_parameters(self):
         p = Constant()
@@ -260,18 +319,22 @@ class TestModel(TestCase):
         m = ModelVariable(name="my-variable")
         p = Constant(name="my-parameter")
         model = Model(None, [m], [p], None, None)
-        assert model.get_component_by_name("my-variable") == m
-        assert model.get_component_by_name("my-parameter") == p
+        assert get_object_by_name(model.components, "my-variable") == m
+        assert get_object_by_name(model.components, "my-parameter") == p
 
     def test_get_model_point_set_by_name(self):
         mps = ModelPointSet(data=None, name="my-model-point-set")
         model = Model(None, [], [], [mps], None)
-        assert model.get_model_point_set_by_name("my-model-point-set") == mps
+        assert get_object_by_name(model.model_point_sets, "my-model-point-set") == mps
 
     def test_set_children(self):
-        a = ModelVariable(name="a")
-        b = ModelVariable(name="b")
-        c = Constant(name="c")
+        settings = load_settings()
+        main = ModelPointSet(data=pd.DataFrame({"id": [1]}), name="main", settings=settings)
+        main.initialize()
+
+        a = ModelVariable(name="a", model_point_set=main, settings=settings)
+        b = ModelVariable(name="b", model_point_set=main, settings=settings)
+        c = Constant(name="c", model_point_set=main)
 
         @assign(a)
         def a_formula(t):
@@ -343,38 +406,43 @@ class TestModel(TestCase):
         model.set_queue()
         assert model.queue == [c, b, a]
 
-    def test_set_empty_output(self):
-        policy = ModelPointSet(data=pd.DataFrame({"id": [1, 2, 3]}), name="policy")
-        fund = ModelPointSet(data=pd.DataFrame({"id": [1, 2, 2, 3]}), name="fund")
-
-        a = ModelVariable(name="a", model_point_set=policy)
-        b = Constant(name="b", model_point_set=policy)
-        c = ModelVariable(name="c", model_point_set=fund)
-
-        # Aggregate output
+    def test_queue_with_columns_subset(self):
         settings = load_settings()
-        model = Model(None, [a, c], [b], [policy, fund], settings)
-        model.set_empty_output()
 
-        empty_output = {"policy": pd.DataFrame(columns=["t", "a"]), "fund": pd.DataFrame(columns=["t", "c"])}
-        assert_frame_equal(model.empty_output["policy"], empty_output["policy"])
-        assert_frame_equal(model.empty_output["fund"], empty_output["fund"])
+        a = ModelVariable(name="a")
+        b = ModelVariable(name="b")
+        c = ModelVariable(name="c")
 
-        # Individual output
-        settings["AGGREGATE"] = False
-        model = Model(None, [a, c], [b], [policy, fund], settings)
-        model.set_empty_output()
+        a.grandchildren = [c]
+        b.grandchildren = [c]
+        c.grandchildren = []
 
-        empty_output = {
-            "policy": pd.DataFrame(columns=["t", "r", "a", "b"]),
-            "fund": pd.DataFrame(columns=["t", "r", "c"])
-        }
-        assert_frame_equal(model.empty_output["policy"], empty_output["policy"])
-        assert_frame_equal(model.empty_output["fund"], empty_output["fund"])
+        settings["OUTPUT_COLUMNS"] = ["a", "c"]
+        model = Model(None, [a, b, c], [], None, settings)
+        model.set_queue()
+        assert model.queue == [c, a]
 
-    def test_calculate_single_model_point(self):
+    def test_queue_with_columns_subset_and_unnecessary_col(self):
         settings = load_settings()
-        main = ModelPointSet(data=pd.DataFrame({"id": [1]}), name="main")
+
+        a = ModelVariable(name="a")
+        b = ModelVariable(name="b")
+        c = ModelVariable(name="c")
+
+        a.grandchildren = [c]
+        b.grandchildren = [c]
+        c.grandchildren = []
+
+        settings["OUTPUT_COLUMNS"] = ["a", "z", "c"]
+        model = Model(None, [a, b, c], [], None, settings)
+        model.set_queue()
+
+        assert model.queue == [c, a]
+
+    def test_calculate_model_point(self):
+        settings = load_settings()
+        main = ModelPointSet(data=pd.DataFrame({"id": [1]}), name="main", settings=settings)
+        main.initialize()
 
         premium = ModelVariable(name="premium", model_point_set=main, settings=settings)
 
@@ -386,20 +454,21 @@ class TestModel(TestCase):
 
         model = Model(None, [premium], [], [main], settings)
         model.initialize()
-        model_point_output = model.calculate_single_model_point(0, 1, main)
-        test_output = pd.DataFrame({
-            "premium": [1.0] * (settings.get("T_OUTPUT_MAX") + 1)
-        })
-        assert_frame_equal(model_point_output["main"][["premium"]], test_output)
+        col_dict = get_col_dict(model.model_point_sets, model.variables, model.constants, model.settings)
+        model_point_output = model.calculate_model_point(0, 1, main, col_dict)
+        left = model_point_output["main"]["ModelVariable"][:, 0]
+        right = np.array([1.0] * (settings.get("T_OUTPUT_MAX") + 1))
+        assert all(left == right)
 
     def test_calculate(self):
         settings = load_settings()
-        main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="main")
+        main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="main", settings=settings)
+        main.initialize()
 
-        premium = ModelVariable(name="a", model_point_set=main, settings=settings)
+        premium = ModelVariable(name="premium", model_point_set=main, settings=settings)
 
         @assign(premium)
-        def premium_formula(t):
+        def _premium(t):
             return t + 100
 
         premium.initialize()
@@ -408,10 +477,9 @@ class TestModel(TestCase):
         model = Model(None, [premium], [], [main], settings)
         model.initialize()
 
-        model_output = model.calculate()
+        model_output = model.calculate_model()
         test_output = pd.DataFrame({
-            "t": list(range(1201)),
-            "a": [2 * (i + 100) for i in range(1201)]
+            "premium": [2 * (i + 100) for i in range(1201)]
         })
 
         assert_frame_equal(model_output["main"], test_output, check_dtype=False)
@@ -421,32 +489,31 @@ class TestModel(TestCase):
         model = Model(None, [premium], [], [main], settings)
         model.initialize()
 
-        model_output = model.calculate()
+        model_output = model.calculate_model()
         test_output = pd.DataFrame({
-            "t": list(range(1201)) * 2,
             "r": [1 for _ in range(1201 * 2)],
-            "a": [(i + 100) for i in range(1201)] * 2
+            "premium": [(i + 100) for i in range(1201)] * 2
         })
 
         assert_frame_equal(model_output["main"].reset_index(drop=True), test_output.reset_index(drop=True), check_dtype=False)
 
     def test_run(self):
         settings = load_settings()
-        main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="main")
+        main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="main", settings=settings)
+        main.initialize()
 
-        premium = ModelVariable(name="a", model_point_set=main, settings=settings)
+        premium = ModelVariable(name="premium", model_point_set=main, settings=settings)
 
         @assign(premium)
-        def premium_formula(t):
+        def _premium(t):
             return t + 100
 
         premium.initialize()
 
-        test_output = pd.DataFrame({
-            "t": list(range(1201)),
-            "a": [2 * (i + 100) for i in range(1201)]
-        })
+        test_output = pd.DataFrame({"premium": [2 * (i + 100) for i in range(1201)]})
 
         model = Model(None, [premium], [], [main], settings)
-        model_output = model.run()
+        model.initialize()
+
+        model_output, _ = model.run()
         assert_frame_equal(model_output["main"], test_output, check_dtype=False)

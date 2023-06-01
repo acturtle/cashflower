@@ -184,3 +184,37 @@ def cycle_to_str(cycle):
     cycle_names = [c.name for c in cycle]
     cycle_str = " --> ".join(cycle_names) + " --> " + cycle[0].name
     return cycle_str
+
+
+def get_object_by_name(objects, name):
+    for _object in objects:
+        if _object.name == name:
+            return _object
+    return None
+
+
+def lst_to_records(lst):
+    """['a', 'b', 'b', 'c', 'd', 'd', 'd', 'd', 'b'] ---> [1, 1, 2, 1, 1, 2, 3, 4, 1]"""
+    prev = None
+    output = []
+    for i, curr in enumerate(lst):
+        if i == 0:
+            output.append(1)
+        else:
+            if curr == prev:
+                output.append(output[i-1]+1)
+            else:
+                output.append(1)
+        prev = curr
+    return output
+
+
+def flatten(lst):
+    flat_list = []
+    for element in lst:
+        if type(element) is list:
+            for item in element:
+                flat_list.append(item)
+        else:
+            flat_list.append(element)
+    return flat_list

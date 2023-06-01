@@ -49,7 +49,7 @@ class TestLoadSettings(TestCase):
             "SAVE_OUTPUT": True,
             "SAVE_RUNTIME": False,
             "T_CALCULATION_MAX": 100,
-            "T_OUTPUT_MAX": 1200,
+            "T_OUTPUT_MAX": 100,
         }
 
 
@@ -142,6 +142,10 @@ class TestSimpleModel(TestCase):
             "projection_year": [0] + [x for x in range(1, 101) for _ in range(12)],
         })
         assert_frame_equal(model_output["main"], test_output, check_dtype=False)
+
+    def test_simple_model_runs_multiprocessing(self):
+        model_name = "my_test_model"
+        settings = load_settings()
 
         # Multiprocessing
         settings["MULTIPROCESSING"] = True
