@@ -379,7 +379,6 @@ class ModelVariable:
     def calculate(self):
         """Calculate result for all records of the model point."""
         t_calculation_max = self.settings["T_CALCULATION_MAX"]
-        self.result = np.empty((self.model_point_set.model_point_size, t_calculation_max + 1), dtype=float)
 
         for r in range(self.model_point_set.model_point_size):
             self.clear()
@@ -403,6 +402,12 @@ class ModelVariable:
                     for t in range(t_calculation_max, -1, -1):
                         self.result[r, t] = self.formula(t)
 
+    def calculate_t(self, t):
+        for r in range(self.model_point_set.model_point_size):
+            self.clear()
+            self.model_point_set.model_point_record_num = r
+            self.result[r, t] = self.formula(t)
+
     def initialize(self, main=None):
         if self.assigned_formula is None:
             msg = f"\nThe '{self.name}' variable has no formula. Please check the 'model.py' script."
@@ -412,6 +417,7 @@ class ModelVariable:
             self.model_point_set = main
 
         self.formula = self.assigned_formula
+        self.result = np.empty((self.model_point_set.model_point_size, self.settings["T_CALCULATION_MAX"] + 1), dtype=float)
 
 
 class Constant:
@@ -572,7 +578,7 @@ class Model:
         queue = []
         log = None
 
-        # User has chosen components, so there is no need to calculate all of them
+        # User has chosen components, so limit them
         if len(self.settings["OUTPUT_COLUMNS"]) > 0:
             components = []
             for component_name in self.settings["OUTPUT_COLUMNS"]:
@@ -594,10 +600,14 @@ class Model:
                 cycle = get_cycle(component, rest=components)
                 msg = f"Cycle of model components detected. Please review:\n {cycle_to_str(cycle)}"
                 raise CashflowModelError(msg)
-
-            queue.append(component)
-            self.remove_from_grandchildren(component)
-            components.remove(component)
+                queue.append(cycle)
+                for item in cycle:
+                    self.remove_from_grandchildren(item)
+                    components.remove(item)
+            else:
+                queue.append(component)
+                self.remove_from_grandchildren(component)
+                components.remove(component)
             components = sorted(components)
         self.queue = queue
         return log
@@ -619,13 +629,24 @@ class Model:
         model_point_output = col_dict_to_model_point_output(col_dict, self.settings, records)
         col_components = flatten_col_dict(col_dict)
 
+        # Calculate results
         for c in self.queue:
-            start = time.time()
-            try:
-                c.calculate()
-            except:
-                raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
+            # Single model component
+            if type(c) is not list:
+                start = time.time()
+                try:
+                    c.calculate()
+                except:
+                    raise CashflowModelError(f"Unable to evaluate '{c.name}'.")
+                c.runtime += time.time() - start
+            else:
+                pass
+                # for t in range(t_calculation_max + 1):
+                #     self.result[r, t] = self.formula(t)
+                # for item in c:
 
+        # Add results to model_point_output
+        for c in self.queue:
             if c.name in col_components:
                 if isinstance(c, ModelVariable):
                     index = col_dict[c.model_point_set.name]["ModelVariable"].index(c.name)
@@ -639,7 +660,6 @@ class Model:
                     result = np.repeat(c.result, self.settings["T_OUTPUT_MAX"] + 1)
                     result = result.astype(np.object_, copy=False)
                     model_point_output[c.model_point_set.name]["Constant"][:, index] = result
-            c.runtime += time.time() - start
 
         if one_core:
             updt(pb_max, row + 1)
