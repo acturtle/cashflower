@@ -620,7 +620,6 @@ class Model:
                 components.remove(component)
             components = sorted(components)
         self.queue = queue
-        print("queue:\n", queue)
         return log
 
     def initialize(self):

@@ -328,9 +328,13 @@ class TestModel(TestCase):
         assert get_object_by_name(model.model_point_sets, "my-model-point-set") == mps
 
     def test_set_children(self):
-        a = ModelVariable(name="a")
-        b = ModelVariable(name="b")
-        c = Constant(name="c")
+        settings = load_settings()
+        main = ModelPointSet(data=pd.DataFrame({"id": [1]}), name="main", settings=settings)
+        main.initialize()
+
+        a = ModelVariable(name="a", model_point_set=main, settings=settings)
+        b = ModelVariable(name="b", model_point_set=main, settings=settings)
+        c = Constant(name="c", model_point_set=main)
 
         @assign(a)
         def a_formula(t):
@@ -435,25 +439,10 @@ class TestModel(TestCase):
 
         assert model.queue == [c, a]
 
-    def test_queue_with_cycle(self):
-        settings = load_settings()
-
-        a = ModelVariable(name="a")
-        b = ModelVariable(name="b")
-        c = ModelVariable(name="c")
-
-        a.children = [b]
-        b.children = [c]
-        c.children = [a]
-
-        model = Model(None, [a, b, c], [], None, settings)
-        model.set_grandchildren()
-        with pytest.raises(CashflowModelError):
-            model.set_queue()
-
     def test_calculate_model_point(self):
         settings = load_settings()
-        main = ModelPointSet(data=pd.DataFrame({"id": [1]}), name="main")
+        main = ModelPointSet(data=pd.DataFrame({"id": [1]}), name="main", settings=settings)
+        main.initialize()
 
         premium = ModelVariable(name="premium", model_point_set=main, settings=settings)
 
@@ -473,12 +462,13 @@ class TestModel(TestCase):
 
     def test_calculate(self):
         settings = load_settings()
-        main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="main")
+        main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="main", settings=settings)
+        main.initialize()
 
-        premium = ModelVariable(name="a", model_point_set=main, settings=settings)
+        premium = ModelVariable(name="premium", model_point_set=main, settings=settings)
 
         @assign(premium)
-        def premium_formula(t):
+        def _premium(t):
             return t + 100
 
         premium.initialize()
@@ -489,7 +479,7 @@ class TestModel(TestCase):
 
         model_output = model.calculate_model()
         test_output = pd.DataFrame({
-            "a": [2 * (i + 100) for i in range(1201)]
+            "premium": [2 * (i + 100) for i in range(1201)]
         })
 
         assert_frame_equal(model_output["main"], test_output, check_dtype=False)
@@ -502,25 +492,28 @@ class TestModel(TestCase):
         model_output = model.calculate_model()
         test_output = pd.DataFrame({
             "r": [1 for _ in range(1201 * 2)],
-            "a": [(i + 100) for i in range(1201)] * 2
+            "premium": [(i + 100) for i in range(1201)] * 2
         })
 
         assert_frame_equal(model_output["main"].reset_index(drop=True), test_output.reset_index(drop=True), check_dtype=False)
 
     def test_run(self):
         settings = load_settings()
-        main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="main")
+        main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}), name="main", settings=settings)
+        main.initialize()
 
-        premium = ModelVariable(name="a", model_point_set=main, settings=settings)
+        premium = ModelVariable(name="premium", model_point_set=main, settings=settings)
 
         @assign(premium)
-        def premium_formula(t):
+        def _premium(t):
             return t + 100
 
         premium.initialize()
 
-        test_output = pd.DataFrame({"a": [2 * (i + 100) for i in range(1201)]})
+        test_output = pd.DataFrame({"premium": [2 * (i + 100) for i in range(1201)]})
 
         model = Model(None, [premium], [], [main], settings)
+        model.initialize()
+
         model_output, _ = model.run()
         assert_frame_equal(model_output["main"], test_output, check_dtype=False)

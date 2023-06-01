@@ -151,3 +151,10 @@ class TestLstToRecords(TestCase):
         left = ['a', 'b', 'b', 'c', 'd', 'd', 'd', 'd', 'b']
         right = [1, 1, 2, 1, 1, 2, 3, 4, 1]
         assert lst_to_records(left) == right
+
+
+# class TestFlatten(TestCase):
+#     def test_flatten(self):
+#         lst = [1, [2, 3, 4], 5]
+#         flat_lst = [1, 2, 3, 4, 5]
+#         assert flatten(lst) == flat_lst
