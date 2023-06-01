@@ -207,3 +207,14 @@ def lst_to_records(lst):
                 output.append(1)
         prev = curr
     return output
+
+
+def flatten(lst):
+    flat_list = []
+    for element in lst:
+        if type(element) is list:
+            for item in element:
+                flat_list.append(item)
+        else:
+            flat_list.append(element)
+    return flat_list
