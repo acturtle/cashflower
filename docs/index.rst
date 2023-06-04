@@ -4,8 +4,22 @@
    contain the root `toctree` directive.
 
 
-cashflower documentation
-========================
+cashflower
+==========
+
+About
+^^^^^
+
+Cashflower is an open-source Python framework for actuarial cash flow models.
+
+Help us!
+^^^^^^^^
+
+We'd love your feedback! If you encounter an issue or have suggestions on how to make the package better, please
+`open an issue <https://github.com/acturtle/cashflower/issues>`_ or
+`raise a discussion <https://github.com/acturtle/cashflower/discussions>`_.
+
+|
 
 .. toctree::
    :maxdepth: 2
