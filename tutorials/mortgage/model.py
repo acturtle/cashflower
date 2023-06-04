@@ -3,11 +3,11 @@ from cashflower import assign, ModelVariable, Constant
 from tutorials.mortgage.input import main
 
 
-monthly_interest_rate = Constant(model_point_set=main)
-payment = Constant(model_point_set=main)
-balance = ModelVariable(model_point_set=main)
-interest = ModelVariable(model_point_set=main)
-principal = ModelVariable(model_point_set=main)
+monthly_interest_rate = Constant()
+payment = Constant()
+balance = ModelVariable()
+interest = ModelVariable()
+principal = ModelVariable()
 
 
 @assign(monthly_interest_rate)
