@@ -9,3 +9,4 @@ Tutorials
    life_insurance
    annuity
    bond
+   mortgage
