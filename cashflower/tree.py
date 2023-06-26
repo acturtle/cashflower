@@ -1,12 +1,15 @@
 import ast
 import inspect
+import matplotlib.pyplot as plt
+import networkx as nx
 
 from cashflower.cashflow import CashflowModelError
+from cashflower.graph import get_nodes_without_predecessors
 
 
 def func_a(t):
-    if t > 5:
-        if t < 10:
+    if t > 1:
+        if t < 3:
             z = func_b(t)
             return z
     return func_c(t-1)
@@ -17,10 +20,10 @@ def func_b(t):
 
 
 def func_c(t):
-    return func_b(t)
+    return func_b(0)
 
 
-T_MAX = 13
+T_MAX = 3
 
 
 class Dependency:
@@ -53,6 +56,7 @@ class Visitor(ast.NodeVisitor):
         arg = get_arg(node, self.func.__name__)
         ifs = get_parent_ifs(node)
         subset = ifs_to_subset(ifs)
+        # dependency = Dependency(self.func.__name__, node.func.id, arg, subset)
         dependency = Dependency(self.func.__name__, node.func.id, arg, subset)
         self.dependencies.append(dependency)
 
@@ -168,8 +172,48 @@ def ifs_to_subset(ifs):
 
 
 if __name__ == "__main__":
-    func = func_a
     # print(ast.dump(ast.parse(inspect.getsource(func)), indent=2))
-    x = get_dependencies(func)
-    for el in x:
-        print(el)
+
+    # Create graph for all func-period tuples
+    DG = nx.DiGraph()
+    funcs = ["func_a", "func_b", "func_c"]
+    for func in funcs:
+        for period in range(0, T_MAX):
+            DG.add_node((func, period))
+
+    # How to add edge from Dependency?
+    def add_edges_from_dependency(dependency, DG):
+        if dependency.arg == "t":
+            for period in dependency.subset:
+                DG.add_edge((dependency.func, period), (dependency.call, period))
+
+        if dependency.arg == "t-1":
+            for period in dependency.subset:
+                if period - 1 >= 0:
+                    DG.add_edge((dependency.func, period), (dependency.call, period-1))
+
+        if dependency.arg == "t+1":
+            for period in dependency.subset:
+                if period + 1 <= T_MAX:
+                    DG.add_edge((dependency.func, period), (dependency.call, period + 1))
+
+        if dependency.arg is None: #TODO
+            for period_1 in range(0, T_MAX):
+                for period_2 in range(0, T_MAX):
+                    DG.add_edge((dependency.func, period_1), (dependency.call, period_2))
+        return None
+
+    # Add edges to the graph
+    for func in funcs:
+        # TODO - change str to actual function
+        dependencies = get_dependencies(func)
+        for dependency in dependencies:
+            add_edges_from_dependency(dependency, DG)
+
+    # Find all nodes without predecessors
+    for node in DG.nodes:
+        print(node)
+
+    # Draw
+    # nx.draw(DG, with_labels=True)
+    # plt.show()
