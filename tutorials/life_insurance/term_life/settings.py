@@ -4,6 +4,6 @@ settings = {
     "OUTPUT_COLUMNS": [],
     "ID_COLUMN": "id",
     "SAVE_RUNTIME": False,
-    "T_CALCULATION_MAX": 1200,
-    "T_OUTPUT_MAX": 1200,
+    "T_MAX_CALCULATION": 1200,
+    "T_MAX_OUTPUT": 1200,
 }

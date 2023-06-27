@@ -26,8 +26,8 @@ class TestLoadSettings(TestCase):
             "ID_COLUMN": "id",
             "SAVE_OUTPUT": True,
             "SAVE_RUNTIME": False,
-            "T_CALCULATION_MAX": 1200,
-            "T_OUTPUT_MAX": 1200,
+            "T_MAX_CALCULATION": 1200,
+            "T_MAX_OUTPUT": 1200,
         }
         assert load_settings() == default_settings
 
@@ -37,7 +37,7 @@ class TestLoadSettings(TestCase):
 
         my_settings2 = {
             "ID_COLUMN": "polnumber",
-            "T_CALCULATION_MAX": 100,
+            "T_MAX_CALCULATION": 100,
             "OUTPUT_COLUMNS": ["a", "b", "c"],
         }
         settings = load_settings(my_settings2)
@@ -48,8 +48,8 @@ class TestLoadSettings(TestCase):
             "ID_COLUMN": "polnumber",
             "SAVE_OUTPUT": True,
             "SAVE_RUNTIME": False,
-            "T_CALCULATION_MAX": 100,
-            "T_OUTPUT_MAX": 100,
+            "T_MAX_CALCULATION": 100,
+            "T_MAX_OUTPUT": 100,
         }
 
 
@@ -138,7 +138,7 @@ class TestSimpleModel(TestCase):
         shutil.rmtree(model_name)
         shutil.rmtree("output")
         test_output = pd.DataFrame({
-            "t": range(settings["T_CALCULATION_MAX"]+1),
+            "t": range(settings["T_MAX_CALCULATION"]+1),
             "projection_year": [0] + [x for x in range(1, 101) for _ in range(12)],
         })
         assert_frame_equal(model_output["main"], test_output, check_dtype=False)
@@ -154,7 +154,7 @@ class TestSimpleModel(TestCase):
         shutil.rmtree(model_name)
         shutil.rmtree("output")
         test_output = pd.DataFrame({
-            "t": range(settings["T_CALCULATION_MAX"] + 1),
+            "t": range(settings["T_MAX_CALCULATION"] + 1),
             "projection_year": [0] + [x for x in range(1, 101) for _ in range(12)],
         })
         assert_frame_equal(model_output["main"], test_output, check_dtype=False)

@@ -30,10 +30,10 @@ The table below summarizes available settings.
    * - SAVE_RUNTIME
      - :code:`True` / :code:`False`
      - Flag if an additional file should be created which contains runtime of variables.
-   * - T_CALCULATION_MAX
+   * - T_MAX_CALCULATION
      - integer
      - The maximal month for calculation.
-   * - T_OUTPUT_MAX
+   * - T_MAX_OUTPUT
      - integer
      - The maximal month for output files.
 
@@ -365,9 +365,9 @@ Measuring runtime is not possible using multiprocessing.
 Maximal calculation time
 ------------------------
 
-The :code:`T_CALCULATION_MAX` is the maximal month of the calculation.
+The :code:`T_MAX_CALCULATION` is the maximal month of the calculation.
 
-The model will calculate results for all time periods from :code:`0` to :code:`T_CALCULATION_MAX`.
+The model will calculate results for all time periods from :code:`0` to :code:`T_MAX_CALCULATION`.
 
 By default, the setting is set to :code:`1200` months (:code:`100` years).
 
@@ -376,7 +376,7 @@ By default, the setting is set to :code:`1200` months (:code:`100` years).
 Maximal output time
 -------------------
 
-The :code:`T_OUTPUT_MAX` is the maximal month in the output file.
+The :code:`T_MAX_OUTPUT` is the maximal month in the output file.
 
 By default, the model will save results for :code:`1200` months.
 
@@ -385,7 +385,7 @@ By default, the model will save results for :code:`1200` months.
 
     settings = {
         ...
-        "T_OUTPUT_MAX": 1200,
+        "T_MAX_OUTPUT": 1200,
         ...
     }
 
@@ -396,7 +396,7 @@ If the setting gets changed, then the number of rows in the output file will cha
 
     settings = {
         ...
-        "T_OUTPUT_MAX": 3,
+        "T_MAX_OUTPUT": 3,
         ...
     }
 
@@ -411,7 +411,7 @@ The file saves only results for the first 3 months.
     2,27108.11
     3,27162.32
 
-:code:`T_OUTPUT_MAX` can't be greater than :code:`T_CALCULATION_MAX`.
+:code:`T_MAX_OUTPUT` can't be greater than :code:`T_MAX_CALCULATION`.
 
 .. WARNING::
-    :code:`T_OUTPUT_MAX` will always output :code:`min(T_OUTPUT_MAX, T_CALCULATION_MAX)` periods.
+    :code:`T_MAX_OUTPUT` will always output :code:`min(T_MAX_OUTPUT, T_MAX_CALCULATION)` periods.

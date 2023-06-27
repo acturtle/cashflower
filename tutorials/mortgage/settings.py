@@ -5,6 +5,6 @@ settings = {
     "OUTPUT_COLUMNS": [],
     "SAVE_OUTPUT": True,
     "SAVE_RUNTIME": False,
-    "T_CALCULATION_MAX": 360,
-    "T_OUTPUT_MAX": 360,
+    "T_MAX_CALCULATION": 360,
+    "T_MAX_OUTPUT": 360,
 }

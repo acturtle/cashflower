@@ -1,6 +1,9 @@
+import ast
 import copy
 import functools
 import inspect
+import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 import time
 import pandas as pd
@@ -8,6 +11,210 @@ import sys
 
 
 from .utils import *
+
+
+def binop_to_arg(node):
+    """Currently only fetching t+1 and t-1 arguments."""
+    arg = None
+    binop = node.args[0]
+
+    c1 = isinstance(binop.left, ast.Name)
+    c2 = isinstance(binop.right, ast.Constant)
+    c3 = isinstance(binop.op, ast.Add)
+    c4 = isinstance(binop.op, ast.Sub)
+
+    if c1 and c2 and c3:
+        if binop.right.value == 1:
+            arg = "t+1"
+
+    if c1 and c2 and c4:
+        if binop.right.value == 1:
+            arg = "t-1"
+
+    return arg
+
+
+def get_arg(node, name):
+    arg = None
+
+    if len(node.args) != 1:
+        msg = f"Model variable must have one argument. " \
+              f"Please review the call of '{node.func.id}' in the definition of '{name}'."
+        raise CashflowModelError(msg)
+
+    # The function has a single argument
+    if isinstance(node.args[0], ast.Name):
+        arg = node.args[0].id
+
+    # The function has a binary operator as an argument
+    if isinstance(node.args[0], ast.BinOp):
+        arg = binop_to_arg(node)
+
+    return arg
+
+
+def get_parent_ifs(node):
+    """Return list of If nodes which are parents of the node."""
+    ifs = []
+    current_node = node
+    while current_node is not None:
+        if isinstance(current_node, ast.If):
+            ifs.append(current_node)
+        current_node = current_node.parent
+    return ifs
+
+
+def add_parent(root):
+    """Add parent directly to make it easier for analysis."""
+    root.parent = None
+    for node in ast.walk(root):
+        for child in ast.iter_child_nodes(node):
+            child.parent = node
+    return None
+
+
+def if_to_subset(_if, T_MAX):
+    subset = [0, None]
+
+    c1 = _if.test.left.id == "t"
+    c2 = len(_if.test.comparators) == 1
+    c3 = len(_if.test.ops) == 1
+
+    if c1 and c2 and c3:
+        if isinstance(_if.test.comparators[0], ast.Constant):
+            value = _if.test.comparators[0].value
+            op = _if.test.ops[0]
+
+            if isinstance(op, ast.Eq):
+                subset = set(value)
+
+            if isinstance(op, ast.NotEq):
+                subset = set([*range(0, value)] + [*range(value+1, T_MAX)])
+
+            if isinstance(op, ast.Lt):
+                subset = set(range(0, value))
+
+            if isinstance(op, ast.LtE):
+                subset = set(range(0, value+1))
+
+            if isinstance(op, ast.Gt):
+                subset = set(range(value+1, T_MAX))
+
+            if isinstance(op, ast.GtE):
+                subset = set(range(value, T_MAX))
+
+    return subset
+
+
+def ifs_to_subset(ifs, settings):
+    T_MAX = settings["T_MAX_CALCULATION"]+1
+    subset = set(range(0, T_MAX))
+    for idx, _if in enumerate(ifs):
+        if idx == 0:
+            subset = if_to_subset(_if, T_MAX)
+        else:
+            subset = subset & if_to_subset(_if)
+    return subset
+
+
+class Visitor(ast.NodeVisitor):
+    def __init__(self, func, variable_names, settings):
+        self.func = func
+        self.variable_names = variable_names
+        self.settings = settings
+        self.dependencies = []
+
+    def visit_Call(self, node):
+        if isinstance(node.func, ast.Name) and node.func.id in self.variable_names:
+            arg = get_arg(node, self.func.__name__)
+            ifs = get_parent_ifs(node)
+            subset = ifs_to_subset(ifs, self.settings)
+            dependency = Dependency(self.func.__name__, node.func.id, arg, subset)
+            # dependency = Dependency(self.func, node.func, arg, subset)
+            self.dependencies.append(dependency)
+
+
+def get_dependencies(func, variable_names, settings):
+    visitor = Visitor(func, variable_names, settings)
+    code = ast.parse(inspect.getsource(func))
+    add_parent(code)
+    visitor.visit(code)
+    return visitor.dependencies
+
+
+def add_edges_from_dependency(dependency, DG, T_MAX):
+    if dependency.arg == "t":
+        for period in dependency.subset:
+            DG.add_edge((dependency.call, period), (dependency.func, period))
+
+    if dependency.arg == "t-1":
+        for period in dependency.subset:
+            if period - 1 >= 0:
+                DG.add_edge((dependency.call, period-1), (dependency.func, period))
+
+    if dependency.arg == "t+1":
+        for period in dependency.subset:
+            if period + 1 <= T_MAX:
+                DG.add_edge((dependency.call, period + 1), (dependency.func, period))
+
+    if dependency.arg is None: #TODO
+        for period_1 in range(0, T_MAX):
+            for period_2 in range(0, T_MAX):
+                DG.add_edge((dependency.call, period_1), (dependency.func, period_2))
+    return None
+
+
+class Dependency:
+    def __init__(self, func, call, arg, subset):
+        self.func = func
+        self.call = call
+        self.arg = arg
+        self.subset = subset
+
+    def __repr__(self):
+        return f"\nDependency:\n" \
+               f"\tfunc: {self.func}, \n" \
+               f"\tcall: {self.call}, \n" \
+               f"\targ: {self.arg}, \n" \
+               f"\tsubset: {self.subset}"
+
+
+class Variable:
+    def __init__(self, func):
+        self.func = func
+        self.name = None
+        self._settings = None
+        self.result = None
+
+    @property
+    def settings(self):
+        return self._settings
+
+    @settings.setter
+    def settings(self, new_settings):
+        self._settings = new_settings
+        self.result = [None for _ in range(0, self.settings["T_MAX_CALCULATION"]+1)]
+
+    def __repr__(self):
+        return f"V: {self.func.__name__}"
+
+    def calculate_t(self, t):
+        self.result[t] = self.func(t)
+        return self.result[t]
+
+    def __call__(self, t):
+        if t < 0 or t > self.settings["T_MAX_CALCULATION"]:
+            return 0
+
+        return self.result[t]
+
+
+def variable():
+    """Decorator"""
+    def wrapper(func):
+        variable = Variable(func)
+        return variable
+    return wrapper
 
 
 def assign(var):
@@ -79,13 +286,13 @@ def col_dict_to_model_point_output(col_dict, settings, records):
     | fund | ModelVariable = matrix(n3 x m3)
     |      | Constant      = matrix(n4 x m4)
     m_x = num_components (may be zero)
-    n_x = t_output_max (* num_records if individual output)
+    n_x = T_MAX_OUTPUT (* num_records if individual output)
     """
     model_point_output = copy.deepcopy(col_dict)
 
     for model_point_set_name in col_dict.keys():
         num_records = 1 if settings["AGGREGATE"] else records[model_point_set_name]
-        n = (settings["T_OUTPUT_MAX"]+1) * num_records
+        n = (settings["T_MAX_OUTPUT"]+1) * num_records
 
         m = len(col_dict[model_point_set_name]["ModelVariable"])
         model_point_output[model_point_set_name]["ModelVariable"] = np.zeros((n, m), dtype=np.float64)
@@ -334,7 +541,7 @@ class ModelVariable:
         if t is None:
             return self.result[self.model_point_set.model_point_record_num, :]
 
-        if t < 0 or t > self.settings["T_CALCULATION_MAX"]:
+        if t < 0 or t > self.settings["T_MAX_CALCULATION"]:
             return 0
 
         # User might call lower order variable from higher order variable and specify record (r)
@@ -382,7 +589,7 @@ class ModelVariable:
 
     def calculate(self):
         """Calculate result for all records of the model point."""
-        t_calculation_max = self.settings["T_CALCULATION_MAX"]
+        T_MAX_CALCULATION = self.settings["T_MAX_CALCULATION"]
 
         for r in range(self.model_point_set.model_point_size):
             self.clear()
@@ -396,14 +603,14 @@ class ModelVariable:
             else:
                 # not recursive
                 if self.recursive == 0:
-                    self.result[r, :] = [*map(self.formula, range(t_calculation_max+1))]
+                    self.result[r, :] = [*map(self.formula, range(T_MAX_CALCULATION+1))]
                 # recursive forward
                 elif self.recursive == 1:
-                    for t in range(t_calculation_max+1):
+                    for t in range(T_MAX_CALCULATION+1):
                         self.result[r, t] = self.formula(t)
                 # recursive backward
                 else:
-                    for t in range(t_calculation_max, -1, -1):
+                    for t in range(T_MAX_CALCULATION, -1, -1):
                         self.result[r, t] = self.formula(t)
 
     def calculate_t(self, t):
@@ -422,7 +629,7 @@ class ModelVariable:
             self.model_point_set = main
 
         self.formula = self.assigned_formula
-        self.result = np.empty((self.model_point_set.model_point_size, self.settings["T_CALCULATION_MAX"] + 1),
+        self.result = np.empty((self.model_point_set.model_point_size, self.settings["T_MAX_CALCULATION"] + 1),
                                dtype=float)
         self.result[:] = np.nan
 
@@ -651,7 +858,7 @@ class Model:
                 c.runtime += time.time() - start
             # It's a cycle
             else:
-                for t in range(self.settings["T_CALCULATION_MAX"] + 1):
+                for t in range(self.settings["T_MAX_CALCULATION"] + 1):
                     for item in c:
                         try:
                             x = item.calculate_t(t)
@@ -664,13 +871,13 @@ class Model:
                 if isinstance(c, ModelVariable):
                     index = col_dict[c.model_point_set.name]["ModelVariable"].index(c.name)
                     if self.settings["AGGREGATE"]:
-                        result = sum(c.result[:, :self.settings["T_OUTPUT_MAX"] + 1])
+                        result = sum(c.result[:, :self.settings["T_MAX_OUTPUT"] + 1])
                     else:
-                        result = (c.result[:, :self.settings["T_OUTPUT_MAX"] + 1]).flatten()
+                        result = (c.result[:, :self.settings["T_MAX_OUTPUT"] + 1]).flatten()
                     model_point_output[c.model_point_set.name]["ModelVariable"][:, index] = result
                 if isinstance(c, Constant):
                     index = col_dict[c.model_point_set.name]["Constant"].index(c.name)
-                    result = np.repeat(c.result, self.settings["T_OUTPUT_MAX"] + 1)
+                    result = np.repeat(c.result, self.settings["T_MAX_OUTPUT"] + 1)
                     result = result.astype(np.object_, copy=False)
                     model_point_output[c.model_point_set.name]["Constant"][:, index] = result
 
@@ -724,7 +931,7 @@ class Model:
                     ids = [_id for _id in ids if _id in main_ids]
 
                     records = lst_to_records(ids)
-                    model_output[key].insert(0, "r", np.repeat(records, self.settings["T_OUTPUT_MAX"]+1))
+                    model_output[key].insert(0, "r", np.repeat(records, self.settings["T_MAX_OUTPUT"]+1))
 
         self.output = model_output
         return model_output
@@ -732,9 +939,89 @@ class Model:
     def run(self, part=None):
         """Orchestrate all steps of the cash flow model run."""
         one_core = part == 0 or part is None
-
         if one_core:
             print_log(f"Start run for model '{self.name}'")
+
+        # Print variables
+        # print("variables --->", self.variables)
+
+        # Create directed graph for all variable-period tuples
+        DG = nx.DiGraph()
+        for variable in self.variables:
+            for period in range(0, self.settings["T_MAX_CALCULATION"]+1):
+                DG.add_node((variable, period))
+
+        # Create dependencies
+        variable_names = [variable.name for variable in self.variables]
+        dependencies = []
+
+        for variable in self.variables:
+            # print("tree --->")
+            # print(ast.dump(ast.parse(inspect.getsource(variable.func)), indent=2))
+            variable_dependencies = get_dependencies(variable.func, variable_names, self.settings)
+            dependencies.append(variable_dependencies)
+            # print("dependencies --->")
+            # print(variable_dependencies, "\n")
+        dependencies = flatten(dependencies)
+
+        # Replace names with variables
+        def get_variable_by_name(name):
+            for variable in self.variables:
+                if variable.name == name:
+                    return variable
+            return None
+
+        for dependency in dependencies:
+            dependency.func = get_variable_by_name(dependency.func)
+            dependency.call = get_variable_by_name(dependency.call)
+
+        # Add edges to the graph
+        for dependency in dependencies:
+            add_edges_from_dependency(dependency, DG, self.settings["T_MAX_CALCULATION"]+1)
+
+        # nx.draw(DG, with_labels=True)
+        # plt.show()
+
+        # Get an order of calculations
+        ordered_nodes = []
+        while DG.nodes:
+            nodes_without_predecessors = [node for node in DG.nodes if len(list(DG.predecessors(node))) == 0]
+            ordered_nodes.append(nodes_without_predecessors)
+            DG.remove_nodes_from(nodes_without_predecessors)
+        ordered_nodes = flatten(ordered_nodes)
+
+        # Get column names
+        columns = [variable.name for variable in self.variables]
+        results = []
+
+        # Iterate over model points
+        main = get_object_by_name(self.model_point_sets, "main")
+        for row in range(0, len(main)):
+            model_point_id = main.model_point_set_data.index[row]
+            print("---------->", model_point_id)
+            for model_point_set in self.model_point_sets:
+                model_point_set.id = model_point_id
+
+            # Perform calculations
+            for node in ordered_nodes:
+                variable = node[0]
+                t = node[1]
+                variable.calculate_t(t)
+
+            # Get results
+            data = [variable.result for variable in self.variables]
+            data = map(list, zip(*data))  # transpose
+            dataframe = pd.DataFrame(data, columns=columns)
+            results.append(dataframe)
+
+        result = pd.concat(results)
+        print(result)
+
+        # result.to_csv("result.csv")
+
+
+        ##############################################################################################################
+
 
         # Prepare the order of variables for the calculation
         log = self.initialize()

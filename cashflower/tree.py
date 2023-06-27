@@ -25,6 +25,12 @@ def func_c(t):
 
 T_MAX = 3
 
+MAPPING = {
+    "func_a": func_a,
+    "func_b": func_b,
+    "func_c": func_c
+}
+
 
 class Dependency:
     def __init__(self, func, call, arg, subset):
@@ -42,12 +48,6 @@ class Dependency:
 
 
 class Visitor(ast.NodeVisitor):
-    """Gather:
-    function = func_a
-    call = func_b
-    arg = t+1
-    subset = [0, 10]
-    """
     def __init__(self, func):
         self.func = func
         self.dependencies = []
@@ -171,6 +171,28 @@ def ifs_to_subset(ifs):
     return subset
 
 
+def add_edges_from_dependency(dependency, DG):
+    if dependency.arg == "t":
+        for period in dependency.subset:
+            DG.add_edge((dependency.call, period), (dependency.func, period))
+
+    if dependency.arg == "t-1":
+        for period in dependency.subset:
+            if period - 1 >= 0:
+                DG.add_edge((dependency.call, period-1), (dependency.func, period))
+
+    if dependency.arg == "t+1":
+        for period in dependency.subset:
+            if period + 1 <= T_MAX:
+                DG.add_edge((dependency.call, period + 1), (dependency.func, period))
+
+    if dependency.arg is None: #TODO
+        for period_1 in range(0, T_MAX):
+            for period_2 in range(0, T_MAX):
+                DG.add_edge((dependency.call, period_1), (dependency.func, period_2))
+    return None
+
+
 if __name__ == "__main__":
     # print(ast.dump(ast.parse(inspect.getsource(func)), indent=2))
 
@@ -181,39 +203,17 @@ if __name__ == "__main__":
         for period in range(0, T_MAX):
             DG.add_node((func, period))
 
-    # How to add edge from Dependency?
-    def add_edges_from_dependency(dependency, DG):
-        if dependency.arg == "t":
-            for period in dependency.subset:
-                DG.add_edge((dependency.func, period), (dependency.call, period))
-
-        if dependency.arg == "t-1":
-            for period in dependency.subset:
-                if period - 1 >= 0:
-                    DG.add_edge((dependency.func, period), (dependency.call, period-1))
-
-        if dependency.arg == "t+1":
-            for period in dependency.subset:
-                if period + 1 <= T_MAX:
-                    DG.add_edge((dependency.func, period), (dependency.call, period + 1))
-
-        if dependency.arg is None: #TODO
-            for period_1 in range(0, T_MAX):
-                for period_2 in range(0, T_MAX):
-                    DG.add_edge((dependency.func, period_1), (dependency.call, period_2))
-        return None
-
     # Add edges to the graph
     for func in funcs:
-        # TODO - change str to actual function
+        func = MAPPING[func]
         dependencies = get_dependencies(func)
         for dependency in dependencies:
             add_edges_from_dependency(dependency, DG)
 
     # Find all nodes without predecessors
     for node in DG.nodes:
-        print(node)
+        print(node, "---", list(DG.predecessors(node)))
 
     # Draw
-    # nx.draw(DG, with_labels=True)
-    # plt.show()
+    nx.draw(DG, with_labels=True)
+    plt.show()

@@ -7,7 +7,7 @@ import os
 import pandas as pd
 import shutil
 
-from .cashflow import CashflowModelError, ModelVariable, ModelPointSet, Model, Constant, Runplan
+from .cashflow import CashflowModelError, ModelVariable, ModelPointSet, Model, Constant, Runplan, Variable
 from .utils import print_log, replace_in_file
 
 
@@ -47,8 +47,8 @@ def load_settings(settings=None):
         "ID_COLUMN": "id",
         "SAVE_OUTPUT": True,
         "SAVE_RUNTIME": False,
-        "T_CALCULATION_MAX": 1200,
-        "T_OUTPUT_MAX": 1200,
+        "T_MAX_CALCULATION": 1200,
+        "T_MAX_OUTPUT": 1200,
     }
 
     if settings is None:
@@ -59,10 +59,10 @@ def load_settings(settings=None):
         initial_settings[key] = value
 
     # Maximal output t can't exceed maximal calculation t
-    if initial_settings["T_CALCULATION_MAX"] < initial_settings["T_OUTPUT_MAX"]:
-        initial_settings["T_OUTPUT_MAX"] = initial_settings["T_CALCULATION_MAX"]
-        msg = "The T_CALCULATION_MAX setting is greater than the T_OUTPUT_MAX setting. " \
-              "T_OUTPUT_MAX has been set to T_CALCULATION_MAX."
+    if initial_settings["T_MAX_CALCULATION"] < initial_settings["T_MAX_OUTPUT"]:
+        initial_settings["T_MAX_OUTPUT"] = initial_settings["T_MAX_CALCULATION"]
+        msg = "The T_MAX_CALCULATION setting is greater than the T_MAX_OUTPUT setting. " \
+              "T_MAX_OUTPUT has been set to T_MAX_CALCULATION."
         print_log(msg)
 
     return initial_settings
@@ -98,8 +98,23 @@ def get_model_point_sets(input_members, settings):
     return model_point_sets, main
 
 
+def get_variables_new(model_members, main, settings):
+    """Get model variables from model.py script."""
+    variable_members = [m for m in model_members if isinstance(m[1], Variable)]
+    variables = []
+
+    for name, variable in variable_members:
+        if name in ["t", "r"]:
+            msg = f"\nA variable can not be named '{name}' because it is a system variable. Please rename it."
+            raise CashflowModelError(msg)
+        variable.name = name
+        variable.settings = settings
+        variables.append(variable)
+    return variables
+
+
 def get_variables(model_members, main, settings):
-    """Get model variables from input.py script."""
+    """Get model variables from model.py script."""
     variable_members = [m for m in model_members if isinstance(m[1], ModelVariable)]
     variables = []
 
@@ -140,7 +155,8 @@ def prepare_model_input(model_name, settings, argv):
 
     # model.py contains model variables and constants
     model_members = inspect.getmembers(model_module)
-    variables = get_variables(model_members, main, settings)
+    # variables = get_variables(model_members, main, settings)
+    variables = get_variables_new(model_members, main, settings)
     constants = get_constants(model_members, main)
 
     # User can provide runplan version in CLI command
@@ -240,7 +256,7 @@ def start(model_name, settings, argv):
 
     # Add time column
     for key in output.keys():
-        values = [*range(settings["T_OUTPUT_MAX"]+1)] * int(output[key].shape[0] / (settings["T_OUTPUT_MAX"]+1))
+        values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output[key].shape[0] / (settings["T_MAX_OUTPUT"]+1))
         output[key].insert(0, "t", values)
 
     if settings["SAVE_OUTPUT"]:

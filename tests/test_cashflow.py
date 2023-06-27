@@ -219,7 +219,7 @@ class TestModelVariable(TestCase):
 
         @assign(mv_2)
         def mv_2_formula(t):
-            if t == settings["T_CALCULATION_MAX"]:
+            if t == settings["T_MAX_CALCULATION"]:
                 return 100
             return mv_2(t + 1) - 1
 
@@ -457,7 +457,7 @@ class TestModel(TestCase):
         col_dict = get_col_dict(model.model_point_sets, model.variables, model.constants, model.settings)
         model_point_output = model.calculate_model_point(0, 1, main, col_dict)
         left = model_point_output["main"]["ModelVariable"][:, 0]
-        right = np.array([1.0] * (settings.get("T_OUTPUT_MAX") + 1))
+        right = np.array([1.0] * (settings.get("T_MAX_OUTPUT") + 1))
         assert all(left == right)
 
     def test_calculate(self):

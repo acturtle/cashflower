@@ -43,7 +43,7 @@ Each record of the model point has its own set of results. The record number is 
 The :code:`main` model point set can not have multiple records so the record is always 1.
 Other model point sets may have multiple records. In this example, the second model point in the :code:`fund` model point set has 2 records.
 
-The number of projection periods is settable with :code:`T_OUTPUT_MAX`. The individual output includes both model variables and constants.
+The number of projection periods is settable with :code:`T_MAX_OUTPUT`. The individual output includes both model variables and constants.
 
 |
 
@@ -68,7 +68,7 @@ The example of the aggregated output:
 
 The results of the aggregated output are summed across all model points.
 
-There is only one set of projections, so the number of rows amounts to :code:`T_OUTPUT_MAX+1`.
+There is only one set of projections, so the number of rows amounts to :code:`T_MAX_OUTPUT+1`.
 The value is incremented by 1 because the projection starts at 0.
 There is no :code:`r` column because there are no separate results for each record.
 
