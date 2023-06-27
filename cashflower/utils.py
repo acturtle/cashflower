@@ -128,10 +128,11 @@ def is_recursive(formula_source, name):
     return 0
 
 
-def print_log(msg):
+def print_log(msg, show=True):
     """ Print a log message with the timestamp."""
-    now = datetime.now()
-    print(now.strftime("%H:%M:%S") + " | " + msg)
+    if show:
+        now = datetime.now()
+        print(now.strftime("%H:%M:%S") + " | " + msg)
 
 
 def split_to_ranges(n, num_ranges):
@@ -218,3 +219,4 @@ def flatten(lst):
         else:
             flat_list.append(element)
     return flat_list
+

@@ -7,20 +7,14 @@ import os
 import pandas as pd
 import shutil
 
-from .cashflow import CashflowModelError, ModelVariable, ModelPointSet, Model, Constant, Runplan, Variable
+from .cashflow import CashflowModelError, ModelPointSet, Model, Runplan, Variable
 from .utils import print_log, replace_in_file
 
 
 def create_model(model):
-    """Create a folder structure for a model.
-
+    """
+    Create a folder structure for a model.
     Copies the whole content of the model_tpl folder and changes templates to scripts.
-
-    Parameters
-    ----------
-    model : str
-        Name of the model to be added.
-
     """
     template_path = os.path.join(os.path.dirname(__file__), "model_tpl")
     current_path = os.getcwd()
@@ -98,7 +92,7 @@ def get_model_point_sets(input_members, settings):
     return model_point_sets, main
 
 
-def get_variables_new(model_members, main, settings):
+def get_variables(model_members, settings):
     """Get model variables from model.py script."""
     variable_members = [m for m in model_members if isinstance(m[1], Variable)]
     variables = []
@@ -113,36 +107,6 @@ def get_variables_new(model_members, main, settings):
     return variables
 
 
-def get_variables(model_members, main, settings):
-    """Get model variables from model.py script."""
-    variable_members = [m for m in model_members if isinstance(m[1], ModelVariable)]
-    variables = []
-
-    for name, variable in variable_members:
-        if name in ["t", "r"]:
-            msg = f"\nA model component can not be named '{name}' because it is a system variable. Please rename it."
-            raise CashflowModelError(msg)
-        variable.name = name
-        variable.settings = settings
-        variable.initialize(main)
-        variables.append(variable)
-    return variables
-
-
-def get_constants(model_members, main):
-    """Get constants from input.py script."""
-    constant_members = [m for m in model_members if isinstance(m[1], Constant)]
-    constants = []
-    for name, constant in constant_members:
-        if name in ["t", "r"]:
-            msg = f"\nA model component can not be named '{name}' because it is a system variable. Please rename it."
-            raise CashflowModelError(msg)
-        constant.name = name
-        constant.initialize(main)
-        constants.append(constant)
-    return constants
-
-
 def prepare_model_input(model_name, settings, argv):
     """Get input for the cash flow model."""
     input_module = importlib.import_module(model_name + ".input")
@@ -153,56 +117,54 @@ def prepare_model_input(model_name, settings, argv):
     runplan = get_runplan(input_members)
     model_point_sets, main = get_model_point_sets(input_members, settings)
 
-    # model.py contains model variables and constants
+    # model.py contains model variables
     model_members = inspect.getmembers(model_module)
-    # variables = get_variables(model_members, main, settings)
-    variables = get_variables_new(model_members, main, settings)
-    constants = get_constants(model_members, main)
+    variables = get_variables(model_members, settings)
 
     # User can provide runplan version in CLI command
     if runplan is not None and len(argv) > 1:
         runplan.version = argv[1]
 
-    return runplan, model_point_sets, variables, constants
+    return runplan, model_point_sets, variables
 
 
-def dict_to_csv(_dict, timestamp):
-    if not os.path.exists("output"):
-        os.makedirs("output")
-
-    for key in _dict:
-        filepath = f"output/{timestamp}_{key}.csv"
-        data = _dict.get(key)
-        data.to_csv(filepath, index=False)
-        print(f"{' ' * 10} {filepath}")
-
-    return None
-
-
-def df_to_csv(df, timestamp):
-    df.to_csv(f"output/{timestamp}_runtime.csv", index=False)
-    print(f"{' ' * 10} output/{timestamp}_runtime.csv")
-    return None
+# def dict_to_csv(_dict, timestamp):
+#     if not os.path.exists("output"):
+#         os.makedirs("output")
+#
+#     for key in _dict:
+#         filepath = f"output/{timestamp}_{key}.csv"
+#         data = _dict.get(key)
+#         data.to_csv(filepath, index=False)
+#         print(f"{' ' * 10} {filepath}")
+#
+#     return None
+#
+#
+# def df_to_csv(df, timestamp):
+#     df.to_csv(f"output/{timestamp}_runtime.csv", index=False)
+#     print(f"{' ' * 10} output/{timestamp}_runtime.csv")
+#     return None
 
 
 def start_single_core(model_name, settings, argv):
     """Create and run a cash flow model."""
-    runplan, model_point_sets, variables, constants = prepare_model_input(model_name, settings, argv)
+    runplan, model_point_sets, variables = prepare_model_input(model_name, settings, argv)
 
     # Run model on single core
-    model = Model(model_name, variables, constants, model_point_sets, settings)
+    model = Model(model_name, variables, model_point_sets, settings)
     model_output, runtime = model.run()
     return model_output, runtime
 
 
 def start_multiprocessing(part, cpu_count, model_name, settings, argv):
     """Run subset of the model points using multiprocessing."""
-    runplan, model_point_sets, variables, constants = prepare_model_input(model_name, settings, argv)
+    runplan, model_point_sets, variables = prepare_model_input(model_name, settings, argv)
 
     # Run model on multiple cores
-    model = Model(model_name, variables, constants, model_point_sets, settings, cpu_count)
-
+    model = Model(model_name, variables, model_point_sets, settings, cpu_count)
     output = model.run(part)
+
     if output is None:
         part_model_output, part_runtime = None, None
     else:
@@ -230,7 +192,7 @@ def merge_part_runtimes(part_runtimes):
     total_runtimes = sum([pr["runtime"] for pr in part_runtimes])
     first = part_runtimes[0]
     runtimes = pd.DataFrame({
-        "component": first["component"],
+        "variable": first["variable"],
         "runtime": total_runtimes
     })
     return runtimes
@@ -255,17 +217,17 @@ def start(model_name, settings, argv):
         output, runtime = start_single_core(model_name, settings, argv)
 
     # Add time column
-    for key in output.keys():
-        values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output[key].shape[0] / (settings["T_MAX_OUTPUT"]+1))
-        output[key].insert(0, "t", values)
+    # for key in output.keys():
+    #     values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output[key].shape[0] / (settings["T_MAX_OUTPUT"]+1))
+    #     output[key].insert(0, "t", values)
 
     if settings["SAVE_OUTPUT"]:
         print_log("Saving results:")
-        dict_to_csv(output, timestamp)
+        # dict_to_csv(output, timestamp)
 
     if settings["SAVE_RUNTIME"]:
         print_log("Saving runtime:")
-        df_to_csv(runtime, timestamp)
+        # df_to_csv(runtime, timestamp)
 
     print_log("Finished")
     return output
