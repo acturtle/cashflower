@@ -234,27 +234,7 @@ class ModelPointSet:
 
 class Model:
     """Actuarial cash flow model.
-    Model combines model variables, constants and model point sets.
-    Model components (constants and variables) are ordered into a calculation queue.
-
-    Attributes
-    ----------
-    name : str
-        Model's name
-    variables : list
-        List of model variables objects.
-    constants : list
-        List of constants objects.
-    model_point_sets : list
-        List of model point objects.
-    settings : dict
-        User settings.
-    queue : list
-        List of model variables in an order in which they should be calculated.
-    empty_output : dict
-        Empty dict with keys prepared for output
-    output : dict
-        Dict with key = model_point_sets, values = model_point_set_data frames (columns for model variables).
+    Model combines model variables and model point sets.
     """
     def __init__(self, name, variables, model_point_sets, settings, cpu_count=None):
         self.name = name
@@ -282,6 +262,10 @@ class Model:
         # Iterate over model points
         main = get_object_by_name(self.model_point_sets, "main")
         print_log(f"Total number of model points: {main.model_point_set_data.shape[0]}", one_core)
+        if_multiprocess_log = one_core and self.settings["MULTIPROCESSING"] and len(main) > self.cpu_count
+        print_log(f"Multiprocessing on {self.cpu_count} cores", if_multiprocess_log)
+        print_log(f"Calculation of ca. {len(main) // self.cpu_count} model points per core", if_multiprocess_log)
+
         p = functools.partial(self.calculate_model_point, ordered_nodes=ordered_nodes)
 
         # Calculation on single core so calculate all model points
@@ -301,43 +285,17 @@ class Model:
         if self.settings["AGGREGATE"] is False:
             result = pd.concat(results)
         else:
-            result = sum(results)
-        print(result)
+            result = functools.reduce(lambda x, y: x.add(y, fill_value=0), results)
 
-        # result.to_csv("result.csv")
+        # Get runtime
+        runtime = None
+        if self.settings["SAVE_RUNTIME"]:
+            runtime = pd.DataFrame({
+                "variable": [v.name for v in self.variables],
+                "runtime": [v.runtime for v in self.variables]
+            })
 
-
-        ##############################################################################################################
-
-        # Inform on the number of model points
-        # if part == 0:
-        #     if len(main) > self.cpu_count:
-        #         print_log(f"Multiprocessing on {self.cpu_count} cores")
-        #         print_log(f"Calculation of ca. {len(main) // self.cpu_count} model points per core")
-        #         print_log("The progressbar for the calculations on the 1st core:")
-        #
-        # # Calculate all or subset of model points
-        # if self.settings["MULTIPROCESSING"]:
-        #     main_ranges = split_to_ranges(len(main), self.cpu_count)
-        #
-        #     # Number of model points is lower than the number of cpus, only calculate on the 1st core
-        #     if part >= len(main_ranges):
-        #         return None
-        #
-        #     main_range = main_ranges[part]
-        #     model_output = self.calculate_model(range_start=main_range[0], range_end=main_range[1])
-        # else:
-        #     model_output = self.calculate_model()
-        #
-        # # Get runtime
-        # runtime = None
-        # if self.settings["SAVE_RUNTIME"]:
-        #     runtime = pd.DataFrame({
-        #         "variable": [v.name for v in self.variables],
-        #         "runtime": [v.runtime for v in self.variables]
-        #     })
-        #
-        return result, None
+        return result, runtime
 
     def create_graph(self):
         # Create directed graph for all variable-period tuples
@@ -364,56 +322,6 @@ class Model:
 
         return DG
 
-    # def calculate_model(self, range_start=None, range_end=None):
-    #     """Calculate results for all model points."""
-    #     main = get_object_by_name(self.model_point_sets, "main")
-    #     one_core = range_start == 0 or range_start is None
-    #
-    #     # Calculate model points
-    #     num_mp = len(main)
-    #     pb_max = num_mp if range_end is None else range_end
-    #     col_dict = get_col_dict(self.model_point_sets, self.variables, self.constants, self.settings)
-    #     p = functools.partial(self.calculate_model_point, pb_max=pb_max, main=main, col_dict=col_dict, one_core=one_core)
-    #     if range_start is None:
-    #         model_point_outputs = [*map(p, range(num_mp))]
-    #     else:
-    #         model_point_outputs = [*map(p, range(range_start, range_end))]
-    #
-    #     # Merge results from model points
-    #     if one_core:
-    #         print_log("Preparing results")
-    #
-    #     model_output = {}
-    #     for key in col_dict.keys():
-    #         if self.settings["AGGREGATE"]:
-    #             columns = col_dict[key]["ModelVariable"]
-    #             if len(columns) > 0:
-    #                 data = sum(mpo[key]["ModelVariable"] for mpo in model_point_outputs)
-    #                 model_output[key] = pd.DataFrame(data, columns=col_dict[key]["ModelVariable"])
-    #         else:
-    #             columns = col_dict[key]["Constant"] + col_dict[key]["ModelVariable"]
-    #             if len(columns) > 0:
-    #                 data1 = np.concatenate([mpo[key]["Constant"] for mpo in model_point_outputs], axis=0)
-    #                 data2 = np.concatenate([mpo[key]["ModelVariable"] for mpo in model_point_outputs], axis=0)
-    #                 data = np.concatenate([data1, data2], axis=1)
-    #                 model_output[key] = pd.DataFrame(data, columns=columns)
-    #
-    #                 # Add records
-    #                 main = get_object_by_name(self.model_point_sets, "main")
-    #                 main_ids = main.model_point_set_data[self.settings["ID_COLUMN"]].tolist()
-    #                 if range_start is not None:
-    #                     main_ids = main_ids[range_start:range_end]
-    #
-    #                 model_point_set = get_object_by_name(self.model_point_sets, key)
-    #                 ids = model_point_set.model_point_set_data[self.settings["ID_COLUMN"]]
-    #                 ids = [_id for _id in ids if _id in main_ids]
-    #
-    #                 records = lst_to_records(ids)
-    #                 model_output[key].insert(0, "r", np.repeat(records, self.settings["T_MAX_OUTPUT"]+1))
-    #
-    #     self.output = model_output
-    #     return model_output
-
     def calculate_model_point(self, row, ordered_nodes):
         main = get_object_by_name(self.model_point_sets, "main")
 
@@ -430,9 +338,9 @@ class Model:
             variable.calculate_t(t)
             variable.runtime += time.time() - start
 
-        # Get results
+        # Get results and trim for T_MAX_OUTPUT
         columns = [variable.name for variable in self.variables]
-        data = [variable.result for variable in self.variables]
+        data = [variable.result[:self.settings["T_MAX_OUTPUT"]+1] for variable in self.variables]
         data = map(list, zip(*data))  # transpose
         data_frame = pd.DataFrame(data, columns=columns)
         return data_frame
