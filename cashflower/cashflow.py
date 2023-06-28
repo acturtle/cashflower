@@ -128,42 +128,15 @@ class Runplan:
 
 
 class ModelPointSet:
-    """Set of model points.
-
-    Attributes
-    ----------
-    data : model_point_set_data frame
-        Data containing model points.
-    name : str
-        Used in the output filename. Set in get_model_input().
-    settings : dict
-        User settings. Model point uses ID_COLUMN setting. Set in get_model_input().
-    _id : str
-        Value to identify the model point in the column defined by ID_COLUMN setting.
-        Looped over in model.calculated_policies().
-    _model_point_record_num : int
-        Record number - relevant when there are multiple records for the same model point.
-        Looped over in model_variable.calculate().
-    model_point_data : model_point_set_data frame
-        Row(s) of model_point_set_data for the current model point.
-    model_point_size : int
-        Number of rows of model_point_set_data for all model points.
-    model_point_record_data : model_point_set_data frame
-        Row of model_point_set_data for the current model point and record.
-    """
-
-    instances = []
+    """Set of model points."""
 
     def __init__(self, data, name=None, settings=None):
-        self.__class__.instances.append(self)
         self.model_point_set_data = data
         self.name = name
         self.settings = settings
         self._id = None
-        self._model_point_record_num = None
         self.model_point_data = None
-        self.model_point_size = 0
-        self.model_point_record_data = None
+        self.model_point_size = None
 
     def __repr__(self):
         return f"ModelPointSet: {self.name}"
@@ -171,9 +144,8 @@ class ModelPointSet:
     def __len__(self):
         return self.model_point_set_data.shape[0]
 
-    def get(self, attribute):
-        """Get value from the the current record."""
-        return self.model_point_record_data[attribute].values[0]
+    def get(self, attribute, record_num=0):
+        return self.model_point_data.iloc[record_num][attribute]
 
     @property
     def id(self):
@@ -190,37 +162,26 @@ class ModelPointSet:
 
         self.model_point_data = self.model_point_set_data.loc[[new_id]]
         self.model_point_size = self.model_point_data.shape[0]
-        self.model_point_record_num = 0
-
-    @property
-    def model_point_record_num(self):
-        """Current model point's record number (model point can have multiple records)."""
-        return self._model_point_record_num
-
-    @model_point_record_num.setter
-    def model_point_record_num(self, new_record_num):
-        """Set model point's record number and data."""
-        self._model_point_record_num = new_record_num
-        self.model_point_record_data = self.model_point_data.iloc[[new_record_num]]
 
     def initialize(self):
-        self.check_id_col()
-        self.check_unique_keys()
+        """Name and settings are not present while creating object."""
+        self.perform_checks()
         self.set_index()
         self.id = self.model_point_set_data.iloc[0][self.settings["ID_COLUMN"]]
 
-    def check_id_col(self):
+    def perform_checks(self):
+        # Check ID columns
         id_column = self.settings["ID_COLUMN"]
         if id_column not in self.model_point_set_data.columns:
             raise CashflowModelError(f"\nThere is no column '{id_column}' in model_point_set '{self.name}'.")
-        return True
 
-    def check_unique_keys(self):
+        # Check unique keys in main
         id_column = self.settings["ID_COLUMN"]
         if self.name == "main":
             if not self.model_point_set_data[id_column].is_unique:
                 msg = f"\nThe 'main' model_point_set must have unique values in '{id_column}' column."
                 raise CashflowModelError(msg)
+
         return True
 
     def set_index(self):

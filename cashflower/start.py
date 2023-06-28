@@ -81,7 +81,7 @@ def get_model_point_sets(input_members, settings):
     for name, model_point_set in model_point_set_members:
         model_point_set.name = name
         model_point_set.settings = settings
-        model_point_set.initialize()
+        # model_point_set.initialize()
         model_point_sets.append(model_point_set)
         if name == "main":
             main = model_point_set
