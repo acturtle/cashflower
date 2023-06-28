@@ -262,9 +262,10 @@ class Model:
         # Iterate over model points
         main = get_object_by_name(self.model_point_sets, "main")
         print_log(f"Total number of model points: {main.model_point_set_data.shape[0]}", one_core)
-        if_multiprocess_log = one_core and self.settings["MULTIPROCESSING"] and len(main) > self.cpu_count
-        print_log(f"Multiprocessing on {self.cpu_count} cores", if_multiprocess_log)
-        print_log(f"Calculation of ca. {len(main) // self.cpu_count} model points per core", if_multiprocess_log)
+        if one_core and self.settings["MULTIPROCESSING"]:
+            if len(main) > self.cpu_count:
+                print_log(f"Multiprocessing on {self.cpu_count} cores")
+                print_log(f"Calculation of ca. {len(main) // self.cpu_count} model points per core")
 
         p = functools.partial(self.calculate_model_point, ordered_nodes=ordered_nodes)
 
@@ -343,4 +344,9 @@ class Model:
         data = [variable.result[:self.settings["T_MAX_OUTPUT"]+1] for variable in self.variables]
         data = map(list, zip(*data))  # transpose
         data_frame = pd.DataFrame(data, columns=columns)
+
+        # Results may contain subset of columns
+        if len(self.settings["OUTPUT_COLUMNS"]) > 0:
+            data_frame = data_frame[self.settings["OUTPUT_COLUMNS"]]
+
         return data_frame
