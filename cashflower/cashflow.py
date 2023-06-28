@@ -1,4 +1,5 @@
 import functools
+import matplotlib.pyplot as plt
 import networkx as nx
 import time
 import pandas as pd
@@ -288,6 +289,11 @@ class Model:
         for dependency in dependencies:
             add_edges_from_dependency(dependency, DG, self.settings["T_MAX_CALCULATION"]+1)
 
+        # Draw graph in admin mode
+        if self.settings.get("ADMIN_DRAW") is not None:
+            nx.draw(DG, with_labels=True)
+            plt.show()
+
         return DG
 
     def calculate_model_point(self, row, ordered_nodes, one_core, progressbar_max):
@@ -302,6 +308,10 @@ class Model:
         for node in ordered_nodes:
             variable = node[0]
             t = node[1]
+            if self.settings.get("ADMIN_NODE") is not None:
+                print(f"Node: ({variable.name}, {t})")
+            if t < 0 or t > self.settings["T_MAX_CALCULATION"]:
+                continue
             start = time.time()
             variable.calculate_t(t)
             variable.runtime += time.time() - start

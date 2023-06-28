@@ -206,6 +206,9 @@ def start(model_name, settings, argv):
     output.insert(0, "t", values)
 
     # Save to csv files
+    if not os.path.exists("output"):
+        os.makedirs("output")
+
     if settings["SAVE_OUTPUT"]:
         print_log("Saving output:")
         filepath = f"output/{timestamp}_output.csv"

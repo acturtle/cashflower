@@ -2,6 +2,16 @@ import ast
 import inspect
 
 
+def get_dependencies(func, variable_names, settings):
+    visitor = Visitor(func, variable_names, settings)
+    code = ast.parse(inspect.getsource(func))
+    if settings.get("ADMIN_AST") is not None:
+        print(ast.dump(ast.parse(inspect.getsource(func)), indent=2))
+    add_parent(code)
+    visitor.visit(code)
+    return visitor.dependencies
+
+
 class Dependency:
     def __init__(self, func, call, arg, subset):
         self.func = func
@@ -25,12 +35,39 @@ class Visitor(ast.NodeVisitor):
         self.dependencies = []
 
     def visit_Call(self, node):
+
         if isinstance(node.func, ast.Name) and node.func.id in self.variable_names:
+            # Get function's argument (e.g. None, "t", "t+1", "t-1")
             arg = get_arg(node, self.func.__name__)
+
+            # Get subset of dependency (e.g. all periods or from 4 to 12)
             ifs = get_parent_ifs(node)
             subset = ifs_to_subset(ifs, self.settings)
+
+            print(self.func.__name__, "==>", node.func.id)
+            print("arg:", arg, "subset:", subset)
+
             dependency = Dependency(self.func.__name__, node.func.id, arg, subset)
             self.dependencies.append(dependency)
+
+
+def get_arg(node, name):
+    arg = None
+
+    if len(node.args) != 1:
+        msg = f"Model variable must have one argument. " \
+              f"Please review the call of '{node.func.id}' in the definition of '{name}'."
+        raise ValueError(msg)
+
+    # The function has a single argument
+    if isinstance(node.args[0], ast.Name):
+        arg = node.args[0].id
+
+    # The function has a binary operator as an argument
+    if isinstance(node.args[0], ast.BinOp):
+        arg = binop_to_arg(node)
+
+    return arg
 
 
 def binop_to_arg(node):
@@ -54,38 +91,37 @@ def binop_to_arg(node):
     return arg
 
 
-def get_arg(node, name):
-    arg = None
-
-    if len(node.args) != 1:
-        msg = f"Model variable must have one argument. " \
-              f"Please review the call of '{node.func.id}' in the definition of '{name}'."
-        raise ValueError(msg)
-
-    # The function has a single argument
-    if isinstance(node.args[0], ast.Name):
-        arg = node.args[0].id
-
-    # The function has a binary operator as an argument
-    if isinstance(node.args[0], ast.BinOp):
-        arg = binop_to_arg(node)
-
-    return arg
-
-
 def get_parent_ifs(node):
     """Return list of If nodes which are parents of the node."""
     ifs = []
     current_node = node
     while current_node is not None:
         if isinstance(current_node, ast.If):
+            if ast.If.orelse is not None:
+                print("Orelse statement")
+
+        if isinstance(current_node, ast.If):
             ifs.append(current_node)
         current_node = current_node.parent
     return ifs
 
 
+def ifs_to_subset(ifs, settings):
+    T_MAX = settings["T_MAX_CALCULATION"]+1
+    subset = set(range(0, T_MAX))
+    for idx, _if in enumerate(ifs):
+        if idx == 0:
+            subset = if_to_subset(_if, T_MAX)
+        else:
+            subset = subset & if_to_subset(_if, T_MAX)
+    return subset
+
+
 def if_to_subset(_if, T_MAX):
-    subset = [0, None]
+    subset = set(range(0, T_MAX))
+
+    if not isinstance(_if.test.left, ast.Name):
+        return subset
 
     c1 = _if.test.left.id == "t"
     c2 = len(_if.test.comparators) == 1
@@ -97,7 +133,7 @@ def if_to_subset(_if, T_MAX):
             op = _if.test.ops[0]
 
             if isinstance(op, ast.Eq):
-                subset = set(value)
+                subset = {value}
 
             if isinstance(op, ast.NotEq):
                 subset = set([*range(0, value)] + [*range(value+1, T_MAX)])
@@ -117,17 +153,6 @@ def if_to_subset(_if, T_MAX):
     return subset
 
 
-def ifs_to_subset(ifs, settings):
-    T_MAX = settings["T_MAX_CALCULATION"]+1
-    subset = set(range(0, T_MAX))
-    for idx, _if in enumerate(ifs):
-        if idx == 0:
-            subset = if_to_subset(_if, T_MAX)
-        else:
-            subset = subset & if_to_subset(_if)
-    return subset
-
-
 def add_parent(root):
     """Add parent directly to make it easier for analysis."""
     root.parent = None
@@ -135,14 +160,6 @@ def add_parent(root):
         for child in ast.iter_child_nodes(node):
             child.parent = node
     return None
-
-
-def get_dependencies(func, variable_names, settings):
-    visitor = Visitor(func, variable_names, settings)
-    code = ast.parse(inspect.getsource(func))
-    add_parent(code)
-    visitor.visit(code)
-    return visitor.dependencies
 
 
 def add_edges_from_dependency(dependency, DG, T_MAX):

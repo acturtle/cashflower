@@ -3,7 +3,7 @@ from cashflower import variable
 from {{ model }}.input import assumption, main, runplan
 
 
-@variable
+@variable()
 def projection_year(t):
     if t == 0:
         return 0
