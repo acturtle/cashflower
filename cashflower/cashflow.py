@@ -228,19 +228,25 @@ class Model:
                 print_log(f"Multiprocessing on {self.cpu_count} cores")
                 print_log(f"Calculation of ca. {len(main) // self.cpu_count} model points per core")
 
-        p = functools.partial(self.calculate_model_point, ordered_nodes=ordered_nodes)
-
-        # Calculation on single core so calculate all model points
-        if self.settings["MULTIPROCESSING"] is False:
-            results = [*map(p, range(len(main)))]
-
-        # If multiprocessing, then set range of model points to be calculated
-        else:
+        # Set calculation ranges for multiprocessing
+        range_start = None
+        range_end = None
+        if self.settings["MULTIPROCESSING"]:
             main_ranges = split_to_ranges(len(main), self.cpu_count)
             # Number of model points is lower than the number of cpus, only calculate on the 1st core
             if part >= len(main_ranges):
                 return None
             range_start, range_end = main_ranges[part]
+
+        # Create partial calculation function for map
+        progressbar_max = len(main) if range_end is None else range_end
+        p = functools.partial(self.calculate_model_point, ordered_nodes=ordered_nodes, one_core=one_core,
+                              progressbar_max=progressbar_max)
+
+        # Perform calculations
+        if self.settings["MULTIPROCESSING"] is False:
+            results = [*map(p, range(len(main)))]
+        else:
             results = [*map(p, range(range_start, range_end))]
 
         # Concatenate or aggregate results
@@ -284,7 +290,7 @@ class Model:
 
         return DG
 
-    def calculate_model_point(self, row, ordered_nodes):
+    def calculate_model_point(self, row, ordered_nodes, one_core, progressbar_max):
         main = get_object_by_name(self.model_point_sets, "main")
 
         # Set model point's id
@@ -309,5 +315,9 @@ class Model:
         # Results may contain subset of columns
         if len(self.settings["OUTPUT_COLUMNS"]) > 0:
             data_frame = data_frame[self.settings["OUTPUT_COLUMNS"]]
+
+        # Update progessbar
+        if one_core:
+            updt(progressbar_max, row + 1)
 
         return data_frame
