@@ -1,47 +1,40 @@
-from cashflower import assign, ModelVariable, Constant
+from cashflower import variable
 
 from tutorials.mortgage.input import main
 
 
-monthly_interest_rate = Constant()
-payment = Constant()
-balance = ModelVariable()
-interest = ModelVariable()
-principal = ModelVariable()
-
-
-@assign(monthly_interest_rate)
-def _monthly_interest_rate():
+@variable()
+def monthly_interest_rate(t):
     return main.get("interest_rate") / 12
 
 
-@assign(payment)
-def _payment():
+@variable()
+def payment(t):
     L = main.get("loan")
     n = main.get("term")
-    j = monthly_interest_rate()
+    j = monthly_interest_rate(t)
     v = 1 / (1 + j)
     ann = (1 - v ** n) / j
     return L / ann
 
 
-@assign(balance)
-def _balance(t):
+@variable()
+def balance(t):
     if t == 0:
         return main.get("loan")
     else:
         return balance(t-1) - principal(t)
 
 
-@assign(principal)
-def _principal(t):
+@variable()
+def principal(t):
     if t == 0:
         return 0
-    return payment() - interest(t)
+    return payment(t) - interest(t)
 
 
-@assign(interest)
-def _interest(t):
+@variable()
+def interest(t):
     if t == 0:
         return 0
-    return balance(t-1) * monthly_interest_rate()
+    return balance(t-1) * monthly_interest_rate(t)

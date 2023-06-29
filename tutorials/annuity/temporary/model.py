@@ -36,6 +36,7 @@ def expected_payment(t):
             payment = main.get("payment")
             return survival_rate(t) * payment
 
+
 @variable()
 def actuarial_present_value(t):
     return expected_payment(t) + actuarial_present_value(t+1) * 1/(1+INTEREST_RATE)

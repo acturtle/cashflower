@@ -78,7 +78,7 @@ class Runplan:
 
     Attributes
     ----------
-    data : model_point_set_data frame
+    data : data frame
         Data for runplan which must contain column named 'version'.
     _version : str
         Current version to be evaluated.
@@ -113,7 +113,7 @@ class Runplan:
             self.data["version"] = self.data["version"].astype(str)
 
     def set_index(self):
-        """Set 'version' column as an index of the model_point_set_data frame."""
+        """Set 'version' column as an index of the data frame."""
         self.data = self.data.set_index("version")
 
     def get(self, attribute):
@@ -137,18 +137,17 @@ class ModelPointSet:
     """Set of model points."""
 
     def __init__(self, data, name=None, settings=None):
-        self.model_point_set_data = data
+        self.data = data
         self.name = name
         self.settings = settings
         self._id = None
         self.model_point_data = None
-        self.model_point_size = None
 
     def __repr__(self):
         return f"ModelPointSet: {self.name}"
 
     def __len__(self):
-        return self.model_point_set_data.shape[0]
+        return self.data.shape[0]
 
     def get(self, attribute, record_num=0):
         return self.model_point_data.iloc[record_num][attribute]
@@ -163,28 +162,27 @@ class ModelPointSet:
         """Set model point's id and corresponding attributes."""
         self._id = new_id
 
-        if new_id not in self.model_point_set_data.index:
+        if new_id not in self.data.index:
             raise CashflowModelError(f"There is no id '{new_id}' in model_point_set '{self.name}'.")
 
-        self.model_point_data = self.model_point_set_data.loc[[new_id]]
-        self.model_point_size = self.model_point_data.shape[0]
+        self.model_point_data = self.data.loc[[new_id]]
 
     def initialize(self):
         """Name and settings are not present while creating object."""
         self.perform_checks()
         self.set_index()
-        self.id = self.model_point_set_data.iloc[0][self.settings["ID_COLUMN"]]
+        self.id = self.data.iloc[0][self.settings["ID_COLUMN"]]
 
     def perform_checks(self):
         # Check ID columns
         id_column = self.settings["ID_COLUMN"]
-        if id_column not in self.model_point_set_data.columns:
+        if id_column not in self.data.columns:
             raise CashflowModelError(f"\nThere is no column '{id_column}' in model_point_set '{self.name}'.")
 
         # Check unique keys in main
         id_column = self.settings["ID_COLUMN"]
         if self.name == "main":
-            if not self.model_point_set_data[id_column].is_unique:
+            if not self.data[id_column].is_unique:
                 msg = f"\nThe 'main' model_point_set must have unique values in '{id_column}' column."
                 raise CashflowModelError(msg)
 
@@ -192,11 +190,11 @@ class ModelPointSet:
 
     def set_index(self):
         id_column = self.settings["ID_COLUMN"]
-        self.model_point_set_data[id_column] = self.model_point_set_data[id_column].astype(str)
-        self.model_point_set_data[id_column + "_duplicate"] = self.model_point_set_data[id_column]
-        self.model_point_set_data = self.model_point_set_data.set_index(id_column)
-        self.model_point_set_data[id_column] = self.model_point_set_data[id_column + "_duplicate"]
-        self.model_point_set_data = self.model_point_set_data.drop(columns=[id_column + "_duplicate"])
+        self.data[id_column] = self.data[id_column].astype(str)
+        self.data[id_column + "_duplicate"] = self.data[id_column]
+        self.data = self.data.set_index(id_column)
+        self.data[id_column] = self.data[id_column + "_duplicate"]
+        self.data = self.data.drop(columns=[id_column + "_duplicate"])
 
 
 class Model:
@@ -228,7 +226,7 @@ class Model:
 
         # Iterate over model points
         main = get_object_by_name(self.model_point_sets, "main")
-        print_log(f"Total number of model points: {main.model_point_set_data.shape[0]}", one_core)
+        print_log(f"Total number of model points: {main.data.shape[0]}", one_core)
         if one_core and self.settings["MULTIPROCESSING"]:
             if len(main) > self.cpu_count:
                 print_log(f"Multiprocessing on {self.cpu_count} cores")
@@ -290,6 +288,9 @@ class Model:
             dependency.func = get_object_by_name(self.variables, dependency.func)
             dependency.call = get_object_by_name(self.variables, dependency.call)
 
+            if self.settings.get("ADMIN_DEPENDENCY") is not None:
+                print(dependency)
+
         # Add edges to the graph
         for dependency in dependencies:
             add_edges_from_dependency(dependency, DG, self.settings["T_MAX_CALCULATION"]+1)
@@ -305,7 +306,7 @@ class Model:
         main = get_object_by_name(self.model_point_sets, "main")
 
         # Set model point's id
-        model_point_id = main.model_point_set_data.index[row]
+        model_point_id = main.data.index[row]
         for model_point_set in self.model_point_sets:
             model_point_set.id = model_point_id
 

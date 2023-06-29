@@ -1,17 +1,11 @@
 import math
-from cashflower import assign, ModelVariable, Constant
+from cashflower import variable
 
 from tutorials.time.input import main, runplan
 
-cal_month = ModelVariable(model_point_set=main, mp_dep=False)
-cal_year = ModelVariable(model_point_set=main, mp_dep=False)
-elapsed_months = Constant(model_point_set=main)
-pol_month = ModelVariable(model_point_set=main)
-pol_year = ModelVariable(model_point_set=main)
 
-
-@assign(cal_month)
-def _cal_month(t):
+@variable()
+def cal_month(t):
     if t == 0:
         return runplan.get("valuation_month")
     if cal_month(t-1) == 12:
@@ -20,8 +14,8 @@ def _cal_month(t):
         return cal_month(t-1) + 1
 
 
-@assign(cal_year)
-def _cal_year(t):
+@variable()
+def cal_year(t):
     if t == 0:
         return runplan.get("valuation_year")
     if cal_month(t-1) == 12:
@@ -30,8 +24,8 @@ def _cal_year(t):
         return cal_year(t-1)
 
 
-@assign(elapsed_months)
-def _elapsed_months():
+@variable()
+def elapsed_months(t):
     issue_year = main.get("issue_year")
     issue_month = main.get("issue_month")
     valuation_year = runplan.get("valuation_year")
@@ -39,10 +33,10 @@ def _elapsed_months():
     return (valuation_year - issue_year) * 12 + (valuation_month - issue_month)
 
 
-@assign(pol_month)
-def _pol_month(t):
+@variable()
+def pol_month(t):
     if t == 0:
-        mnth = elapsed_months() % 12
+        mnth = elapsed_months(t) % 12
         mnth = 12 if mnth == 0 else mnth
         return mnth
     if pol_month(t-1) == 12:
@@ -50,10 +44,10 @@ def _pol_month(t):
     return pol_month(t-1) + 1
 
 
-@assign(pol_year)
-def _pol_year(t):
+@variable()
+def pol_year(t):
     if t == 0:
-        return math.floor(elapsed_months() / 12)
+        return math.floor(elapsed_months(t) / 12)
     if pol_month(t) == 1:
         return pol_year(t-1) + 1
     return pol_year(t-1)

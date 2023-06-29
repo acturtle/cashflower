@@ -57,7 +57,7 @@ The initial structure consists of the :code:`input.py`, :code:`model.py`, :code:
 Input
 ^^^^^
 
-In the :code:`input.py` script, you can define your model point sets and assumptions.
+In the :code:`input.py` script, you can define runplan, model point sets and assumptions.
 
 .. code-block:: python
    :caption: wol/input.py
@@ -85,18 +85,15 @@ Runplan bases on the :code:`Runplan` class, model point sets base on the :code:`
 Model
 ^^^^^
 
-The :code:`model.py` script contains the logic of the model. You can define model variables and assign formulas to them.
+The :code:`model.py` script contains the logic of the model. You can define model variables there.
 
 .. code-block:: python
    :caption: wol/model.py
 
-    from cashflower import assign, ModelVariable
+    from cashflower import variable
 
-    age = ModelVariable(model_point_set=main)
-    death_prob = ModelVariable(model_point_set=main)
-
-    @assign(age)
-    def _age(t):
+    @variable()
+    def age(t):
         if t == 0:
             return int(main.get("AGE"))
         elif t % 12 == 0:
@@ -105,8 +102,8 @@ The :code:`model.py` script contains the logic of the model. You can define mode
             return age(t-1)
 
 
-    @assign(death_prob)
-    def _death_prob(t):
+    @variable()
+    def death_prob(t):
         if age(t) == age(t-1):
             return death_prob(t-1)
         elif age(t) <= 100:
@@ -145,7 +142,7 @@ The main components of an actuarial model are:
     * model point sets,
     * assumptions,
     * runplan,
-    * model's components: model variables and constants,
+    * model variables,
     * results.
 
 .. image:: https://acturtle.com/static/img/17/cash-flow-model-overview.webp
@@ -164,10 +161,8 @@ Assumptions are also product's parameters, such as fees or levels of guarantees.
 
 **Model** - actuarial model reminds a spider's web. There are many variables which dependent on each other.
 
-We can distinguish between two types of variables:
 
-* model variables - time-dependent - variables that depend on the projection's period (e.g. present value of premiums),
-* constants - time-independent - variables that stay the same for the whole projection (e.g. gender of the policyholder).
+**Model variables** - functions that depend on the projection's period.
 
 **Results** - the output of the calculation logic.
 

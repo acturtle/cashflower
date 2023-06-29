@@ -47,7 +47,7 @@ class Visitor(ast.NodeVisitor):
             # TODO: In the future, find all nested Ifs
             # ifs = get_parent_ifs(node)
             # subset = ifs_to_subset(ifs, self.settings)
-            subset = {*range(0, self.settings["T_MAX_CALCULATION"])}
+            subset = {*range(0, self.settings["T_MAX_CALCULATION"]+1)}
             dependency = Dependency(self.func.__name__, node.func.id, arg, subset)
             self.dependencies.append(dependency)
 

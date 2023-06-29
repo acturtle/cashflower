@@ -121,48 +121,63 @@ To read a value from a model point, use the :code:`get()` method of the :code:`M
 
 |
 
-The model variable will read the value of the record which is currently calculated.
+The model will read the value of the model point which is currently calculated.
 
 ..  code-block:: python
     :caption: model.py
 
-    from cashflower import assign, ModelVariable
+    from cashflower import variable
     from example.input import assumption, main
 
-    mortality_rate = ModelVariable()
 
-
-    @assign(mortality_rate)
-    def _mortality_rate(t):
+    @variable()
+    def mortality_rate(t):
         age = main.get("age")
         sex = main.get("sex")
         return assumption["mortality"].loc[age, sex]["rate"]
 
+|
 
-Read from other model point set
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Get multiple records
+^^^^^^^^^^^^^^^^^^^^
 
-You can read model point's data from another set. For example:
+The :code:`main` model point set must have a unique row per model point but the other model point sets don't.
 
-..  code-block:: python
-    :caption: model.py
-
-    expected_coverage_benefit(t=10, r=1)
-
-This code reads the value for the 10th period and the second model point's record.
-
-The :code:`model_point_size` attribute of the model point set returns the number of records for the current model point.
-This attribute can be used to calculate the total values of all records.
+If the model point has multiple records, you can read them like this:
 
 ..  code-block:: python
-    :caption: model.py
 
-    @assign(expected_benefit)
-    def _expected_benefit(t):
-        result = 0
-        for r in range(coverage.model_point_size):
-            result += expected_coverage_benefit(t, r)
-        return result
+    fund.get("fund_value", record_num=1)
+
+This code will get the value of :code:`fund_value` for the second record of the currently evaluated model point.
+
+|
+
+If model points have varying number of records, you can use :code:`fund.model_point_data.shape[0]` to determine
+the number of records of the model point.
+
+For example, to calculate the total value of fund value, use:
+
+..  code-block:: python
+
+    @variable()
+    def total_fund_value(t):
+        total_value = 0
+        for i in range(0, fund.model_point_data.shape[0]):
+            total_value += fund.get("fund_value", i)
+        return total_value
+
+If you prefer to work on each value separetely, you can use a list structure.
+A list can also be an output of the model variable.
+
+..  code-block:: python
+
+    @variable()
+    def fund_values(t):
+        fund_values = []
+        for i in range(0, fund.model_point_data.shape[0]):
+            fund_values.append(fund.get("fund_value", i))
+        return fund_values
 
 
 Assumptions

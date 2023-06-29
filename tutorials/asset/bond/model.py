@@ -1,18 +1,10 @@
-from cashflower import assign, ModelVariable, Constant
+from cashflower import variable
 
 from tutorials.asset.bond.input import main, runplan, assumption
 
 
-t_end = Constant()
-cal_month = ModelVariable(mp_dep=False)
-cal_year = ModelVariable(mp_dep=False)
-coupon = ModelVariable()
-nominal_value = ModelVariable()
-present_value = ModelVariable()
-
-
-@assign(t_end)
-def _t_end():
+@variable()
+def t_end(t):
     years = main.get("term") // 12
     months = main.get("term") - years * 12
 
@@ -28,8 +20,8 @@ def _t_end():
     return (end_year - valuation_year) * 12 + (end_month - valuation_month)
 
 
-@assign(cal_month)
-def _cal_month(t):
+@variable()
+def cal_month(t):
     if t == 0:
         return runplan.get("valuation_month")
     if cal_month(t-1) == 12:
@@ -38,8 +30,8 @@ def _cal_month(t):
         return cal_month(t-1) + 1
 
 
-@assign(cal_year)
-def _cal_year(t):
+@variable()
+def cal_year(t):
     if t == 0:
         return runplan.get("valuation_year")
     if cal_month(t-1) == 12:
@@ -48,23 +40,23 @@ def _cal_year(t):
         return cal_year(t-1)
 
 
-@assign(coupon)
-def _coupon(t):
-    if t != 0 and t <= t_end() and cal_month(t) == main.get("issue_month"):
+@variable()
+def coupon(t):
+    if t != 0 and t <= t_end(t) and cal_month(t) == main.get("issue_month"):
         return main.get("nominal") * main.get("coupon_rate")
     else:
         return 0
 
 
-@assign(nominal_value)
-def _nominal_value(t):
-    if t == t_end():
+@variable()
+def nominal_value(t):
+    if t == t_end(t):
         return main.get("nominal")
     else:
         return 0
 
 
-@assign(present_value)
-def _present_value(t):
+@variable()
+def present_value(t):
     i = assumption["INTEREST_RATE"]
     return coupon(t) + nominal_value(t) + present_value(t+1) * (1/(1+i))**(1/12)

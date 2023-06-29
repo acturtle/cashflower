@@ -120,7 +120,7 @@ class TestModelPointSet(TestCase):
         main.initialize()
         assert main.id == "1"
         assert main.model_point_record_num == 0
-        assert main.model_point_size == 1
+        assert main.model_point_nrow == 1
         assert main.get("age") == 52
         assert repr(main) == "ModelPointSet: main"
 

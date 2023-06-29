@@ -14,7 +14,7 @@ The table below summarizes available settings.
      - Description
    * - AGGREGATE
      - :code:`True` / :code:`False`
-     - Flag if results for model pointsshould be aggregated.
+     - Flag if results for model points should be aggregated.
    * - ID_COLUMN
      - a string
      - The name of the column which contains identificators of the model points.
@@ -46,23 +46,23 @@ The :code:`AGGREGATE` setting is a flag if the results should be aggregated for 
 If the setting is set to :code:`False`, the results will be on the individual level:
 
 ..  code-block::
-    :caption: <timestamp>_fund.csv
+    :caption: <timestamp>_output.csv
 
-    t,r,fund_value
-    0,1,15000.0
-    1,1,15030.0
-    2,1,15060.06
-    3,1,15090.18
-    0,1,3000.0
-    1,1,3006.0
-    2,1,3012.01
-    3,1,3018.03
-    0,2,9000.0
-    1,2,9018.0
-    2,2,9036.04
-    3,2,9054.11
+    t,fund_value
+    0,15000.0
+    1,15030.0
+    2,15060.06
+    3,15090.18
+    0,3000.0
+    1,3006.0
+    2,3012.01
+    3,3018.03
+    0,9000.0
+    1,9018.0
+    2,9036.04
+    3,9054.11
 
-There are results for 2 model points and 1 of them has two records (record is in column :code:`r`).
+There are results for 3 separate model points.
 
 If the AGGREGATE setting is set to :code:`True`, the results will aggregated:
 
@@ -185,41 +185,36 @@ If the model has 3 variables, all of them will be in the output.
 ..  code-block:: python
     :caption: model.py
 
-    from cashflower import assign, ModelVariable
+    from cashflower import variable
 
-    a = ModelVariable()
-    b = ModelVariable()
-    c = ModelVariable()
-
-    @assign(a)
-    def _a(t):
+    @variable(a)
+    def a(t):
         return 1*t
 
-    @assign(b)
-    def _b(t):
+    @variable(b)
+    def b(t):
         return 2*t
 
-    @assign(c)
-    def _c(t):
+    @variable(c)
+    def c(t):
         return 3*t
 
 The result contains all columns.
 
 ..  code-block::
-    :caption: <timestamp>_policy.csv
+    :caption: <timestamp>_output.csv
 
-    t,r,a,b,c
-    0,1,0,0,0
-    1,1,1,2,3
-    2,1,2,4,6
-    3,1,3,6,9
-    0,1,0,0,0
-    1,1,1,2,3
-    2,1,2,4,6
-    3,1,3,6,9
+    t,a,b,c
+    0,0,0,0
+    1,1,2,3
+    2,2,4,6
+    3,3,6,9
+    0,0,0,0
+    1,1,2,3
+    2,2,4,6
+    3,3,6,9
 
 The user can choose a subset of columns.
-
 
 ..  code-block:: python
     :caption: settings.py
@@ -235,33 +230,31 @@ Only the chosen columns are in the output.
 ..  code-block::
     :caption: <timestamp>_policy.csv
 
-    t,r,a,c
-    0,1,0,0
-    1,1,1,3
-    2,1,2,6
-    3,1,3,9
-    0,1,0,0
-    1,1,1,3
-    2,1,2,6
-    3,1,3,9
+    t,a,c
+    0,0,0
+    1,1,3
+    2,2,6
+    3,3,9
+    0,0,0
+    1,1,3
+    2,2,6
+    3,3,9
 
 |
 
 Save output
 -----------
 
-The :code:`SAVE_OUTPUT` setting is a flag if the model should save results to the csv files.
+The :code:`SAVE_OUTPUT` setting is a flag if the model should save results to the csv file.
 
 By default, the setting has a value :code:`True`.
-After the run, the results are saved to the :code:`output` folder, for example:
+After the run, the results are saved to the :code:`output` folder:
 
 ..  code-block::
 
     .
     └── output/
-        └── <timestamp>_main.csv
-        └── <timestamp>_fund.csv
-        └── <timestamp>_coverage.csv
+        └── <timestamp>_output.csv
 
 |
 
@@ -277,19 +270,16 @@ To create custom output, you can use the :code:`output` variable in the :code:`r
     if __name__ == "__main__":
     output = start("example", settings, sys.argv)
 
-    for model_point_set_name, data_frame in output.items():
-        data_frame.to_csv(f"results/my-{model_point_set_name}.csv", index=False)
+    output.to_csv(f"results/my_awesome_results.csv")
 
-The :code:`output` variable holds a dictionary, where keys are names of model point sets and values are data frames with results.
+The :code:`output` variable holds a data frame with results.
 The above code, will create csv files in the :code:`results` folder:
 
 ..  code-block::
 
     .
     └── results/
-        └── my_main.csv
-        └── my_fund.csv
-        └── my_coverage.csv
+        └── my_awesome_results.csv
 
 |
 
@@ -311,13 +301,13 @@ By default, the setting has a value :code:`False`.
         ...
     }
 
-No additional output is created.
+No additional file with runtimes is created, only the file with results.
 
 ..  code-block::
 
     .
     └── output/
-        └── <timestamp>_main.csv
+        └── <timestamp>_output.csv
 
 |
 
@@ -339,7 +329,7 @@ The file is called :code:`<timestamp>_runtime.csv`.
 
     .
     └── output/
-        └── <timestamp>_policy.csv
+        └── <timestamp>_output.csv
         └── <timestamp>_runtime.csv
 
 The file contains the number of seconds the model needed to evaluate each of the variables.
@@ -347,18 +337,12 @@ The file contains the number of seconds the model needed to evaluate each of the
 ..  code-block::
     :caption: <timestamp>_runtime.csv
 
-    component,runtime
+    variable,runtime
     a,5.4
     b,2.7
     c,7.1
 
 The file can help to find variables that are the evaluated the longest and to optimize them.
-
-Measuring runtime is not possible using multiprocessing.
-
-.. WARNING::
-   The runtime will not be saved if the :code:`MULTIPROCESSING` setting is set to :code:`True`.
-
 
 |
 
@@ -403,7 +387,7 @@ If the setting gets changed, then the number of rows in the output file will cha
 The file saves only results for the first 3 months.
 
 ..  code-block::
-    :caption: <timestamp>_fund.csv
+    :caption: <timestamp>_output.csv
 
     t,fund_value
     0,27000.0
@@ -414,4 +398,4 @@ The file saves only results for the first 3 months.
 :code:`T_MAX_OUTPUT` can't be greater than :code:`T_MAX_CALCULATION`.
 
 .. WARNING::
-    :code:`T_MAX_OUTPUT` will always output :code:`min(T_MAX_OUTPUT, T_MAX_CALCULATION)` periods.
+    Model will set :code:`T_MAX_OUTPUT` to :code:`min(T_MAX_OUTPUT, T_MAX_CALCULATION)`.
