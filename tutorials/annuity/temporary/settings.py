@@ -1,7 +1,8 @@
 settings = {
     # "ADMIN_DRAW": True,
     # "ADMIN_NODE": True,
-    # "ADMIN_AST": True,
+    # "ADMIN_AST": "expected_payment",
+    # "DEVELOP": True,
 
     "AGGREGATE": True,
     "MULTIPROCESSING": False,

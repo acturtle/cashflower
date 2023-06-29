@@ -1,12 +1,15 @@
 import ast
 import inspect
 
+from queue import Queue
+
 
 def get_dependencies(func, variable_names, settings):
     visitor = Visitor(func, variable_names, settings)
     code = ast.parse(inspect.getsource(func))
-    if settings.get("ADMIN_AST") is not None:
+    if settings.get("ADMIN_AST") == func.__name__:
         print(ast.dump(ast.parse(inspect.getsource(func)), indent=2))
+
     add_parent(code)
     visitor.visit(code)
     return visitor.dependencies
@@ -35,18 +38,16 @@ class Visitor(ast.NodeVisitor):
         self.dependencies = []
 
     def visit_Call(self, node):
-
         if isinstance(node.func, ast.Name) and node.func.id in self.variable_names:
             # Get function's argument (e.g. None, "t", "t+1", "t-1")
             arg = get_arg(node, self.func.__name__)
 
-            # Get subset of dependency (e.g. all periods or from 4 to 12)
-            ifs = get_parent_ifs(node)
-            subset = ifs_to_subset(ifs, self.settings)
-
-            print(self.func.__name__, "==>", node.func.id)
-            print("arg:", arg, "subset:", subset)
-
+            # Get subset of dependency (e.g. all periods or {0, 1, 2, 3})
+            # TODO: for now simplified version, find only the nearest If
+            # TODO: In the future, find all nested Ifs
+            # ifs = get_parent_ifs(node)
+            # subset = ifs_to_subset(ifs, self.settings)
+            subset = {*range(0, self.settings["T_MAX_CALCULATION"])}
             dependency = Dependency(self.func.__name__, node.func.id, arg, subset)
             self.dependencies.append(dependency)
 
@@ -91,18 +92,55 @@ def binop_to_arg(node):
     return arg
 
 
+def is_child(parent_node, child_node):
+    if parent_node == child_node:
+        return True
+
+    q = Queue()
+    q.put(parent_node)
+
+    while not q.empty():
+        node = q.get()
+        for subnode in ast.iter_child_nodes(node):
+            if subnode == child_node:
+                return True
+            q.put(subnode)
+
+    return False
+
+
+def which_if_field(if_node, subnode):
+    """To which field of if_node (test/body/orelse) does subnode belong?"""
+    test_node = if_node.test
+    if is_child(test_node, subnode):
+        return "test"
+
+    for body_node in if_node.body:
+        if is_child(body_node, subnode):
+            return "body"
+
+    for orelse_node in if_node.orelse:
+        if is_child(orelse_node, subnode):
+            return "orelse"
+
+    return None
+
+
 def get_parent_ifs(node):
     """Return list of If nodes which are parents of the node."""
     ifs = []
     current_node = node
+
     while current_node is not None:
-        if isinstance(current_node, ast.If):
-            if ast.If.orelse is not None:
-                print("Orelse statement")
 
         if isinstance(current_node, ast.If):
             ifs.append(current_node)
+
+        child = current_node
         current_node = current_node.parent
+        if current_node is not None:
+            current_node.child = child
+
     return ifs
 
 

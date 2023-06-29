@@ -17,6 +17,19 @@ class Variable:
         self.result = None
         self.runtime = 0
 
+    def __repr__(self):
+        return f"V: {self.func.__name__}"
+
+    def __call__(self, t):
+        if t < 0 or t > self.settings["T_MAX_CALCULATION"]:
+            return 0
+
+        if self.settings.get("DEVELOP") is None:
+            if self.result[t] is None:
+                return self.func(t)
+
+        return self.result[t]
+
     @property
     def settings(self):
         return self._settings
@@ -26,23 +39,15 @@ class Variable:
         self._settings = new_settings
         self.result = [None for _ in range(0, self.settings["T_MAX_CALCULATION"]+1)]
 
-    def __repr__(self):
-        return f"V: {self.func.__name__}"
-
     def calculate_t(self, t):
         self.result[t] = self.func(t)
-        return self.result[t]
-
-    def __call__(self, t):
-        if t < 0 or t > self.settings["T_MAX_CALCULATION"]:
-            return 0
-
         return self.result[t]
 
 
 def variable():
     """Decorator"""
     def wrapper(func):
+        func = functools.lru_cache(func)
         variable = Variable(func)
         return variable
     return wrapper
@@ -325,6 +330,11 @@ class Model:
         # Results may contain subset of columns
         if len(self.settings["OUTPUT_COLUMNS"]) > 0:
             data_frame = data_frame[self.settings["OUTPUT_COLUMNS"]]
+
+        # Clear cache
+        if self.settings.get("DEVELOP") is None:
+            for variable in self.variables:
+                variable.func.cache_clear()
 
         # Update progessbar
         if one_core:
