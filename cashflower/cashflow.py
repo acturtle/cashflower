@@ -22,11 +22,7 @@ class Variable:
 
     def __call__(self, t):
         if t < 0 or t > self.settings["T_MAX_CALCULATION"]:
-            return 0
-
-        if self.settings.get("DEVELOP") is None:
-            if self.result[t] is None:
-                return self.func(t)
+            raise CashflowModelError(f"Variable {self.name} has been called for period {t}.")
 
         return self.result[t]
 
@@ -41,13 +37,11 @@ class Variable:
 
     def calculate_t(self, t):
         self.result[t] = self.func(t)
-        return self.result[t]
 
 
 def variable():
     """Decorator"""
     def wrapper(func):
-        func = functools.lru_cache(func)
         variable = Variable(func)
         return variable
     return wrapper

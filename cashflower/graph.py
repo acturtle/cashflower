@@ -4,12 +4,44 @@ import inspect
 from queue import Queue
 
 
+def raise_error_if_incorrect_argument(node):
+    if len(node.args) != 1:
+        msg = f"Model variable must have one argument. Please review the call of '{node.func.id}'."
+        raise ValueError(msg)
+
+    # Model variable can only call t, t+/-x, and x
+    arg = node.args[0]
+    msg = f"\nPlease review '{node.func.id}'. The argument of a model variable can be only:\n" \
+          f"- t,\n" \
+          f"- t plus/minus integer (e.g. t+1 or t-12),\n" \
+          f"- an integer (e.g. 0 or 12)."
+
+    # The model variable calls a variable
+    if isinstance(arg, ast.Name):
+        if not arg.id == "t":
+            raise ValueError(msg)
+
+    # The model variable calls a constant
+    if isinstance(arg, ast.Constant):
+        if not isinstance(arg.value, int):
+            raise ValueError(msg)
+
+    # The model variable calls an operation
+    if isinstance(arg, ast.BinOp):
+        check1 = isinstance(arg.left, ast.Name) and arg.left.id == "t"
+        check2 = isinstance(arg.op, ast.Add) or isinstance(arg.op, ast.Sub)
+        check3 = isinstance(arg.right, ast.Constant) and isinstance(arg.right.value, int)
+        if not (check1 and check2 and check3):
+            raise ValueError(msg)
+
+    # The model variable calls something else
+    if not (isinstance(arg, ast.Name) or isinstance(arg, ast.Constant) or isinstance(arg, ast.BinOp)):
+        raise ValueError(msg)
+
+
 def get_dependencies(func, variable_names, settings):
     visitor = Visitor(func, variable_names, settings)
     code = ast.parse(inspect.getsource(func))
-    if settings.get("ADMIN_AST") == func.__name__:
-        print(ast.dump(ast.parse(inspect.getsource(func)), indent=2))
-
     add_parent(code)
     visitor.visit(code)
     return visitor.dependencies
@@ -38,6 +70,8 @@ class Visitor(ast.NodeVisitor):
         self.dependencies = []
 
     def visit_Call(self, node):
+        raise_error_if_incorrect_argument(node)
+
         if isinstance(node.func, ast.Name) and node.func.id in self.variable_names:
             # Get function's argument (e.g. None, "t", "t+1", "t-1")
             arg = get_arg(node, self.func.__name__)
