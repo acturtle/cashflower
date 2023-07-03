@@ -2,45 +2,13 @@ import ast
 import inspect
 
 from queue import Queue
+from .utils import get_object_by_name
 
 
-def raise_error_if_incorrect_argument(node):
-    if len(node.args) != 1:
-        msg = f"Model variable must have one argument. Please review the call of '{node.func.id}'."
-        raise ValueError(msg)
-
-    # Model variable can only call t, t+/-x, and x
-    arg = node.args[0]
-    msg = f"\nPlease review '{node.func.id}'. The argument of a model variable can be only:\n" \
-          f"- t,\n" \
-          f"- t plus/minus integer (e.g. t+1 or t-12),\n" \
-          f"- an integer (e.g. 0 or 12)."
-
-    # The model variable calls a variable
-    if isinstance(arg, ast.Name):
-        if not arg.id == "t":
-            raise ValueError(msg)
-
-    # The model variable calls a constant
-    if isinstance(arg, ast.Constant):
-        if not isinstance(arg.value, int):
-            raise ValueError(msg)
-
-    # The model variable calls an operation
-    if isinstance(arg, ast.BinOp):
-        check1 = isinstance(arg.left, ast.Name) and arg.left.id == "t"
-        check2 = isinstance(arg.op, ast.Add) or isinstance(arg.op, ast.Sub)
-        check3 = isinstance(arg.right, ast.Constant) and isinstance(arg.right.value, int)
-        if not (check1 and check2 and check3):
-            raise ValueError(msg)
-
-    # The model variable calls something else
-    if not (isinstance(arg, ast.Name) or isinstance(arg, ast.Constant) or isinstance(arg, ast.BinOp)):
-        raise ValueError(msg)
 
 
 def get_dependencies(func, variable_names, settings):
-    visitor = Visitor(func, variable_names, settings)
+    visitor = VisitorOld(func, variable_names, settings)
     code = ast.parse(inspect.getsource(func))
     add_parent(code)
     visitor.visit(code)
@@ -62,7 +30,7 @@ class Dependency:
                f"\tsubset: {self.subset}"
 
 
-class Visitor(ast.NodeVisitor):
+class VisitorOld(ast.NodeVisitor):
     def __init__(self, func, variable_names, settings):
         self.func = func
         self.variable_names = variable_names

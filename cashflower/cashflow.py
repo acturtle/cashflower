@@ -9,12 +9,69 @@ from .utils import *
 from .graph import *
 
 
+def raise_error_if_incorrect_argument(node):
+    if len(node.args) != 1:
+        msg = f"Model variable must have one argument. Please review the call of '{node.func.id}'."
+        raise ValueError(msg)
+
+    # Model variable can only call t, t+/-x, and x
+    arg = node.args[0]
+    msg = f"\nPlease review '{node.func.id}'. The argument of a model variable can be only:\n" \
+          f"- t,\n" \
+          f"- t plus/minus integer (e.g. t+1 or t-12),\n" \
+          f"- an integer (e.g. 0 or 12)."
+
+    # The model variable calls a variable
+    if isinstance(arg, ast.Name):
+        if not arg.id == "t":
+            raise ValueError(msg)
+
+    # The model variable calls a constant
+    if isinstance(arg, ast.Constant):
+        if not isinstance(arg.value, int):
+            raise ValueError(msg)
+
+    # The model variable calls an operation
+    if isinstance(arg, ast.BinOp):
+        check1 = isinstance(arg.left, ast.Name) and arg.left.id == "t"
+        check2 = isinstance(arg.op, ast.Add) or isinstance(arg.op, ast.Sub)
+        check3 = isinstance(arg.right, ast.Constant) and isinstance(arg.right.value, int)
+        if not (check1 and check2 and check3):
+            raise ValueError(msg)
+
+    # The model variable calls something else
+    if not (isinstance(arg, ast.Name) or isinstance(arg, ast.Constant) or isinstance(arg, ast.BinOp)):
+        raise ValueError(msg)
+
+
+def get_predecessors(func, variables):
+    variable_names = [variable.name for variable in variables]
+    visitor = Visitor(variable_names)
+    node = ast.parse(inspect.getsource(func))
+    visitor.visit(node)
+    predecessor_names = visitor.predecessors
+    predecessors = [get_object_by_name(variables, predecessor_name) for predecessor_name in predecessor_names]
+    return predecessors
+
+
+class Visitor(ast.NodeVisitor):
+    def __init__(self, variable_names):
+        self.variable_names = variable_names
+        self.predecessors = []
+
+    def visit_Call(self, node):
+        if node.func.id in self.variable_names:
+            raise_error_if_incorrect_argument(node)
+            self.predecessors.append(node.func.id)
+
+
 class Variable:
     def __init__(self, func):
         self.func = func
         self.name = None
         self._settings = None
         self.result = None
+        self.predecessors = None
         self.runtime = 0
 
     def __repr__(self):
@@ -264,35 +321,16 @@ class Model:
         return result, runtime
 
     def create_graph(self):
-        # Create directed graph for all variable-period tuples
+        # Get predecessors of variables
+        for variable in self.variables:
+            variable.predecessors = get_predecessors(variable.func, self.variables)
+
+        # Create directed graph for all variables
         DG = nx.DiGraph()
         for variable in self.variables:
-            for period in range(0, self.settings["T_MAX_CALCULATION"] + 1):
-                DG.add_node((variable, period))
-
-        # Create dependencies
-        variable_names = [variable.name for variable in self.variables]
-        dependencies = []
-        for variable in self.variables:
-            variable_dependencies = get_dependencies(variable.func, variable_names, self.settings)
-            dependencies.append(variable_dependencies)
-        dependencies = flatten(dependencies)
-
-        for dependency in dependencies:
-            dependency.func = get_object_by_name(self.variables, dependency.func)
-            dependency.call = get_object_by_name(self.variables, dependency.call)
-
-            if self.settings.get("ADMIN_DEPENDENCY") is not None:
-                print(dependency)
-
-        # Add edges to the graph
-        for dependency in dependencies:
-            add_edges_from_dependency(dependency, DG, self.settings["T_MAX_CALCULATION"]+1)
-
-        # Draw graph in admin mode
-        if self.settings.get("ADMIN_DRAW") is not None:
-            nx.draw(DG, with_labels=True)
-            plt.show()
+            DG.add_node(variable)
+            for predecessor in variable.predecessors:
+                DG.add_edge(predecessor, variable)
 
         return DG
 
