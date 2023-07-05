@@ -9,6 +9,18 @@ from .utils import *
 from .graph import *
 
 
+def get_direction(variables):
+    variable_names = [variable.name for variable in variables]
+
+    direction_visitor = DirectionVisitor(variable_names)
+    for variable in variables:
+        node = ast.parse(inspect.getsource(variable.func))
+        direction_visitor.visit(node)
+        variable.direction = direction_visitor.direction
+
+    return None
+
+
 def raise_error_if_incorrect_argument(node):
     if len(node.args) != 1:
         msg = f"Model variable must have one argument. Please review the call of '{node.func.id}'."
@@ -46,11 +58,11 @@ def raise_error_if_incorrect_argument(node):
 
 def get_calls(func, variables):
     variable_names = [variable.name for variable in variables]
-    visitor = Visitor(variable_names)
+    call_visitor = CallVisitor(variable_names)
     node = ast.parse(inspect.getsource(func))
     # print("\n", ast.dump(node, indent=2))
-    visitor.visit(node)
-    call_names = visitor.calls
+    call_visitor.visit(node)
+    call_names = call_visitor.calls
     calls = [get_object_by_name(variables, call_name) for call_name in call_names]
     return calls
 
@@ -72,7 +84,23 @@ def get_predecessors(node, DG):
     return visited
 
 
-class Visitor(ast.NodeVisitor):
+class DirectionVisitor(ast.NodeVisitor):
+    def __init__(self, variable_names):
+        self.variable_names = variable_names
+        self.direction = "asc"
+
+    def visit_Call(self, node):
+        if isinstance(node.func, ast.Name):
+            if node.func.id in self.variable_names:
+                # Does it call t+1?
+                arg = node.args[0]
+                check1 = isinstance(arg.left, ast.Name) and arg.left.id == "t"
+                check2 = isinstance(arg.op, ast.Add)
+                if check1 and check2:
+                    self.direction = "desc"
+
+
+class CallVisitor(ast.NodeVisitor):
     def __init__(self, variable_names):
         self.variable_names = variable_names
         self.calls = []
@@ -314,6 +342,16 @@ class Model:
 
         # Sort variables for calculation order
         self.variables = sorted(self.variables, key=lambda x: (x.calc_order, x.name))
+
+        # Get direction of calculation
+        max_calc_order = self.variables[-1].calc_order
+        for calc_order in range(1, max_calc_order+1):
+            # Either a single variable or a cycle
+            variables = [variable for variable in self.variables if variable.calc_order == calc_order]
+            get_direction(variables)
+
+        for variable in self.variables:
+            print(variable.name, "|", variable.calc_order, "|", variable.direction)
 
         # Iterate over model points
         main = get_object_by_name(self.model_point_sets, "main")
