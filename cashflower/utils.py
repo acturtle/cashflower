@@ -1,33 +1,32 @@
-import re
+import sys
 
-from collections import deque
 from datetime import datetime
 
 
-def unique_append(lst, item):
-    """Append a unique item to a list."""
-    output = lst.copy()
-    if item not in lst:
-        output.append(item)
-    return output
-
-
-def unique_extend(lst1, lst2):
-    """Extend list with items of other list if they are unique."""
-    output = lst1.copy()
-    for item in lst2:
-        if item not in lst1:
-            output.append(item)
-    return output
-
-
-def list_used_words(text, words):
-    """Choose words from a list that were used in a text."""
-    used_words = []
-    for word in words:
-        if word in text:
-            used_words.append(word)
-    return used_words
+# def unique_append(lst, item):
+#     """Append a unique item to a list."""
+#     output = lst.copy()
+#     if item not in lst:
+#         output.append(item)
+#     return output
+#
+#
+# def unique_extend(lst1, lst2):
+#     """Extend list with items of other list if they are unique."""
+#     output = lst1.copy()
+#     for item in lst2:
+#         if item not in lst1:
+#             output.append(item)
+#     return output
+#
+#
+# def list_used_words(text, words):
+#     """Choose words from a list that were used in a text."""
+#     used_words = []
+#     for word in words:
+#         if word in text:
+#             used_words.append(word)
+#     return used_words
 
 
 def replace_in_file(_file, _from, _to):
@@ -44,88 +43,88 @@ def replace_in_file(_file, _from, _to):
         file.write(filedata)
 
 
-def clean_formula_source(formula_source):
-    """Clean formula's source.
-    Prepares the formula's source to be analysed in terms of which function it calls.
-    Removes first line (function name), comments and whitespaces before brackets.
-
-    Parameters
-    ----------
-    formula_source : str
-        A function presented as a string.
-
-    Returns
-    -------
-    string
-    """
-    # Get rid off function's definition
-    clean = re.sub(r"def.*?:\n", "\n", formula_source, count=1)
-
-    # Get rid off whitespaces before function's call
-    clean = re.sub(r"\s*\(", "(", clean)
-
-    # Get rid off whitespaces inside brackets
-    clean = re.sub(r"\(\s*", "(", clean)
-    clean = re.sub(r"\s*\)", ")", clean)
-    clean = re.sub(r"\(t\s*", "(t", clean)
-    clean = re.sub(r"\s*1\)", "1)", clean)
-
-    # Get rid off comments
-    clean = re.sub(r"#.*\n", "\n", clean)
-    clean = re.sub(r"\"\"\".*?\"\"\"", "", clean)
-    clean = re.sub(r"\'\'\'.*?\'\'\'", "", clean)
-    return clean
-
-
-def list_called_funcs(formula_source, funcs):
-    """List functions called in the  formula.
-
-    Parameters
-    ----------
-    formula_source : str
-        A function's body presented a string.
-    funcs : list
-        List of functions' names to be checked if they are called in formula source.
-
-    Returns
-    -------
-    list
-    """
-    called_funcs = []
-    for func in funcs:
-        search = re.search(r"\W" + func + r"\(", formula_source)
-        is_called = bool(search)
-        if is_called:
-            called_funcs.append(func)
-    return called_funcs
+# def clean_formula_source(formula_source):
+#     """Clean formula's source.
+#     Prepares the formula's source to be analysed in terms of which function it calls.
+#     Removes first line (function name), comments and whitespaces before brackets.
+#
+#     Parameters
+#     ----------
+#     formula_source : str
+#         A function presented as a string.
+#
+#     Returns
+#     -------
+#     string
+#     """
+#     # Get rid off function's definition
+#     clean = re.sub(r"def.*?:\n", "\n", formula_source, count=1)
+#
+#     # Get rid off whitespaces before function's call
+#     clean = re.sub(r"\s*\(", "(", clean)
+#
+#     # Get rid off whitespaces inside brackets
+#     clean = re.sub(r"\(\s*", "(", clean)
+#     clean = re.sub(r"\s*\)", ")", clean)
+#     clean = re.sub(r"\(t\s*", "(t", clean)
+#     clean = re.sub(r"\s*1\)", "1)", clean)
+#
+#     # Get rid off comments
+#     clean = re.sub(r"#.*\n", "\n", clean)
+#     clean = re.sub(r"\"\"\".*?\"\"\"", "", clean)
+#     clean = re.sub(r"\'\'\'.*?\'\'\'", "", clean)
+#     return clean
 
 
-def is_recursive(formula_source, name):
-    """Check if formula is recursive.
-    0 = not_recursive
-    1 = forward (t-1)
-    2 = backward (t+1)
+# def list_called_funcs(formula_source, funcs):
+#     """List functions called in the  formula.
+#
+#     Parameters
+#     ----------
+#     formula_source : str
+#         A function's body presented a string.
+#     funcs : list
+#         List of functions' names to be checked if they are called in formula source.
+#
+#     Returns
+#     -------
+#     list
+#     """
+#     called_funcs = []
+#     for func in funcs:
+#         search = re.search(r"\W" + func + r"\(", formula_source)
+#         is_called = bool(search)
+#         if is_called:
+#             called_funcs.append(func)
+#     return called_funcs
 
-    Parameters
-    ----------
-    formula_source : str
-        A function's body presented a string.
-    name : str
-        Name of the function.
 
-    Returns
-    -------
-    integer
-    """
-    search1 = re.search(r"\W" + name + r"\(t\-1\)", formula_source)
-    if bool(search1):
-        return 1
-
-    search2 = re.search(r"\W" + name + r"\(t\+1\)", formula_source)
-    if bool(search2):
-        return 2
-
-    return 0
+# def is_recursive(formula_source, name):
+#     """Check if formula is recursive.
+#     0 = not_recursive
+#     1 = forward (t-1)
+#     2 = backward (t+1)
+#
+#     Parameters
+#     ----------
+#     formula_source : str
+#         A function's body presented a string.
+#     name : str
+#         Name of the function.
+#
+#     Returns
+#     -------
+#     integer
+#     """
+#     search1 = re.search(r"\W" + name + r"\(t\-1\)", formula_source)
+#     if bool(search1):
+#         return 1
+#
+#     search2 = re.search(r"\W" + name + r"\(t\+1\)", formula_source)
+#     if bool(search2):
+#         return 2
+#
+#     return 0
 
 
 def print_log(msg, show=True):
@@ -154,37 +153,37 @@ def split_to_ranges(n, num_ranges):
     return output
 
 
-def get_cycle(src, rest):
-    """Find a cycle in the components"""
-    q = deque([src])
-    marked = {}
-    node_from = {}
+# def get_cycle(src, rest):
+#     """Find a cycle in the components"""
+#     q = deque([src])
+#     marked = {}
+#     node_from = {}
+#
+#     # Breadth-first search
+#     first = True
+#     e = q.popleft()
+#     while first or e.name != src.name:
+#         first = False
+#         for ch in e.children:
+#             if ch not in marked and ch in rest:
+#                 marked[ch] = True
+#                 node_from[ch] = e
+#                 q.append(ch)
+#         e = q.popleft()
+#
+#     # Recreate list of items
+#     cycle = [src]
+#     e = node_from[src]
+#     while e.name != src.name:
+#         cycle.insert(0, e)
+#         e = node_from[e]
+#     return cycle
 
-    # Breadth-first search
-    first = True
-    e = q.popleft()
-    while first or e.name != src.name:
-        first = False
-        for ch in e.children:
-            if ch not in marked and ch in rest:
-                marked[ch] = True
-                node_from[ch] = e
-                q.append(ch)
-        e = q.popleft()
 
-    # Recreate list of items
-    cycle = [src]
-    e = node_from[src]
-    while e.name != src.name:
-        cycle.insert(0, e)
-        e = node_from[e]
-    return cycle
-
-
-def cycle_to_str(cycle):
-    cycle_names = [c.name for c in cycle]
-    cycle_str = " --> ".join(cycle_names) + " --> " + cycle[0].name
-    return cycle_str
+# def cycle_to_str(cycle):
+#     cycle_names = [c.name for c in cycle]
+#     cycle_str = " --> ".join(cycle_names) + " --> " + cycle[0].name
+#     return cycle_str
 
 
 def get_object_by_name(objects, name):
@@ -194,29 +193,44 @@ def get_object_by_name(objects, name):
     return None
 
 
-def lst_to_records(lst):
-    """['a', 'b', 'b', 'c', 'd', 'd', 'd', 'd', 'b'] ---> [1, 1, 2, 1, 1, 2, 3, 4, 1]"""
-    prev = None
-    output = []
-    for i, curr in enumerate(lst):
-        if i == 0:
-            output.append(1)
-        else:
-            if curr == prev:
-                output.append(output[i-1]+1)
-            else:
-                output.append(1)
-        prev = curr
-    return output
+# def lst_to_records(lst):
+#     """['a', 'b', 'b', 'c', 'd', 'd', 'd', 'd', 'b'] ---> [1, 1, 2, 1, 1, 2, 3, 4, 1]"""
+#     prev = None
+#     output = []
+#     for i, curr in enumerate(lst):
+#         if i == 0:
+#             output.append(1)
+#         else:
+#             if curr == prev:
+#                 output.append(output[i-1]+1)
+#             else:
+#                 output.append(1)
+#         prev = curr
+#     return output
 
 
-def flatten(lst):
-    flat_list = []
-    for element in lst:
-        if type(element) is list:
-            for item in element:
-                flat_list.append(item)
-        else:
-            flat_list.append(element)
-    return flat_list
+# def flatten(lst):
+#     flat_list = []
+#     for element in lst:
+#         if type(element) is list:
+#             for item in element:
+#                 flat_list.append(item)
+#         else:
+#             flat_list.append(element)
+#     return flat_list
 
+
+def updt(total, progress):
+    """Display or update a console progress bar.
+    Original source: https://stackoverflow.com/a/15860757/1391441
+    """
+    bar_length, status = 20, ""
+    progress = float(progress) / float(total)
+    if progress >= 1.:
+        progress, status = 1, "\r\n"
+    block = int(round(bar_length * progress))
+    text = "\r[{}] {:.0f}% {}".format(
+        "#" * block + "-" * (bar_length - block), round(progress * 100, 0),
+        status)
+    sys.stdout.write(text)
+    sys.stdout.flush()

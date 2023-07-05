@@ -7,7 +7,8 @@ import os
 import pandas as pd
 import shutil
 
-from .cashflow import CashflowModelError, ModelPointSet, Model, Runplan, Variable
+from .cashflow import Model, ModelPointSet, Runplan, Variable
+from .error import CashflowModelError
 from .utils import print_log, replace_in_file
 
 

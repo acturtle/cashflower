@@ -1,121 +1,12 @@
 import functools
+import matplotlib.pyplot as plt
 import networkx as nx
 import time
 import pandas as pd
-import sys
 
-from .utils import *
-from .graph import *
-
-
-def raise_error_if_incorrect_argument(node):
-    if len(node.args) != 1:
-        msg = f"Model variable must have one argument. Please review the call of '{node.func.id}'."
-        raise ValueError(msg)
-
-    # Model variable can only call t, t+/-x, and x
-    arg = node.args[0]
-    msg = f"\nPlease review '{node.func.id}'. The argument of a model variable can be only:\n" \
-          f"- t,\n" \
-          f"- t plus/minus integer (e.g. t+1 or t-12),\n" \
-          f"- an integer (e.g. 0 or 12)."
-
-    # The model variable calls a variable
-    if isinstance(arg, ast.Name):
-        if not arg.id == "t":
-            raise ValueError(msg)
-
-    # The model variable calls a constant
-    if isinstance(arg, ast.Constant):
-        if not isinstance(arg.value, int):
-            raise ValueError(msg)
-
-    # The model variable calls an operation
-    if isinstance(arg, ast.BinOp):
-        check1 = isinstance(arg.left, ast.Name) and arg.left.id == "t"
-        check2 = isinstance(arg.op, ast.Add) or isinstance(arg.op, ast.Sub)
-        check3 = isinstance(arg.right, ast.Constant) and isinstance(arg.right.value, int)
-        if not (check1 and check2 and check3):
-            raise ValueError(msg)
-
-    # The model variable calls something else
-    if not (isinstance(arg, ast.Name) or isinstance(arg, ast.Constant) or isinstance(arg, ast.BinOp)):
-        raise ValueError(msg)
-
-
-def get_predecessors(node, DG):
-    queue = Queue()
-    visited = []
-
-    queue.put(node)
-    visited.append(node)
-
-    while not queue.empty():
-        node = queue.get()
-        for child in DG.predecessors(node):
-            if child not in visited:
-                queue.put(child)
-                visited.append(child)
-
-    return visited
-
-
-def get_calc_direction(variables):
-    variable_names = [variable.name for variable in variables]
-
-    direction_visitor = DirectionVisitor(variable_names)
-    for variable in variables:
-        node = ast.parse(inspect.getsource(variable.func))
-        direction_visitor.visit(node)
-        variable.calc_direction = direction_visitor.calc_direction
-
-    return None
-
-
-class DirectionVisitor(ast.NodeVisitor):
-    def __init__(self, variable_names):
-        self.variable_names = variable_names
-        self.calc_direction = "irrelevant"
-
-    def visit_Call(self, node):
-        if isinstance(node.func, ast.Name):
-            if node.func.id in self.variable_names:
-                arg = node.args[0]
-                if isinstance(arg, ast.BinOp):
-                    # Does it call t+... or t-...?
-                    check1 = isinstance(arg.left, ast.Name) and arg.left.id == "t"
-                    check2 = isinstance(arg.op, ast.Add)
-                    check3 = isinstance(arg.op, ast.Sub)
-
-                    if check1 and check2:
-                        self.calc_direction = "backward"
-
-                    if check1 and check3:
-                        self.calc_direction = "forward"
-        return None
-
-
-def get_calls(func, variables):
-    variable_names = [variable.name for variable in variables]
-    call_visitor = CallVisitor(variable_names)
-    node = ast.parse(inspect.getsource(func))
-    # print("\n", ast.dump(node, indent=2))
-    call_visitor.visit(node)
-    call_names = call_visitor.calls
-    calls = [get_object_by_name(variables, call_name) for call_name in call_names]
-    return calls
-
-
-class CallVisitor(ast.NodeVisitor):
-    def __init__(self, variable_names):
-        self.variable_names = variable_names
-        self.calls = []
-
-    def visit_Call(self, node):
-        if isinstance(node.func, ast.Name):
-            if node.func.id in self.variable_names:
-                raise_error_if_incorrect_argument(node)
-                self.calls.append(node.func.id)
+from .error import CashflowModelError
+from .utils import get_object_by_name, print_log, split_to_ranges, updt
+from .graph import get_calc_direction, get_calls, get_predecessors
 
 
 class Variable:
@@ -124,12 +15,10 @@ class Variable:
         self.name = None
         self._settings = None
         self.result = None
-
         self.calls = None
         self.calc_order = None
         self.cycle = False
         self.calc_direction = None
-
         self.runtime = 0
 
     def __repr__(self):
@@ -157,13 +46,15 @@ class Variable:
     @settings.setter
     def settings(self, new_settings):
         self._settings = new_settings
-        self.result = [None for _ in range(0, self.settings["T_MAX_CALCULATION"]+1)]
+        self.result = [None for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)]
 
     def calculate_forward(self):
-        self.result = [self.func(t) for t in range(self.settings["T_MAX_CALCULATION"] + 1)]
+        for t in range(self.settings["T_MAX_CALCULATION"] + 1):
+            self.result[t] = self.func(t)
 
     def calculate_backward(self):
-        self.result = [self.func(t) for t in range(self.settings["T_MAX_CALCULATION"], -1, -1)]
+        for t in range(self.settings["T_MAX_CALCULATION"], -1, -1):
+            self.result[t] = self.func(t)
 
     def calculate(self):
         if self.calc_direction == "irrelevant":
@@ -184,36 +75,8 @@ def variable():
     return wrapper
 
 
-def updt(total, progress):
-    """Display or update a console progress bar.
-    Original source: https://stackoverflow.com/a/15860757/1391441
-    """
-    bar_length, status = 20, ""
-    progress = float(progress) / float(total)
-    if progress >= 1.:
-        progress, status = 1, "\r\n"
-    block = int(round(bar_length * progress))
-    text = "\r[{}] {:.0f}% {}".format(
-        "#" * block + "-" * (bar_length - block), round(progress * 100, 0),
-        status)
-    sys.stdout.write(text)
-    sys.stdout.flush()
-
-
-class CashflowModelError(Exception):
-    pass
-
-
 class Runplan:
-    """Runplan of the cash flow model.
-
-    Attributes
-    ----------
-    data : data frame
-        Data for runplan which must contain column named 'version'.
-    _version : str
-        Current version to be evaluated.
-    """
+    """Runplan of the cash flow model."""
     def __init__(self, data=None, version="1"):
         self.data = data
         self.set_empty_data()
@@ -248,17 +111,7 @@ class Runplan:
         self.data = self.data.set_index("version")
 
     def get(self, attribute):
-        """Get a value from the runplan for the current version.
-
-        Parameters
-        ----------
-        attribute : str
-            Column name of the needed attribute.
-
-        Returns
-        -------
-        scalar
-        """
+        """Get a value from the runplan for the current version."""
         if attribute not in self.data.columns:
             raise CashflowModelError(f"There is no column '{attribute}' in the runplan.")
         return self.data.loc[self.version][attribute]
@@ -275,7 +128,7 @@ class ModelPointSet:
         self.model_point_data = None
 
     def __repr__(self):
-        return f"ModelPointSet: {self.name}"
+        return f"MPS: {self.name}"
 
     def __len__(self):
         return self.data.shape[0]
@@ -299,7 +152,7 @@ class ModelPointSet:
         self.model_point_data = self.data.loc[[new_id]]
 
     def initialize(self):
-        """Name and settings are not present while creating object."""
+        """Name and settings are not present while creating object, so additional initialization is needed."""
         self.perform_checks()
         self.set_index()
         self.id = self.data.iloc[0][self.settings["ID_COLUMN"]]
@@ -330,8 +183,7 @@ class ModelPointSet:
 
 class Model:
     """Actuarial cash flow model.
-    Model combines model variables and model point sets.
-    """
+    Model combines model variables and model point sets."""
     def __init__(self, name, variables, model_point_sets, settings, cpu_count=None):
         self.name = name
         self.variables = variables
@@ -347,7 +199,7 @@ class Model:
 
         # Get variables' calls
         for variable in self.variables:
-            variable.calls = get_calls(variable.func, self.variables)
+            variable.calls = get_calls(variable, self.variables)
 
         # Create directed graph for all variables
         DG = nx.DiGraph()
@@ -356,11 +208,14 @@ class Model:
             for predecessor in variable.calls:
                 DG.add_edge(predecessor, variable)
 
+        # Draw graph
+        # nx.draw(DG, with_labels=True, font_weight='bold')
+        # plt.show()
+
         # Set calc_order in variables
         calc_order = 0
         while DG.nodes:
             nodes_without_predecessors = [node for node in DG.nodes if len(list(DG.predecessors(node))) == 0]
-
             if len(nodes_without_predecessors) > 0:
                 for node in nodes_without_predecessors:
                     calc_order += 1
