@@ -40,10 +40,10 @@ def load_settings(settings=None):
         "MULTIPROCESSING": False,
         "OUTPUT_COLUMNS": [],
         "ID_COLUMN": "id",
-        "SAVE_DIAGNOSTIC": False,
+        "SAVE_DIAGNOSTIC": True,
         "SAVE_OUTPUT": True,
-        "T_MAX_CALCULATION": 1200,
-        "T_MAX_OUTPUT": 1200,
+        "T_MAX_CALCULATION": 720,
+        "T_MAX_OUTPUT": 720,
     }
 
     if settings is None:
