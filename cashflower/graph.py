@@ -38,7 +38,7 @@ class VisitorOld(ast.NodeVisitor):
         self.dependencies = []
 
     def visit_Call(self, node):
-        raise_error_if_incorrect_argument(node)
+        # raise_error_if_incorrect_argument(node)
 
         if isinstance(node.func, ast.Name) and node.func.id in self.variable_names:
             # Get function's argument (e.g. None, "t", "t+1", "t-1")

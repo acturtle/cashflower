@@ -44,25 +44,44 @@ def raise_error_if_incorrect_argument(node):
         raise ValueError(msg)
 
 
-def get_predecessors(func, variables):
+def get_calls(func, variables):
     variable_names = [variable.name for variable in variables]
     visitor = Visitor(variable_names)
     node = ast.parse(inspect.getsource(func))
+    # print("\n", ast.dump(node, indent=2))
     visitor.visit(node)
-    predecessor_names = visitor.predecessors
-    predecessors = [get_object_by_name(variables, predecessor_name) for predecessor_name in predecessor_names]
-    return predecessors
+    call_names = visitor.calls
+    calls = [get_object_by_name(variables, call_name) for call_name in call_names]
+    return calls
+
+
+def get_predecessors(node, DG):
+    queue = Queue()
+    visited = []
+
+    queue.put(node)
+    visited.append(node)
+
+    while not queue.empty():
+        node = queue.get()
+        for child in DG.predecessors(node):
+            if child not in visited:
+                queue.put(child)
+                visited.append(child)
+
+    return visited
 
 
 class Visitor(ast.NodeVisitor):
     def __init__(self, variable_names):
         self.variable_names = variable_names
-        self.predecessors = []
+        self.calls = []
 
     def visit_Call(self, node):
-        if node.func.id in self.variable_names:
-            raise_error_if_incorrect_argument(node)
-            self.predecessors.append(node.func.id)
+        if isinstance(node.func, ast.Name):
+            if node.func.id in self.variable_names:
+                raise_error_if_incorrect_argument(node)
+                self.calls.append(node.func.id)
 
 
 class Variable:
@@ -71,7 +90,12 @@ class Variable:
         self.name = None
         self._settings = None
         self.result = None
-        self.predecessors = None
+
+        self.calls = None
+        self.calc_order = None
+        self.cycle = False
+        self.direction = "asc"
+
         self.runtime = 0
 
     def __repr__(self):
@@ -263,17 +287,33 @@ class Model:
     def run(self, part=None):
         """Orchestrate all steps of the cash flow model run."""
         one_core = part == 0 or part is None  # single or first part
-        print_log(f"Start run for model '{self.name}'", one_core)
+        print_log(f"Building model '{self.name}'", one_core)
 
+        # Create directed graph
         DG = self.create_graph()
 
-        # Get an order of calculations
-        ordered_nodes = []
+        # Set calc_order in variables
+        calc_order = 0
         while DG.nodes:
             nodes_without_predecessors = [node for node in DG.nodes if len(list(DG.predecessors(node))) == 0]
-            ordered_nodes.append(nodes_without_predecessors)
-            DG.remove_nodes_from(nodes_without_predecessors)
-        ordered_nodes = flatten(ordered_nodes)
+
+            if len(nodes_without_predecessors) > 0:
+                for node in nodes_without_predecessors:
+                    calc_order += 1
+                    node.calc_order = calc_order
+                DG.remove_nodes_from(nodes_without_predecessors)
+            else:  # it's a cycle
+                cycles = list(nx.simple_cycles(DG))
+                cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], DG)) == len(c)]
+                for cycle_without_predecessors in cycles_without_predecessors:
+                    calc_order += 1
+                    for node in cycle_without_predecessors:
+                        node.calc_order = calc_order
+                        node.cycle = True
+                    DG.remove_nodes_from(cycle_without_predecessors)
+
+        # Sort variables for calculation order
+        self.variables = sorted(self.variables, key=lambda x: (x.calc_order, x.name))
 
         # Iterate over model points
         main = get_object_by_name(self.model_point_sets, "main")
@@ -321,17 +361,16 @@ class Model:
         return result, runtime
 
     def create_graph(self):
-        # Get predecessors of variables
+        # Get variables' calls
         for variable in self.variables:
-            variable.predecessors = get_predecessors(variable.func, self.variables)
+            variable.calls = get_calls(variable.func, self.variables)
 
         # Create directed graph for all variables
         DG = nx.DiGraph()
         for variable in self.variables:
             DG.add_node(variable)
-            for predecessor in variable.predecessors:
+            for predecessor in variable.calls:
                 DG.add_edge(predecessor, variable)
-
         return DG
 
     def calculate_model_point(self, row, ordered_nodes, one_core, progressbar_max):
@@ -343,15 +382,9 @@ class Model:
             model_point_set.id = model_point_id
 
         # Perform calculations
-        for node in ordered_nodes:
-            variable = node[0]
-            t = node[1]
-            if self.settings.get("ADMIN_NODE") is not None:
-                print(f"Node: ({variable.name}, {t})")
-            if t < 0 or t > self.settings["T_MAX_CALCULATION"]:
-                continue
+        for variable in self.variables:
             start = time.time()
-            variable.calculate_t(t)
+            variable.calculate()
             variable.runtime += time.time() - start
 
         # Get results and trim for T_MAX_OUTPUT
