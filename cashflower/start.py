@@ -39,8 +39,8 @@ def load_settings(settings=None):
         "MULTIPROCESSING": False,
         "OUTPUT_COLUMNS": [],
         "ID_COLUMN": "id",
+        "SAVE_DIAGNOSTIC": False,
         "SAVE_OUTPUT": True,
-        "SAVE_RUNTIME": False,
         "T_MAX_CALCULATION": 1200,
         "T_MAX_OUTPUT": 1200,
     }
@@ -167,13 +167,16 @@ def merge_part_model_outputs(part_model_outputs, settings):
     return model_output
 
 
-def merge_part_runtimes(part_runtimes):
+def merge_part_diagnostic(part_diagnostic):
     # Nones are returned, when number of policies < number of cpus
-    part_runtimes = [pr for pr in part_runtimes if pr is not None]
-    total_runtimes = sum([pr["runtime"] for pr in part_runtimes])
-    first = part_runtimes[0]
+    part_diagnostic = [pd for pd in part_diagnostic if pd is not None]
+    total_runtimes = sum([pd["runtime"] for pd in part_diagnostic])
+    first = part_diagnostic[0]
     runtimes = pd.DataFrame({
         "variable": first["variable"],
+        "calc_order": first["calc_order"],
+        "cycle": first["cycle"],
+        "calc_direction": first["calc_direction"],
         "runtime": total_runtimes
     })
     return runtimes
@@ -182,6 +185,7 @@ def merge_part_runtimes(part_runtimes):
 def start(model_name, settings, argv):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     settings = load_settings(settings)
+    output, diagnostic = None, None
 
     if settings["MULTIPROCESSING"]:
         cpu_count = multiprocessing.cpu_count()
@@ -197,9 +201,9 @@ def start(model_name, settings, argv):
         # Merge runtimes
         if settings["SAVE_RUNTIME"]:
             part_runtimes = [p[1] for p in parts]
-            runtime = merge_part_runtimes(part_runtimes)
+            diagnostic = merge_part_diagnostic(part_runtimes)
     else:
-        output, runtime = start_single_core(model_name, settings, argv)
+        output, diagnostic = start_single_core(model_name, settings, argv)
 
     # Add time column
     values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output.shape[0] / (settings["T_MAX_OUTPUT"]+1))
@@ -215,10 +219,10 @@ def start(model_name, settings, argv):
         output.to_csv(filepath, index=False)
         print(f"{' ' * 10} {filepath}")
 
-    if settings["SAVE_RUNTIME"]:
-        print_log("Saving runtime:")
-        filepath = f"output/{timestamp}_runtime.csv"
-        runtime.to_csv(filepath, index=False)
+    if settings["SAVE_DIAGNOSTIC"]:
+        print_log("Saving diagnostic file:")
+        filepath = f"output/{timestamp}_diagnostic.csv"
+        diagnostic.to_csv(filepath, index=False)
         print(f"{' ' * 10} {filepath}")
 
     print_log("Finished")

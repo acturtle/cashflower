@@ -1,5 +1,4 @@
 import functools
-import matplotlib.pyplot as plt
 import networkx as nx
 import time
 import pandas as pd
@@ -7,18 +6,6 @@ import sys
 
 from .utils import *
 from .graph import *
-
-
-def get_direction(variables):
-    variable_names = [variable.name for variable in variables]
-
-    direction_visitor = DirectionVisitor(variable_names)
-    for variable in variables:
-        node = ast.parse(inspect.getsource(variable.func))
-        direction_visitor.visit(node)
-        variable.direction = direction_visitor.direction
-
-    return None
 
 
 def raise_error_if_incorrect_argument(node):
@@ -56,17 +43,6 @@ def raise_error_if_incorrect_argument(node):
         raise ValueError(msg)
 
 
-def get_calls(func, variables):
-    variable_names = [variable.name for variable in variables]
-    call_visitor = CallVisitor(variable_names)
-    node = ast.parse(inspect.getsource(func))
-    # print("\n", ast.dump(node, indent=2))
-    call_visitor.visit(node)
-    call_names = call_visitor.calls
-    calls = [get_object_by_name(variables, call_name) for call_name in call_names]
-    return calls
-
-
 def get_predecessors(node, DG):
     queue = Queue()
     visited = []
@@ -84,20 +60,50 @@ def get_predecessors(node, DG):
     return visited
 
 
+def get_calc_direction(variables):
+    variable_names = [variable.name for variable in variables]
+
+    direction_visitor = DirectionVisitor(variable_names)
+    for variable in variables:
+        node = ast.parse(inspect.getsource(variable.func))
+        direction_visitor.visit(node)
+        variable.calc_direction = direction_visitor.calc_direction
+
+    return None
+
+
 class DirectionVisitor(ast.NodeVisitor):
     def __init__(self, variable_names):
         self.variable_names = variable_names
-        self.direction = "asc"
+        self.calc_direction = "irrelevant"
 
     def visit_Call(self, node):
         if isinstance(node.func, ast.Name):
             if node.func.id in self.variable_names:
-                # Does it call t+1?
                 arg = node.args[0]
-                check1 = isinstance(arg.left, ast.Name) and arg.left.id == "t"
-                check2 = isinstance(arg.op, ast.Add)
-                if check1 and check2:
-                    self.direction = "desc"
+                if isinstance(arg, ast.BinOp):
+                    # Does it call t+... or t-...?
+                    check1 = isinstance(arg.left, ast.Name) and arg.left.id == "t"
+                    check2 = isinstance(arg.op, ast.Add)
+                    check3 = isinstance(arg.op, ast.Sub)
+
+                    if check1 and check2:
+                        self.calc_direction = "backward"
+
+                    if check1 and check3:
+                        self.calc_direction = "forward"
+        return None
+
+
+def get_calls(func, variables):
+    variable_names = [variable.name for variable in variables]
+    call_visitor = CallVisitor(variable_names)
+    node = ast.parse(inspect.getsource(func))
+    # print("\n", ast.dump(node, indent=2))
+    call_visitor.visit(node)
+    call_names = call_visitor.calls
+    calls = [get_object_by_name(variables, call_name) for call_name in call_names]
+    return calls
 
 
 class CallVisitor(ast.NodeVisitor):
@@ -122,7 +128,7 @@ class Variable:
         self.calls = None
         self.calc_order = None
         self.cycle = False
-        self.direction = "asc"
+        self.calc_direction = None
 
         self.runtime = 0
 
@@ -131,7 +137,16 @@ class Variable:
 
     def __call__(self, t):
         if t < 0 or t > self.settings["T_MAX_CALCULATION"]:
-            raise CashflowModelError(f"Variable {self.name} has been called for period {t}.")
+            msg = f"Variable '{self.name}' has been called for period '{t}' which is outside of calculation range."
+            raise CashflowModelError(msg)
+
+        # In the cycle, we don't know exact calculation order
+        if self.cycle and self.result[t] is None:
+            return self.func(t)
+
+        if self.result[t] is None:
+            msg = f"Variable '{self.name}' has been called for period '{t}' which hasn't been calculated yet."
+            raise CashflowModelError(msg)
 
         return self.result[t]
 
@@ -144,8 +159,21 @@ class Variable:
         self._settings = new_settings
         self.result = [None for _ in range(0, self.settings["T_MAX_CALCULATION"]+1)]
 
-    def calculate_t(self, t):
-        self.result[t] = self.func(t)
+    def calculate_forward(self):
+        self.result = [self.func(t) for t in range(self.settings["T_MAX_CALCULATION"] + 1)]
+
+    def calculate_backward(self):
+        self.result = [self.func(t) for t in range(self.settings["T_MAX_CALCULATION"], -1, -1)]
+
+    def calculate(self):
+        if self.calc_direction == "irrelevant":
+            self.result = [*map(self.func, range(self.settings["T_MAX_CALCULATION"] + 1))]
+        elif self.calc_direction == "forward":
+            self.calculate_forward()
+        elif self.calc_direction == "backward":
+            self.calculate_backward()
+        else:
+            raise CashflowModelError(f"Incorrect calculation direction {self.calc_direction}")
 
 
 def variable():
@@ -317,8 +345,16 @@ class Model:
         one_core = part == 0 or part is None  # single or first part
         print_log(f"Building model '{self.name}'", one_core)
 
-        # Create directed graph
-        DG = self.create_graph()
+        # Get variables' calls
+        for variable in self.variables:
+            variable.calls = get_calls(variable.func, self.variables)
+
+        # Create directed graph for all variables
+        DG = nx.DiGraph()
+        for variable in self.variables:
+            DG.add_node(variable)
+            for predecessor in variable.calls:
+                DG.add_edge(predecessor, variable)
 
         # Set calc_order in variables
         calc_order = 0
@@ -343,15 +379,12 @@ class Model:
         # Sort variables for calculation order
         self.variables = sorted(self.variables, key=lambda x: (x.calc_order, x.name))
 
-        # Get direction of calculation
+        # Get calc_direction of calculation
         max_calc_order = self.variables[-1].calc_order
         for calc_order in range(1, max_calc_order+1):
             # Either a single variable or a cycle
             variables = [variable for variable in self.variables if variable.calc_order == calc_order]
-            get_direction(variables)
-
-        for variable in self.variables:
-            print(variable.name, "|", variable.calc_order, "|", variable.direction)
+            get_calc_direction(variables)
 
         # Iterate over model points
         main = get_object_by_name(self.model_point_sets, "main")
@@ -362,8 +395,7 @@ class Model:
                 print_log(f"Calculation of ca. {len(main) // self.cpu_count} model points per core")
 
         # Set calculation ranges for multiprocessing
-        range_start = None
-        range_end = None
+        range_start, range_end = None, None
         if self.settings["MULTIPROCESSING"]:
             main_ranges = split_to_ranges(len(main), self.cpu_count)
             # Number of model points is lower than the number of cpus, only calculate on the 1st core
@@ -373,8 +405,7 @@ class Model:
 
         # Create partial calculation function for map
         progressbar_max = len(main) if range_end is None else range_end
-        p = functools.partial(self.calculate_model_point, ordered_nodes=ordered_nodes, one_core=one_core,
-                              progressbar_max=progressbar_max)
+        p = functools.partial(self.calculate_model_point, one_core=one_core, progressbar_max=progressbar_max)
 
         # Perform calculations
         if self.settings["MULTIPROCESSING"] is False:
@@ -388,30 +419,20 @@ class Model:
         else:
             result = functools.reduce(lambda x, y: x.add(y, fill_value=0), results)
 
-        # Get runtime
-        runtime = None
-        if self.settings["SAVE_RUNTIME"]:
-            runtime = pd.DataFrame({
+        # Get diagnostic file
+        diagnostic = None
+        if self.settings["SAVE_DIAGNOSTIC"]:
+            diagnostic = pd.DataFrame({
                 "variable": [v.name for v in self.variables],
+                "calc_order": [v.calc_order for v in self.variables],
+                "cycle": [v.cycle for v in self.variables],
+                "calc_direction": [v.calc_direction for v in self.variables],
                 "runtime": [v.runtime for v in self.variables]
             })
 
-        return result, runtime
+        return result, diagnostic
 
-    def create_graph(self):
-        # Get variables' calls
-        for variable in self.variables:
-            variable.calls = get_calls(variable.func, self.variables)
-
-        # Create directed graph for all variables
-        DG = nx.DiGraph()
-        for variable in self.variables:
-            DG.add_node(variable)
-            for predecessor in variable.calls:
-                DG.add_edge(predecessor, variable)
-        return DG
-
-    def calculate_model_point(self, row, ordered_nodes, one_core, progressbar_max):
+    def calculate_model_point(self, row, one_core, progressbar_max):
         main = get_object_by_name(self.model_point_sets, "main")
 
         # Set model point's id
@@ -420,10 +441,29 @@ class Model:
             model_point_set.id = model_point_id
 
         # Perform calculations
-        for variable in self.variables:
-            start = time.time()
-            variable.calculate()
-            variable.runtime += time.time() - start
+        max_calc_order = self.variables[-1].calc_order
+        for calc_order in range(1, max_calc_order + 1):
+            # Either a single variable or a cycle
+            variables = [variable for variable in self.variables if variable.calc_order == calc_order]
+            if len(variables) == 1:
+                variable = variables[0]
+                start = time.time()
+                variable.calculate()
+                variable.runtime += time.time() - start
+            else:
+                start = time.time()
+                first_variable = variables[0]
+                calc_direction = first_variable.calc_direction
+                if calc_direction in ("irrelevant", "forward"):
+                    for variable in variables:
+                        variable.calculate_forward()
+                else:
+                    for variable in variables:
+                        variable.calculate_backward()
+                end = time.time()
+                avg_runtime = (end-start)/len(variables)
+                for variable in variables:
+                    variable.runtime += avg_runtime
 
         # Get results and trim for T_MAX_OUTPUT
         columns = [variable.name for variable in self.variables]
@@ -434,11 +474,6 @@ class Model:
         # Results may contain subset of columns
         if len(self.settings["OUTPUT_COLUMNS"]) > 0:
             data_frame = data_frame[self.settings["OUTPUT_COLUMNS"]]
-
-        # Clear cache
-        if self.settings.get("DEVELOP") is None:
-            for variable in self.variables:
-                variable.func.cache_clear()
 
         # Update progessbar
         if one_core:

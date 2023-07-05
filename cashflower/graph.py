@@ -5,8 +5,6 @@ from queue import Queue
 from .utils import get_object_by_name
 
 
-
-
 def get_dependencies(func, variable_names, settings):
     visitor = VisitorOld(func, variable_names, settings)
     code = ast.parse(inspect.getsource(func))
