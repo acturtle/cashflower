@@ -1,5 +1,5 @@
 [![PyPI Latest Release](https://img.shields.io/pypi/v/cashflower.svg)](https://pypi.org/project/cashflower/)
-[![pytest](https://github.com/acturtle/cashflower/actions/workflows/pytest.yaml/badge.svg?branch=main)](https://github.com/acturtle/cashflower/actions/workflows/pytest.yaml)
+[![pytest](https://github.com/acturtle/cashflower/actions/workflows/pytest.yml/badge.svg?branch=main)](https://github.com/acturtle/cashflower/actions/workflows/pytest.yml)
 [![Documentation Status](https://readthedocs.org/projects/cashflower/badge/)](https://cashflower.acturtle.com)
 
 # Info
