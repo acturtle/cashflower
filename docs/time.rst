@@ -23,19 +23,13 @@ Formulas:
     :caption: model.py
 
     import math
-    from cashflower import assign, ModelVariable, Constant
+    from cashflower import variable
 
     from tutorials.time.input import main, runplan
 
-    cal_month = ModelVariable(mp_dep=False)
-    cal_year = ModelVariable(mp_dep=False)
-    elapsed_months = Constant()
-    pol_month = ModelVariable()
-    pol_year = ModelVariable()
 
-
-    @assign(cal_month)
-    def _cal_month(t):
+    @variable()
+    def cal_month(t):
         if t == 0:
             return runplan.get("valuation_month")
         if cal_month(t-1) == 12:
@@ -44,8 +38,8 @@ Formulas:
             return cal_month(t-1) + 1
 
 
-    @assign(cal_year)
-    def _cal_year(t):
+    @variable()
+    def cal_year(t):
         if t == 0:
             return runplan.get("valuation_year")
         if cal_month(t-1) == 12:
@@ -54,8 +48,8 @@ Formulas:
             return cal_year(t-1)
 
 
-    @assign(elapsed_months)
-    def _elapsed_months():
+    @variable()
+    def elapsed_months(t):
         issue_year = main.get("issue_year")
         issue_month = main.get("issue_month")
         valuation_year = runplan.get("valuation_year")
@@ -63,10 +57,10 @@ Formulas:
         return (valuation_year - issue_year) * 12 + (valuation_month - issue_month)
 
 
-    @assign(pol_month)
-    def _pol_month(t):
+    @variable()
+    def pol_month(t):
         if t == 0:
-            mnth = elapsed_months() % 12
+            mnth = elapsed_months(t) % 12
             mnth = 12 if mnth == 0 else mnth
             return mnth
         if pol_month(t-1) == 12:
@@ -74,10 +68,10 @@ Formulas:
         return pol_month(t-1) + 1
 
 
-    @assign(pol_year)
-    def _pol_year(t):
+    @variable()
+    def pol_year(t):
         if t == 0:
-            return math.floor(elapsed_months() / 12)
+            return math.floor(elapsed_months(t) / 12)
         if pol_month(t) == 1:
             return pol_year(t-1) + 1
         return pol_year(t-1)
@@ -152,18 +146,13 @@ Model
 **Calendar year and month**
 
 Knowing the valuation date, we can calculate actual calendar years and months.
-These variables have the same values for all policyholders.
-So the :code:`mp_dep` parameter (model point dependent) can be set to :code:`False`.
 The valuation year and month can be read from the runplan.
 
 ..  code-block:: python
     :caption: model.py
 
-    cal_month = ModelVariable(mp_dep=False)
-    cal_year = ModelVariable(mp_dep=False)
-
-    @assign(cal_month)
-    def _cal_month(t):
+    @variable()
+    def cal_month(t):
         if t == 0:
             return runplan.get("valuation_month")
         if cal_month(t-1) == 12:
@@ -172,8 +161,8 @@ The valuation year and month can be read from the runplan.
             return cal_month(t-1) + 1
 
 
-    @assign(cal_year)
-    def _cal_year(t):
+    @variable()
+    def cal_year(t):
         if t == 0:
             return runplan.get("valuation_year")
         if cal_month(t-1) == 12:
@@ -188,15 +177,12 @@ The valuation year and month can be read from the runplan.
 
 Each policy starts at a different moment. The policy's issue date might be part of the model points.
 Elapsed months reflect how many months have passed between the policy's issue and the valuation date.
-Elapsed months is time-independent so can be modelled as a :code:`Constant`.
 
 ..  code-block:: python
     :caption: model.py
 
-    elapsed_months = Constant()
-
-    @assign(elapsed_months)
-    def _elapsed_months():
+    @variable()
+    def elapsed_months(t):
         issue_year = main.get("issue_year")
         issue_month = main.get("issue_month")
         valuation_year = runplan.get("valuation_year")
@@ -212,13 +198,10 @@ Policy year and month reflect the duration of the given policy.
 ..  code-block:: python
     :caption: model.py
 
-    pol_month = ModelVariable()
-    pol_year = ModelVariable()
-
-    @assign(pol_month)
-    def _pol_month(t):
+    @variable()
+    def pol_month(t):
         if t == 0:
-            mnth = elapsed_months() % 12
+            mnth = elapsed_months(t) % 12
             mnth = 12 if mnth == 0 else mnth
             return mnth
         if pol_month(t-1) == 12:
@@ -226,10 +209,10 @@ Policy year and month reflect the duration of the given policy.
         return pol_month(t-1) + 1
 
 
-    @assign(pol_year)
-    def _pol_year(t):
+    @variable()
+    def pol_year(t):
         if t == 0:
-            return math.floor(elapsed_months() / 12)
+            return math.floor(elapsed_months(t) / 12)
         if pol_month(t) == 1:
             return pol_year(t-1) + 1
         return pol_year(t-1)
@@ -242,7 +225,7 @@ Results
 The result for the first 13 months.
 
 ..  code-block::
-    :caption: <timestamp>_main.csv
+    :caption: <timestamp>_output.csv
 
     t,cal_year,cal_month,elapsed_months,pol_year,pol_month
     0,2022,12,30,2,6

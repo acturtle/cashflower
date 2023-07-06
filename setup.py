@@ -11,6 +11,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'pandas',
+        'networkx'
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -23,5 +24,5 @@ setup(
     },
     python_requires='>=3.9',
     url="https://github.com/acturtle/cashflower",
-    version="0.3.4",
+    version="0.4.0",
 )

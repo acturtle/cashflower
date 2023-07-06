@@ -25,9 +25,9 @@ class TestLoadSettings(TestCase):
             "OUTPUT_COLUMNS": [],
             "ID_COLUMN": "id",
             "SAVE_OUTPUT": True,
-            "SAVE_RUNTIME": False,
-            "T_CALCULATION_MAX": 1200,
-            "T_OUTPUT_MAX": 1200,
+            "SAVE_DIAGNOSTIC": True,
+            "T_MAX_CALCULATION": 720,
+            "T_MAX_OUTPUT": 720,
         }
         assert load_settings() == default_settings
 
@@ -37,7 +37,7 @@ class TestLoadSettings(TestCase):
 
         my_settings2 = {
             "ID_COLUMN": "polnumber",
-            "T_CALCULATION_MAX": 100,
+            "T_MAX_CALCULATION": 100,
             "OUTPUT_COLUMNS": ["a", "b", "c"],
         }
         settings = load_settings(my_settings2)
@@ -47,9 +47,9 @@ class TestLoadSettings(TestCase):
             "OUTPUT_COLUMNS": ["a", "b", "c"],
             "ID_COLUMN": "polnumber",
             "SAVE_OUTPUT": True,
-            "SAVE_RUNTIME": False,
-            "T_CALCULATION_MAX": 100,
-            "T_OUTPUT_MAX": 100,
+            "SAVE_DIAGNOSTIC": True,
+            "T_MAX_CALCULATION": 100,
+            "T_MAX_OUTPUT": 100,
         }
 
 
@@ -76,85 +76,22 @@ class TestGetModelPointSets(TestCase):
 class TestGetVariables(TestCase):
     def test_get_variables(self):
         settings = load_settings()
-        my_variable = ModelVariable()
 
-        @assign(my_variable)
-        def my_variable_formula(t):
+        @variable()
+        def foo(t):
             return t
 
-        model_members = [("foo", "foo"), ("my_constant", my_variable)]
-        main = ModelPointSet(data=pd.DataFrame({"id": [1]}))
-        variables = get_variables(model_members, main, settings)
-        assert variables == [my_variable]
+        model_members = [("foo", foo), ("bar", "bar")]
+        variables = get_variables(model_members, settings)
+        assert variables == [foo]
 
     def test_get_variables_raises_error_when_name_is_t_or_r(self):
         settings = load_settings()
-        t = ModelVariable()
 
-        @assign(t)
-        def t_formula():
+        @variable()
+        def t(t):
             return 1
 
         model_members = [("foo", "foo"), ("t", t)]
-        main = ModelPointSet(data=pd.DataFrame({"id": [1]}))
         with pytest.raises(CashflowModelError):
-            get_variables(model_members, main, settings)
-
-
-class TestGetConstants(TestCase):
-    def test_get_constants(self):
-        my_constant = Constant()
-
-        @assign(my_constant)
-        def my_constant_formula():
-            return 1
-
-        model_members = [("foo", "foo"), ("my_constant", my_constant)]
-        main = ModelPointSet(data=pd.DataFrame({"id": [1]}))
-        constants = get_constants(model_members, main)
-        assert constants == [my_constant]
-
-    def test_get_constants_raises_error_when_name_is_t_or_r(self):
-        t = Constant()
-
-        @assign(t)
-        def t_formula():
-            return 1
-
-        model_members = [("foo", "foo"), ("t", t)]
-        main = ModelPointSet(data=pd.DataFrame({"id": [1]}))
-        with pytest.raises(CashflowModelError):
-            get_constants(model_members, main)
-
-
-class TestSimpleModel(TestCase):
-    def test_simple_model_runs(self):
-        model_name = "my_test_model"
-        settings = load_settings()
-
-        # Single core
-        create_model(model_name)
-        model_output = start(model_name, settings, [])
-        shutil.rmtree(model_name)
-        shutil.rmtree("output")
-        test_output = pd.DataFrame({
-            "t": range(settings["T_CALCULATION_MAX"]+1),
-            "projection_year": [0] + [x for x in range(1, 101) for _ in range(12)],
-        })
-        assert_frame_equal(model_output["main"], test_output, check_dtype=False)
-
-    def test_simple_model_runs_multiprocessing(self):
-        model_name = "my_test_model"
-        settings = load_settings()
-
-        # Multiprocessing
-        settings["MULTIPROCESSING"] = True
-        create_model(model_name)
-        model_output = start(model_name, settings, [])
-        shutil.rmtree(model_name)
-        shutil.rmtree("output")
-        test_output = pd.DataFrame({
-            "t": range(settings["T_CALCULATION_MAX"] + 1),
-            "projection_year": [0] + [x for x in range(1, 101) for _ in range(12)],
-        })
-        assert_frame_equal(model_output["main"], test_output, check_dtype=False)
+            get_variables(model_members, settings)

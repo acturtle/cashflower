@@ -1,17 +1,14 @@
-from cashflower import assign, ModelVariable
+from cashflower import variable
 
 from tutorials.annuity.whole_life.input import main
+from tutorials.annuity.whole_life.settings import settings
 
 INTEREST_RATE = 0.005
 DEATH_PROB = 0.003
 
-survival_rate = ModelVariable()
-expected_payment = ModelVariable()
-actuarial_present_value = ModelVariable()
 
-
-@assign(survival_rate)
-def _survival_rate(t):
+@variable()
+def survival_rate(t):
     if t == 0:
         return 1
     elif t == 1:
@@ -20,8 +17,8 @@ def _survival_rate(t):
         return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
-@assign(expected_payment)
-def _expected_payment(t):
+@variable()
+def expected_payment(t):
     if t == 0:
         return 0
     else:
@@ -29,6 +26,8 @@ def _expected_payment(t):
         return survival_rate(t) * payment
 
 
-@assign(actuarial_present_value)
-def _actuarial_present_value(t):
+@variable()
+def actuarial_present_value(t):
+    if t == settings["T_MAX_CALCULATION"]:
+        return expected_payment(t)
     return expected_payment(t) + actuarial_present_value(t+1) * 1/(1+INTEREST_RATE)

@@ -1,26 +1,22 @@
-from cashflower import assign, ModelVariable
+from cashflower import variable
 
 from tutorials.life_insurance.endowment.input import main
+from tutorials.life_insurance.endowment.settings import settings
 
 INTEREST_RATE = 0.005
 DEATH_PROB = 0.003
 
 
-survival_rate = ModelVariable()
-expected_benefit = ModelVariable()
-net_single_premium = ModelVariable()
-
-
-@assign(survival_rate)
-def _survival_rate(t):
+@variable()
+def survival_rate(t):
     if t == 0:
         return 1 - DEATH_PROB
     else:
         return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
-@assign(expected_benefit)
-def _expected_benefit(t):
+@variable()
+def expected_benefit(t):
     sum_assured = main.get("sum_assured")
     remaining_term = main.get("remaining_term")
 
@@ -32,6 +28,8 @@ def _expected_benefit(t):
         return 0
 
 
-@assign(net_single_premium)
-def _net_single_premium(t):
+@variable()
+def net_single_premium(t):
+    if t == settings["T_MAX_CALCULATION"]:
+        return expected_benefit(t)
     return expected_benefit(t) + net_single_premium(t+1) * 1/(1+INTEREST_RATE)

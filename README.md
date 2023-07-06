@@ -1,5 +1,5 @@
 [![PyPI Latest Release](https://img.shields.io/pypi/v/cashflower.svg)](https://pypi.org/project/cashflower/)
-[![codecov](https://codecov.io/gh/acturtle/cashflower/branch/main/graph/badge.svg?token=1VA8Q65RUW)](https://codecov.io/gh/acturtle/cashflower)
+[![pytest](https://github.com/acturtle/cashflower/actions/workflows/pytest.yml/badge.svg?branch=main)](https://github.com/acturtle/cashflower/actions/workflows/pytest.yml)
 [![Documentation Status](https://readthedocs.org/projects/cashflower/badge/)](https://cashflower.acturtle.com)
 
 # Info
@@ -43,11 +43,8 @@ assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv", index_col="age
 
 my_model/model.py
 ```python
-age = ModelVariable()
-death_prob = ModelVariable()
-
-@assign(age)
-def _age(t):
+@variable()
+def age(t):
     if t == 0:
         return int(main.get("AGE"))
     elif t % 12 == 0:
@@ -56,8 +53,8 @@ def _age(t):
         return age(t-1)
 
 
-@assign(death_prob)
-def _death_prob(t):
+@variable()
+def death_prob(t):
     if age(t) == age(t-1):
         return death_prob(t-1) 
     elif age(t) <= 100:
@@ -72,12 +69,6 @@ def _death_prob(t):
 ## Calculate
 
 Run `run.py`
-
-# Quick start
-
-Watch how to create a cash flow model on a YouTube video: 
-
-[![YouTube screenshot](https://img.youtube.com/vi/xuZaymWsUzw/0.jpg)](https://www.youtube.com/watch?v=xuZaymWsUzw)
 
 # Contribution
 

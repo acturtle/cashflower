@@ -1,13 +1,10 @@
-from cashflower import assign, ModelVariable
+from cashflower import variable
 
 from {{ model }}.input import assumption, main, runplan
 
 
-projection_year = ModelVariable(model_point_set=main)
-
-
-@assign(projection_year)
-def projection_year_formula(t):
+@variable()
+def projection_year(t):
     if t == 0:
         return 0
     elif t % 12 == 1:

@@ -1,6 +1,8 @@
 # Example model for ad-hoc tests
 example/*
 example2/*
+example3/*
+example_test/*
 
 # Outputs of tutorials
 tutorials/**/output/

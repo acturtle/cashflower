@@ -1,9 +1,10 @@
 settings = {
     "AGGREGATE": True,
+    "ID_COLUMN": "id",
     "MULTIPROCESSING": False,
     "OUTPUT_COLUMNS": [],
-    "ID_COLUMN": "id",
-    "SAVE_RUNTIME": False,
-    "T_CALCULATION_MAX": 1200,
-    "T_OUTPUT_MAX": 1200,
+    "SAVE_DIAGNOSTIC": True,
+    "SAVE_OUTPUT": True,
+    "T_MAX_CALCULATION": 720,
+    "T_MAX_OUTPUT": 720,
 }
