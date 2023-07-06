@@ -7,7 +7,7 @@ The components of the model are time-dependent variables.
 
 |
 
-To define model variable, write a function with argument :code:`t` and add :code:`variable()` decorator:
+To define model variable, write a function with argument :code:`t` and add :code:`@variable()` decorator:
 
 ..  code-block:: python
     :caption: model.py

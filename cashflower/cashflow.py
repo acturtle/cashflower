@@ -9,6 +9,14 @@ from .utils import get_object_by_name, print_log, split_to_ranges, updt
 from .graph import get_calc_direction, get_calls, get_predecessors
 
 
+def variable():
+    """Decorator"""
+    def wrapper(func):
+        variable = Variable(func)
+        return variable
+    return wrapper
+
+
 class Variable:
     def __init__(self, func):
         self.func = func
@@ -65,14 +73,6 @@ class Variable:
             self.calculate_backward()
         else:
             raise CashflowModelError(f"Incorrect calculation direction {self.calc_direction}")
-
-
-def variable():
-    """Decorator"""
-    def wrapper(func):
-        variable = Variable(func)
-        return variable
-    return wrapper
 
 
 class Runplan:

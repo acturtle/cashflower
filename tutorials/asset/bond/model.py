@@ -1,6 +1,7 @@
 from cashflower import variable
 
 from tutorials.asset.bond.input import main, runplan, assumption
+from tutorials.asset.bond.settings import settings
 
 
 @variable()
@@ -59,4 +60,6 @@ def nominal_value(t):
 @variable()
 def present_value(t):
     i = assumption["INTEREST_RATE"]
+    if t == settings["T_MAX_CALCULATION"]:
+        return coupon(t) + nominal_value(t)
     return coupon(t) + nominal_value(t) + present_value(t+1) * (1/(1+i))**(1/12)

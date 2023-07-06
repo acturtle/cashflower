@@ -11,30 +11,39 @@ The table below summarizes available settings.
 
    * - Setting
      - Possible values
+     - Default value
      - Description
    * - AGGREGATE
      - :code:`True` / :code:`False`
+     - :code:`True`
      - Flag if results for model points should be aggregated.
    * - ID_COLUMN
      - a string
+     - :code:`id`
      - The name of the column which contains identificators of the model points.
    * - MULTIPROCESSING
      - :code:`True` / :code:`False`
+     - :code:`False`
      - Flag if multiple CPUs should be used for the calculations.
    * - OUTPUT_COLUMNS
-     - empty list of list of strings
+     - empty list or list of strings
+     - :code:`[]`
      - List of variables to be included in the output. If empty list, all variables are included.
+   * - SAVE_DIAGNOSTIC
+     - :code:`True` / :code:`False`
+     - :code:`True`
+     - Flag if an additional file should be created which contains model diagnostics.
    * - SAVE_OUTPUT
      - :code:`True` / :code:`False`
+     - :code:`True`
      - Flag if csv output files should be created.
-   * - SAVE_RUNTIME
-     - :code:`True` / :code:`False`
-     - Flag if an additional file should be created which contains runtime of variables.
    * - T_MAX_CALCULATION
      - integer
+     - :code:`720`
      - The maximal month for calculation.
    * - T_MAX_OUTPUT
      - integer
+     - :code:`720`
      - The maximal month for output files.
 
 
@@ -64,10 +73,10 @@ If the setting is set to :code:`False`, the results will be on the individual le
 
 There are results for 3 separate model points.
 
-If the AGGREGATE setting is set to :code:`True`, the results will aggregated:
+If the AGGREGATE setting is set to :code:`True`, the results will be aggregated:
 
 ..  code-block::
-    :caption: <timestamp>_fund.csv
+    :caption: <timestamp>_output.csv
 
     t,fund_value
     0,27000.0
@@ -228,7 +237,7 @@ The user can choose a subset of columns.
 Only the chosen columns are in the output.
 
 ..  code-block::
-    :caption: <timestamp>_policy.csv
+    :caption: <timestamp>_output.csv
 
     t,a,c
     0,0,0
@@ -239,6 +248,69 @@ Only the chosen columns are in the output.
     1,1,3
     2,2,6
     3,3,9
+
+|
+
+Save diagnostic
+---------------
+
+The :code:`SAVE_DIAGNOSTIC` setting is a flag if the model should save diagnostic information.
+
+|
+
+By default, the setting has a value :code:`True`.
+
+..  code-block:: python
+    :caption: settings.py
+
+    settings = {
+        ...
+        "SAVE_DIAGNOSTIC": True,
+        ...
+    }
+
+
+Except of the output file, there is another file created :code:`<timestamp>_diagnostic.csv`.
+
+..  code-block::
+
+    .
+    └── output/
+        └── <timestamp>_diagnostic.csv
+        └── <timestamp>_output.csv
+
+If the setting will be set to :code:`False`, the diagnostic file will not be created.
+
+..  code-block:: python
+    :caption: settings.py
+
+    settings = {
+        ...
+        "SAVE_DIAGNOSTIC": False,
+        ...
+    }
+
+Only the output file will be created.
+
+..  code-block::
+
+    .
+    └── output/
+        └── <timestamp>_output.csv
+
+|
+
+The diagnostic file contains the order of variable calculation and runtime in seconds.
+
+..  code-block::
+    :caption: <timestamp>_diagnostic.csv
+
+    variable,calc_order,cycle,calc_direction,runtime
+    a,1,False,irrelevant,5.4
+    c,2,False,backward,2.7
+    b,3,False,forward,7.1
+
+The file can help to find variables that are the evaluated the longest and to optimize them.
 
 |
 
@@ -283,69 +355,6 @@ The above code, will create csv files in the :code:`results` folder:
 
 |
 
-Save runtime
-------------
-
-The :code:`SAVE_RUNTIME` setting is a flag if the model should save information on the runtime of variables.
-
-|
-
-By default, the setting has a value :code:`False`.
-
-..  code-block:: python
-    :caption: settings.py
-
-    settings = {
-        ...
-        "SAVE_RUNTIME": False,
-        ...
-    }
-
-No additional file with runtimes is created, only the file with results.
-
-..  code-block::
-
-    .
-    └── output/
-        └── <timestamp>_output.csv
-
-|
-
-If set to :code:`True`, the model will additionally output the file with the runtime of each variable.
-
-..  code-block:: python
-    :caption: settings.py
-
-    settings = {
-        ...
-        "SAVE_RUNTIME": True,
-        ...
-    }
-
-
-The file is called :code:`<timestamp>_runtime.csv`.
-
-..  code-block::
-
-    .
-    └── output/
-        └── <timestamp>_output.csv
-        └── <timestamp>_runtime.csv
-
-The file contains the number of seconds the model needed to evaluate each of the variables.
-
-..  code-block::
-    :caption: <timestamp>_runtime.csv
-
-    variable,runtime
-    a,5.4
-    b,2.7
-    c,7.1
-
-The file can help to find variables that are the evaluated the longest and to optimize them.
-
-|
-
 Maximal calculation time
 ------------------------
 
@@ -353,7 +362,7 @@ The :code:`T_MAX_CALCULATION` is the maximal month of the calculation.
 
 The model will calculate results for all time periods from :code:`0` to :code:`T_MAX_CALCULATION`.
 
-By default, the setting is set to :code:`1200` months (:code:`100` years).
+By default, the setting is set to :code:`720` months (:code:`60` years).
 
 |
 
@@ -362,14 +371,14 @@ Maximal output time
 
 The :code:`T_MAX_OUTPUT` is the maximal month in the output file.
 
-By default, the model will save results for :code:`1200` months.
+By default, the model will save results for :code:`720` months.
 
 ..  code-block:: python
     :caption: settings.py
 
     settings = {
         ...
-        "T_MAX_OUTPUT": 1200,
+        "T_MAX_OUTPUT": 720,
         ...
     }
 

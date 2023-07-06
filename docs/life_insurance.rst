@@ -67,8 +67,8 @@ insurance.
 
 ..  code-block:: python
 
-    @assign(survival_rate)
-    def _survival_rate(t):
+    @variable()
+    def survival_rate(t):
         if t == 0:
             return 1 - DEATH_PROB
         return survival_rate(t-1) * (1-DEATH_PROB)
@@ -77,8 +77,10 @@ The survival rate is the probability that the policyholder will survive from the
 
 ..  code-block:: python
 
-    @assign(net_single_premium)
-    def _net_single_premium(t):
+    @variable()
+    def net_single_premium(t):
+        if t == settings["T_MAX_CALCULATION"]:
+            return expected_benefit(t)
         return expected_benefit(t) + net_single_premium(t+1) * 1/(1+INTEREST_RATE)
 
 The net single premium is **the present value** of the expected benefit payments.
@@ -111,41 +113,40 @@ The policy data contains the sum assured which will be paid to the policyholder'
 ..  code-block:: python
     :caption: model.py
 
-    from cashflower import assign, ModelVariable
+    from cashflower import variable
 
     from tutorials.life_insurance.whole_life.input import main
+    from tutorials.life_insurance.whole_life.settings import settings
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
 
-    survival_rate = ModelVariable()
-    expected_benefit = ModelVariable()
-    net_single_premium = ModelVariable()
-
-    @assign(survival_rate)
-    def _survival_rate(t):
+    @variable()
+    def survival_rate(t):
         if t == 0:
             return 1 - DEATH_PROB
         return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
-    @assign(expected_benefit)
-    def _expected_benefit(t):
+    @variable()
+    def expected_benefit(t):
         sum_assured = main.get("sum_assured")
-        if t == 1200:
+        if t == settings["T_MAX_CALCULATION"]:
             return survival_rate(t-1) * sum_assured
         return survival_rate(t-1) * DEATH_PROB * sum_assured
 
 
-    @assign(net_single_premium)
-    def _net_single_premium(t):
+    @variable()
+    def net_single_premium(t):
+        if t == settings["T_MAX_CALCULATION"]:
+            return expected_benefit(t)
         return expected_benefit(t) + net_single_premium(t+1) * 1/(1+INTEREST_RATE)
 
 
 The policyholder's designated person will receive the sum assured when the policyholder dies in the :code:`t` period.
 
 The whole life insurance lasts until the death of the policyholder.
-Our projection lasts :code:`1200` months, so we have assumed that the probability of death amounts to 1 in the last period.
+We have assumed that the probability of death amounts to 1 in the last period.
 
 In the production actuarial models, the mortality assumptions are usually up to the age of 120
 and assume that the mortality rate is 1 (100%) for the last year.
@@ -181,34 +182,32 @@ In that case, the actuary should develop additional variables or adjust the exis
 ..  code-block:: python
     :caption: model.py
 
-    from cashflower import assign, ModelVariable
+    from cashflower import variable
 
     from tutorials.life_insurance.term_life.input import main
+    from tutorials.life_insurance.term_life.settings import settings
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
 
-    survival_rate = ModelVariable()
-    expected_benefit = ModelVariable()
-    net_single_premium = ModelVariable()
-
-
-    @assign(survival_rate)
-    def _survival_rate(t):
+    @variable()
+    def survival_rate(t):
         if t == 0:
             return 1 - DEATH_PROB
         return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
-    @assign(expected_benefit)
-    def _expected_benefit(t):
+    @variable()
+    def expected_benefit(t):
         if t > main.get("remaining_term"):
             return 0
         return survival_rate(t-1) * DEATH_PROB * main.get("sum_assured")
 
 
-    @assign(net_single_premium)
-    def _net_single_premium(t):
+    @variable()
+    def net_single_premium(t):
+        if t == settings["T_MAX_CALCULATION"]:
+            return expected_benefit(t)
         return expected_benefit(t) + net_single_premium(t+1) * 1/(1+INTEREST_RATE)
 
 The person designated by the policyholder will receive the sum assured if the policyholder dies within the term.
@@ -243,34 +242,32 @@ In our case, the term is expressed as the remaining term (starting from the valu
 ..  code-block:: python
     :caption: model.py
 
-    from cashflower import assign, ModelVariable
+    from cashflower import variable
 
     from tutorials.life_insurance.pure_endowment.input import main
+    from tutorials.life_insurance.pure_endowment.settings import settings
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
 
-    survival_rate = ModelVariable()
-    expected_benefit = ModelVariable()
-    net_single_premium = ModelVariable()
-
-
-    @assign(survival_rate)
-    def _survival_rate(t):
+    @variable()
+    def survival_rate(t):
         if t == 0:
             return 1 - DEATH_PROB
         return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
-    @assign(expected_benefit)
-    def _expected_benefit(t):
+    @variable()
+    def expected_benefit(t):
         if t == main.get("remaining_term"):
             return survival_rate(t) * main.get("sum_assured")
         return 0
 
 
-    @assign(net_single_premium)
-    def _net_single_premium(t):
+    @variable()
+    def net_single_premium(t):
+        if t == settings["T_MAX_CALCULATION"]:
+            return expected_benefit(t)
         return expected_benefit(t) + net_single_premium(t+1) * 1/(1+INTEREST_RATE)
 
 
@@ -304,24 +301,21 @@ In our case, the term is expressed as the remaining term (so starting from the v
     from cashflower import assign, ModelVariable
 
     from tutorials.life_insurance.pure_endowment.input import main
+    from tutorials.life_insurance.pure_endowment.settings import settings
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
 
-    survival_rate = ModelVariable()
-    expected_benefit = ModelVariable()
-    net_single_premium = ModelVariable()
 
-
-    @assign(survival_rate)
-    def _survival_rate(t):
+    @variable()
+    def survival_rate(t):
         if t == 0:
             return 1 - DEATH_PROB
         return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
-    @assign(expected_benefit)
-    def _expected_benefit(t):
+    @variable()
+    def expected_benefit(t):
         sum_assured = main.get("sum_assured")
         remaining_term = main.get("remaining_term")
 
@@ -333,8 +327,10 @@ In our case, the term is expressed as the remaining term (so starting from the v
             return 0
 
 
-    @assign(net_single_premium)
-    def _net_single_premium(t):
+    @variable()
+    def net_single_premium(t):
+        if t == settings["T_MAX_CALCULATION"]:
+            return expected_benefit(t)
         return expected_benefit(t) + net_single_premium(t+1) * 1/(1+INTEREST_RATE)
 
 
@@ -370,34 +366,32 @@ In our case, the deferral period is expressed starting from the valuation period
 ..  code-block:: python
     :caption: model.py
 
-    from cashflower import assign, ModelVariable
+    from cashflower import variable
 
     from tutorials.life_insurance.whole_life.input import main
+    from tutorials.life_insurance.whole_life.settings import settings
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
 
-    survival_rate = ModelVariable()
-    expected_benefit = ModelVariable()
-    net_single_premium = ModelVariable()
-
-
-    @assign(survival_rate)
-    def _survival_rate(t):
+    @variable()
+    def survival_rate(t):
         if t == 0:
             return 1 - DEATH_PROB
         return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
-    @assign(expected_benefit)
-    def _expected_benefit(t):
+    @variable()
+    def expected_benefit(t):
         if t < main.get("deferral"):
             return 0
         return survival_rate(t-1) * DEATH_PROB * main.get("sum_assured")
 
 
-    @assign(net_single_premium)
-    def _net_single_premium(t):
+    @variable()
+    def net_single_premium(t):
+        if t == settings["T_MAX_CALCULATION"]:
+            return expected_benefit(t)
         return expected_benefit(t) + net_single_premium(t+1) * 1/(1+INTEREST_RATE)
 
 The policyholder receives the sum assured if they die after the deferral period.

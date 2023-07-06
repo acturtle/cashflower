@@ -1,6 +1,7 @@
 from cashflower import variable
 
 from tutorials.annuity.whole_life.input import main
+from tutorials.annuity.whole_life.settings import settings
 
 INTEREST_RATE = 0.005
 DEATH_PROB = 0.003
@@ -27,4 +28,6 @@ def expected_payment(t):
 
 @variable()
 def actuarial_present_value(t):
+    if t == settings["T_MAX_CALCULATION"]:
+        return expected_payment(t)
     return expected_payment(t) + actuarial_present_value(t+1) * 1/(1+INTEREST_RATE)

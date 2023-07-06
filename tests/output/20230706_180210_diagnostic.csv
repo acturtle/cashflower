@@ -1,0 +1,6 @@
+variable,calc_order,cycle,calc_direction,runtime
+cal_month,1,False,forward,0.0
+elapsed_months,2,False,irrelevant,0.24995756149291992
+cal_year,3,False,forward,0.0
+pol_month,4,False,forward,0.0
+pol_year,5,False,forward,0.0

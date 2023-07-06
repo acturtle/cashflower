@@ -17,13 +17,6 @@ def replace_in_file(_file, _from, _to):
         file.write(filedata)
 
 
-def print_log(msg, show=True):
-    """Print a log message with the timestamp."""
-    if show:
-        now = datetime.now()
-        print(now.strftime("%H:%M:%S") + " | " + msg)
-
-
 def split_to_ranges(n, num_ranges):
     """n = 20, num_ranges = 3 --> (0, 6), (6, 12), (12, 20)"""
     if n < num_ranges:
@@ -48,6 +41,13 @@ def get_object_by_name(objects, name):
         if _object.name == name:
             return _object
     return None
+
+
+def print_log(msg, show=True):
+    """Print a log message with the timestamp."""
+    if show:
+        now = datetime.now()
+        print(now.strftime("%H:%M:%S") + " | " + msg)
 
 
 def updt(total, progress):

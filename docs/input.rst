@@ -268,18 +268,15 @@ For example:
 ..  code-block:: python
     :caption: model.py
 
-    import pandas as pd
     from example.input import main, runplan
 
-    mortality_rate = ModelVariable(model_point_set=main)
-    shocked_mortality_rate = ModelVariable(model_point_set=main)
 
-    @assign(mortality_rate)
-    def _mortality_rate(t):
+    @variable()
+    def mortality_rate(t):
         ...
 
-    @assign(shocked_mortality_rate)
-    def _shocked_mortality_rate(t):
+    @variable()
+    def shocked_mortality_rate(t):
         return mortality_rate(t) * (1+runplan.get("shock"))
 
 To run model with the chosen version, source the :code:`run.py` and add the version number.

@@ -15,7 +15,7 @@ Inside of this folder, the model will create a csv file with results.
 
     .
     └── output/
-        ├── <timestamp>_output.csv
+        └── <timestamp>_output.csv
 
 To run the model with specific version from the runplan, add the version number at the end of the command.
 
