@@ -1,0 +1,2 @@
+class CashflowModelError(Exception):
+    pass

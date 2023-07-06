@@ -7,20 +7,15 @@ import os
 import pandas as pd
 import shutil
 
-from .cashflow import CashflowModelError, ModelVariable, ModelPointSet, Model, Constant, Runplan
+from .cashflow import Model, ModelPointSet, Runplan, Variable
+from .error import CashflowModelError
 from .utils import print_log, replace_in_file
 
 
 def create_model(model):
-    """Create a folder structure for a model.
-
+    """
+    Create a folder structure for a model.
     Copies the whole content of the model_tpl folder and changes templates to scripts.
-
-    Parameters
-    ----------
-    model : str
-        Name of the model to be added.
-
     """
     template_path = os.path.join(os.path.dirname(__file__), "model_tpl")
     current_path = os.getcwd()
@@ -45,10 +40,10 @@ def load_settings(settings=None):
         "MULTIPROCESSING": False,
         "OUTPUT_COLUMNS": [],
         "ID_COLUMN": "id",
+        "SAVE_DIAGNOSTIC": True,
         "SAVE_OUTPUT": True,
-        "SAVE_RUNTIME": False,
-        "T_CALCULATION_MAX": 1200,
-        "T_OUTPUT_MAX": 1200,
+        "T_MAX_CALCULATION": 720,
+        "T_MAX_OUTPUT": 720,
     }
 
     if settings is None:
@@ -59,10 +54,10 @@ def load_settings(settings=None):
         initial_settings[key] = value
 
     # Maximal output t can't exceed maximal calculation t
-    if initial_settings["T_CALCULATION_MAX"] < initial_settings["T_OUTPUT_MAX"]:
-        initial_settings["T_OUTPUT_MAX"] = initial_settings["T_CALCULATION_MAX"]
-        msg = "The T_CALCULATION_MAX setting is greater than the T_OUTPUT_MAX setting. " \
-              "T_OUTPUT_MAX has been set to T_CALCULATION_MAX."
+    if initial_settings["T_MAX_CALCULATION"] < initial_settings["T_MAX_OUTPUT"]:
+        initial_settings["T_MAX_OUTPUT"] = initial_settings["T_MAX_CALCULATION"]
+        msg = "The T_MAX_CALCULATION setting is greater than the T_MAX_OUTPUT setting. " \
+              "T_MAX_OUTPUT has been set to T_MAX_CALCULATION."
         print_log(msg)
 
     return initial_settings
@@ -98,34 +93,19 @@ def get_model_point_sets(input_members, settings):
     return model_point_sets, main
 
 
-def get_variables(model_members, main, settings):
-    """Get model variables from input.py script."""
-    variable_members = [m for m in model_members if isinstance(m[1], ModelVariable)]
+def get_variables(model_members, settings):
+    """Get model variables from model.py script."""
+    variable_members = [m for m in model_members if isinstance(m[1], Variable)]
     variables = []
 
     for name, variable in variable_members:
         if name in ["t", "r"]:
-            msg = f"\nA model component can not be named '{name}' because it is a system variable. Please rename it."
+            msg = f"\nA variable can not be named '{name}' because it is a system variable. Please rename it."
             raise CashflowModelError(msg)
         variable.name = name
         variable.settings = settings
-        variable.initialize(main)
         variables.append(variable)
     return variables
-
-
-def get_constants(model_members, main):
-    """Get constants from input.py script."""
-    constant_members = [m for m in model_members if isinstance(m[1], Constant)]
-    constants = []
-    for name, constant in constant_members:
-        if name in ["t", "r"]:
-            msg = f"\nA model component can not be named '{name}' because it is a system variable. Please rename it."
-            raise CashflowModelError(msg)
-        constant.name = name
-        constant.initialize(main)
-        constants.append(constant)
-    return constants
 
 
 def prepare_model_input(model_name, settings, argv):
@@ -138,55 +118,35 @@ def prepare_model_input(model_name, settings, argv):
     runplan = get_runplan(input_members)
     model_point_sets, main = get_model_point_sets(input_members, settings)
 
-    # model.py contains model variables and constants
+    # model.py contains model variables
     model_members = inspect.getmembers(model_module)
-    variables = get_variables(model_members, main, settings)
-    constants = get_constants(model_members, main)
+    variables = get_variables(model_members, settings)
 
     # User can provide runplan version in CLI command
     if runplan is not None and len(argv) > 1:
         runplan.version = argv[1]
 
-    return runplan, model_point_sets, variables, constants
-
-
-def dict_to_csv(_dict, timestamp):
-    if not os.path.exists("output"):
-        os.makedirs("output")
-
-    for key in _dict:
-        filepath = f"output/{timestamp}_{key}.csv"
-        data = _dict.get(key)
-        data.to_csv(filepath, index=False)
-        print(f"{' ' * 10} {filepath}")
-
-    return None
-
-
-def df_to_csv(df, timestamp):
-    df.to_csv(f"output/{timestamp}_runtime.csv", index=False)
-    print(f"{' ' * 10} output/{timestamp}_runtime.csv")
-    return None
+    return runplan, model_point_sets, variables
 
 
 def start_single_core(model_name, settings, argv):
     """Create and run a cash flow model."""
-    runplan, model_point_sets, variables, constants = prepare_model_input(model_name, settings, argv)
+    runplan, model_point_sets, variables = prepare_model_input(model_name, settings, argv)
 
     # Run model on single core
-    model = Model(model_name, variables, constants, model_point_sets, settings)
+    model = Model(model_name, variables, model_point_sets, settings)
     model_output, runtime = model.run()
     return model_output, runtime
 
 
 def start_multiprocessing(part, cpu_count, model_name, settings, argv):
     """Run subset of the model points using multiprocessing."""
-    runplan, model_point_sets, variables, constants = prepare_model_input(model_name, settings, argv)
+    runplan, model_point_sets, variables = prepare_model_input(model_name, settings, argv)
 
     # Run model on multiple cores
-    model = Model(model_name, variables, constants, model_point_sets, settings, cpu_count)
-
+    model = Model(model_name, variables, model_point_sets, settings, cpu_count)
     output = model.run(part)
+
     if output is None:
         part_model_output, part_runtime = None, None
     else:
@@ -198,23 +158,26 @@ def merge_part_model_outputs(part_model_outputs, settings):
     """Merge outputs from multiprocessing and save to files."""
     # Nones are returned, when number of policies < number of cpus
     part_model_outputs = [pmo for pmo in part_model_outputs if pmo is not None]
-    first = part_model_outputs[0]
 
-    # Merge outputs into one
-    model_output = {}
-    for key in first.keys():
-        if settings["AGGREGATE"]:
-            model_output[key] = sum(pmo[key] for pmo in part_model_outputs)
-        else:
-            model_output[key] = pd.concat(pmo[key] for pmo in part_model_outputs)
+    # Merge or concatenate outputs into one
+    if settings["AGGREGATE"] is False:
+        model_output = pd.concat(part_model_outputs)
+    else:
+        model_output = functools.reduce(lambda x, y: x.add(y, fill_value=0), part_model_outputs)
+
     return model_output
 
 
-def merge_part_runtimes(part_runtimes):
-    total_runtimes = sum([pr["runtime"] for pr in part_runtimes])
-    first = part_runtimes[0]
+def merge_part_diagnostic(part_diagnostic):
+    # Nones are returned, when number of policies < number of cpus
+    part_diagnostic = [pd for pd in part_diagnostic if pd is not None]
+    total_runtimes = sum([pd["runtime"] for pd in part_diagnostic])
+    first = part_diagnostic[0]
     runtimes = pd.DataFrame({
-        "component": first["component"],
+        "variable": first["variable"],
+        "calc_order": first["calc_order"],
+        "cycle": first["cycle"],
+        "calc_direction": first["calc_direction"],
         "runtime": total_runtimes
     })
     return runtimes
@@ -223,6 +186,7 @@ def merge_part_runtimes(part_runtimes):
 def start(model_name, settings, argv):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     settings = load_settings(settings)
+    output, diagnostic = None, None
 
     if settings["MULTIPROCESSING"]:
         cpu_count = multiprocessing.cpu_count()
@@ -230,26 +194,37 @@ def start(model_name, settings, argv):
                               argv=argv)
         with multiprocessing.Pool(cpu_count) as pool:
             parts = pool.map(p, range(cpu_count))
+
+        # Merge model outputs
         part_model_outputs = [p[0] for p in parts]
         output = merge_part_model_outputs(part_model_outputs, settings)
+
+        # Merge runtimes
         if settings["SAVE_RUNTIME"]:
             part_runtimes = [p[1] for p in parts]
-            runtime = merge_part_runtimes(part_runtimes)
+            diagnostic = merge_part_diagnostic(part_runtimes)
     else:
-        output, runtime = start_single_core(model_name, settings, argv)
+        output, diagnostic = start_single_core(model_name, settings, argv)
 
     # Add time column
-    for key in output.keys():
-        values = [*range(settings["T_OUTPUT_MAX"]+1)] * int(output[key].shape[0] / (settings["T_OUTPUT_MAX"]+1))
-        output[key].insert(0, "t", values)
+    values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output.shape[0] / (settings["T_MAX_OUTPUT"]+1))
+    output.insert(0, "t", values)
+
+    # Save to csv files
+    if not os.path.exists("output"):
+        os.makedirs("output")
 
     if settings["SAVE_OUTPUT"]:
-        print_log("Saving results:")
-        dict_to_csv(output, timestamp)
+        print_log("Saving output:")
+        filepath = f"output/{timestamp}_output.csv"
+        output.to_csv(filepath, index=False)
+        print(f"{' ' * 10} {filepath}")
 
-    if settings["SAVE_RUNTIME"]:
-        print_log("Saving runtime:")
-        df_to_csv(runtime, timestamp)
+    if settings["SAVE_DIAGNOSTIC"]:
+        print_log("Saving diagnostic file:")
+        filepath = f"output/{timestamp}_diagnostic.csv"
+        diagnostic.to_csv(filepath, index=False)
+        print(f"{' ' * 10} {filepath}")
 
     print_log("Finished")
     return output

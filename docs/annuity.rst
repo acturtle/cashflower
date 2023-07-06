@@ -59,8 +59,8 @@ insurance.
 
 ..  code-block:: python
 
-    @assign(survival_rate)
-    def _survival_rate(t):
+    @variable()
+    def survival_rate(t):
         if t == 0:
             return 1
         elif t == 1:
@@ -72,8 +72,10 @@ The survival rate is the probability that the policyholder will survive from the
 
 ..  code-block:: python
 
-    @assign(actuarial_present_value)
-    def _actuarial_present_value(t):
+    @variable(actuarial_present_value)
+    def actuarial_present_value(t):
+        if t == settings["T_MAX_CALCULATION"]:
+            return expected_payment(t)
         return expected_payment(t) + actuarial_present_value(t+1) * 1/(1+INTEREST_RATE)
 
 The actuarial present value is **the present value** of the expected annuity payments.
@@ -102,20 +104,16 @@ Policy data contains the value of the monthly payment which is be paid to the po
 ..  code-block:: python
     :caption: model.py
 
-    from cashflower import assign, ModelVariable
+    from cashflower import variable
 
     from tutorials.annuity.whole_life.input import main
+    from tutorials.annuity.whole_life.settings import settings
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
 
-    survival_rate = ModelVariable()
-    expected_payment = ModelVariable()
-    actuarial_present_value = ModelVariable()
-
-
-    @assign(survival_rate)
-    def _survival_rate(t):
+    @variable()
+    def survival_rate(t):
         if t == 0:
             return 1
         elif t == 1:
@@ -124,8 +122,8 @@ Policy data contains the value of the monthly payment which is be paid to the po
             return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
-    @assign(expected_payment)
-    def _expected_payment(t):
+    @variable()
+    def expected_payment(t):
         if t == 0:
             return 0
         else:
@@ -133,8 +131,10 @@ Policy data contains the value of the monthly payment which is be paid to the po
             return survival_rate(t) * payment
 
 
-    @assign(actuarial_present_value)
-    def _actuarial_present_value(t):
+    @variable()
+    def actuarial_present_value(t):
+        if t == settings["T_MAX_CALCULATION"]:
+            return expected_payment(t)
         return expected_payment(t) + actuarial_present_value(t+1) * 1/(1+INTEREST_RATE)
 
 The policyholder will receive a payment as long as they survive.
@@ -167,20 +167,16 @@ Here the remaining term is expressed in months starting the valuation period (ra
 ..  code-block:: python
     :caption: model.py
 
-    from cashflower import assign, ModelVariable
+    from cashflower import variable
 
     from tutorials.annuity.temporary.input import main
+    from tutorials.annuity.temporary.settings import settings
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
 
-    survival_rate = ModelVariable()
-    expected_payment = ModelVariable()
-    actuarial_present_value = ModelVariable()
-
-
-    @assign(survival_rate)
-    def _survival_rate(t):
+    @variable()
+    def survival_rate(t):
         if t == 0:
             return 1
         elif t == 1:
@@ -189,8 +185,8 @@ Here the remaining term is expressed in months starting the valuation period (ra
             return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
-    @assign(expected_payment)
-    def _expected_payment(t):
+    @variable()
+    def expected_payment(t):
         if t == 0:
             return 0
         elif t > main.get("remaining_term"):
@@ -200,8 +196,10 @@ Here the remaining term is expressed in months starting the valuation period (ra
             return survival_rate(t) * payment
 
 
-    @assign(actuarial_present_value)
-    def _actuarial_present_value(t):
+    @variable()
+    def actuarial_present_value(t):
+        if t == settings["T_MAX_CALCULATION"]:
+            return expected_payment(t)
         return expected_payment(t) + actuarial_present_value(t+1) * 1/(1+INTEREST_RATE)
 
 The policyholder will receive a payment as long as they survive but no longer than n-years.
@@ -234,21 +232,17 @@ Here the deferral period is expressed in months starting from the valuation peri
 ..  code-block:: python
     :caption: model.py
 
-    from cashflower import assign, ModelVariable
+    from cashflower import variable
 
     from tutorials.annuity.deferred.input import main
+    from tutorials.annuity.deferred.settings import settings
 
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
 
-    survival_rate = ModelVariable()
-    expected_payment = ModelVariable()
-    actuarial_present_value = ModelVariable()
-
-
-    @assign(survival_rate)
-    def _survival_rate(t):
+    @variable()
+    def survival_rate(t):
         if t == 0:
             return 1
         elif t == 1:
@@ -257,8 +251,8 @@ Here the deferral period is expressed in months starting from the valuation peri
             return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
-    @assign(expected_payment)
-    def _expected_payment(t):
+    @variable()
+    def expected_payment(t):
         if t <= main.get("deferral"):
             return 0
         else:
@@ -266,8 +260,10 @@ Here the deferral period is expressed in months starting from the valuation peri
             return survival_rate(t) * payment
 
 
-    @assign(actuarial_present_value)
-    def _actuarial_present_value(t):
+    @variable()
+    def actuarial_present_value(t):
+        if t == settings["T_MAX_CALCULATION"]:
+            return expected_payment(t)
         return expected_payment(t) + actuarial_present_value(t+1) * 1/(1+INTEREST_RATE)
 
 The policyholder will receive a payment as long as they survive starting m-years after the issue date.

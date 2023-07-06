@@ -4,15 +4,13 @@ Output
 Structure
 ---------
 
-The output of a cash flow model is a table where rows are periods and columns are model components.
+The output of a cash flow model is a table where rows are periods and columns are model variables.
 
 The structure of the output depends on two settings:
 
 * :code:`AGGREGATE` - the flag if the results should be aggregated or not,
 * :code:`OUTPUT_COLUMNS` - list of output columns (by default - all).
 
-The output depends also on whether components are model variables or constants.
-Constants are not part of the aggregated output because they may be strings.
 
 Let's see some examples.
 
@@ -38,12 +36,9 @@ The example of the individual output:
    :align: center
 
 The rows represent the projection periods. The column :code:`t` contains the projection month.
-Each record of the model point has its own set of results. The record number is included in the :code:`r` column.
+Each record of the model point has its own set of results.
 
-The :code:`main` model point set can not have multiple records so the record is always 1.
-Other model point sets may have multiple records. In this example, the second model point in the :code:`fund` model point set has 2 records.
-
-The number of projection periods is settable with :code:`T_OUTPUT_MAX`. The individual output includes both model variables and constants.
+The number of projection periods is settable with :code:`T_MAX_OUTPUT`.
 
 |
 
@@ -68,11 +63,8 @@ The example of the aggregated output:
 
 The results of the aggregated output are summed across all model points.
 
-There is only one set of projections, so the number of rows amounts to :code:`T_OUTPUT_MAX+1`.
+There is only one set of projections, so the number of rows amounts to :code:`T_MAX_OUTPUT+1`.
 The value is incremented by 1 because the projection starts at 0.
-There is no :code:`r` column because there are no separate results for each record.
-
-Also, the output only contains model variables. There are no constants because constants may be of character type.
 
 |
 
@@ -110,9 +102,10 @@ Default output
 By default, the results of the model are saved to files with comma-separated values.
 Files are saved in the output folder in the same directory as the model.
 
-The filenames have the form: :code:`<timestamp>_<model_point_set_name>.csv` (for example: :code:`20231125_173512_main.csv`).
+The filenames have the form: :code:`<timestamp>_output.csv` (for example: :code:`20231125_173512_output.csv`).
 
-Timestamp contains the moment when the model has finished its work. Timestamp is of the format :code:`YYYYMMDD_hhmmss`, where:
+Timestamp contains the moment when the model has finished its work.
+Timestamp is of the format :code:`YYYYMMDD_hhmmss`, where:
 
 * :code:`YYYY` - year,
 * :code:`MM` - month,
@@ -120,9 +113,6 @@ Timestamp contains the moment when the model has finished its work. Timestamp is
 * :code:`hh` - hours,
 * :code:`mm` - minutes,
 * :code:`ss` - seconds.
-
-The model creates as many files as there are model point sets.
-There will be always at least one output file - the one for the main model point set (:code:`<timestamp>_main.csv`).
 
 |
 
@@ -154,7 +144,7 @@ Secondly, adjust the code in the :code:`run.py` script. In the script, you can f
     if __name__ == "__main__":
         output = start("example", settings, sys.argv)
 
-The :code:`output` object is a dictionary. Its keys are names of model point sets and values are pandas data frames.
+The :code:`output` object is a data frame with results.
 
 Let's say, we don't want to have timestamps in the filenames and want to save the results as text files.
 
@@ -163,10 +153,9 @@ We can do it by adding the following code:
 ..  code-block:: python
     :caption: run.py
 
-    for key in output.keys():
-        output[key].to_string(f"{key}.txt")
+    if __name__ == "__main__":
+        output = start("example", settings, sys.argv)
+        output.to_string("output.txt")
 
-We iterate over the keys of the output which are the names of the model point sets.
-The :code:`output[key]` is the data frame which we save to a text file.
 
-Now, instead of :code:`output/<timestamp>_main.csv`, we will create the :code:`main.txt` file.
+Now, instead of :code:`output/<timestamp>_output.csv`, we will create the :code:`output.txt` file.
