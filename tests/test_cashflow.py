@@ -102,24 +102,9 @@ class TestVariable(TestCase):
         with pytest.raises(CashflowModelError):
             foo(10)
 
-        foo.calculate_forward()
+        foo.calculate_t(10)
 
         assert foo(10) == 10
 
         with pytest.raises(CashflowModelError):
             foo(-1)
-
-    def test_variable_is_calculated_backward(self):
-        @variable()
-        def foo(t):
-            if t == 720:
-                return 720
-            return foo(t+1) - 1
-
-        foo.name = "foo"
-        foo.settings = load_settings()
-        foo.calc_direction = "backward"
-        foo.calculate()
-
-        assert foo(0) == 0
-
