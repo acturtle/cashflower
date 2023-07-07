@@ -1,5 +1,5 @@
 import functools
-import matplotlib.pyplot as plt
+import itertools
 import networkx as nx
 import time
 import pandas as pd
@@ -56,21 +56,18 @@ class Variable:
         self._settings = new_settings
         self.result = [None for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)]
 
-    def calculate_forward(self):
-        for t in range(self.settings["T_MAX_CALCULATION"] + 1):
-            self.result[t] = self.func(t)
-
-    def calculate_backward(self):
-        for t in range(self.settings["T_MAX_CALCULATION"], -1, -1):
-            self.result[t] = self.func(t)
+    def calculate_t(self, t):
+        self.result[t] = self.func(t)
 
     def calculate(self):
         if self.calc_direction == "irrelevant":
             self.result = [*map(self.func, range(self.settings["T_MAX_CALCULATION"] + 1))]
         elif self.calc_direction == "forward":
-            self.calculate_forward()
+            for t in range(self.settings["T_MAX_CALCULATION"] + 1):
+                self.result[t] = self.func(t)
         elif self.calc_direction == "backward":
-            self.calculate_backward()
+            for t in range(self.settings["T_MAX_CALCULATION"], -1, -1):
+                self.result[t] = self.func(t)
         else:
             raise CashflowModelError(f"Incorrect calculation direction {self.calc_direction}")
 
@@ -224,6 +221,11 @@ class Model:
             else:  # it's a cycle
                 cycles = list(nx.simple_cycles(DG))
                 cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], DG)) == len(c)]
+
+                if len(cycles_without_predecessors) == 0:
+                    big_cycle = list(set(list(itertools.chain(*cycles))))
+                    cycles_without_predecessors = [big_cycle]
+
                 for cycle_without_predecessors in cycles_without_predecessors:
                     calc_order += 1
                     for node in cycle_without_predecessors:
@@ -300,21 +302,25 @@ class Model:
         for calc_order in range(1, max_calc_order + 1):
             # Either a single variable or a cycle
             variables = [variable for variable in self.variables if variable.calc_order == calc_order]
+            # Single
             if len(variables) == 1:
                 variable = variables[0]
                 start = time.time()
                 variable.calculate()
                 variable.runtime += time.time() - start
+            # Cycle
             else:
                 start = time.time()
                 first_variable = variables[0]
                 calc_direction = first_variable.calc_direction
                 if calc_direction in ("irrelevant", "forward"):
-                    for variable in variables:
-                        variable.calculate_forward()
+                    for t in range(self.settings["T_MAX_CALCULATION"] + 1):
+                        for variable in variables:
+                            variable.calculate_t(t)
                 else:
-                    for variable in variables:
-                        variable.calculate_backward()
+                    for t in range(self.settings["T_MAX_CALCULATION"], -1, -1):
+                        for variable in variables:
+                            variable.calculate_t(t)
                 end = time.time()
                 avg_runtime = (end-start)/len(variables)
                 for variable in variables:
