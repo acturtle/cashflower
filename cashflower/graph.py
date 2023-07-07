@@ -7,6 +7,26 @@ from .error import CashflowModelError
 from .utils import get_object_by_name
 
 
+def get_calls(variable, variables):
+    """List variables called by the given variable"""
+    call_names = []
+    variable_names = [variable.name for variable in variables]
+
+    # print("\n", ast.dump(node, indent=2))
+    node = ast.parse(inspect.getsource(variable.func))
+    for subnode in ast.walk(node):
+        if isinstance(subnode, ast.Call):
+            if isinstance(subnode.func, ast.Name):
+                if subnode.func.id in variable_names:
+                    raise_error_if_incorrect_argument(subnode)
+                    call_names.append(subnode.func.id)
+
+    # call_visitor.visit(node)
+    # call_names = call_visitor.calls
+    calls = [get_object_by_name(variables, call_name) for call_name in call_names if call_name != variable.name]
+    return calls
+
+
 def get_calc_direction(variables):
     """Set calculation direction to irrelevant/forward/backward"""
     # For non-cycle => single variable, for cycle => variables from the cycle
@@ -19,18 +39,6 @@ def get_calc_direction(variables):
         variable.calc_direction = visitor.calc_direction
 
     return None
-
-
-def get_calls(variable, variables):
-    """List variables called by the given variable"""
-    variable_names = [variable.name for variable in variables]
-    call_visitor = CallVisitor(variable_names)
-    node = ast.parse(inspect.getsource(variable.func))
-    # print("\n", ast.dump(node, indent=2))
-    call_visitor.visit(node)
-    call_names = call_visitor.calls
-    calls = [get_object_by_name(variables, call_name) for call_name in call_names if call_name != variable.name]
-    return calls
 
 
 def get_predecessors(node, DG):
@@ -84,18 +92,6 @@ def raise_error_if_incorrect_argument(node):
     # The model variable calls something else
     if not (isinstance(arg, ast.Name) or isinstance(arg, ast.Constant) or isinstance(arg, ast.BinOp)):
         raise CashflowModelError(msg)
-
-
-class CallVisitor(ast.NodeVisitor):
-    def __init__(self, variable_names):
-        self.variable_names = variable_names
-        self.calls = []
-
-    def visit_Call(self, node):
-        if isinstance(node.func, ast.Name):
-            if node.func.id in self.variable_names:
-                raise_error_if_incorrect_argument(node)
-                self.calls.append(node.func.id)
 
 
 class CalcDirectionVisitor(ast.NodeVisitor):
