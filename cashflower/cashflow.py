@@ -59,21 +59,15 @@ class Variable:
     def calculate_t(self, t):
         self.result[t] = self.func(t)
 
-    def calculate_forward(self):
-        for t in range(self.settings["T_MAX_CALCULATION"] + 1):
-            self.result[t] = self.func(t)
-
-    def calculate_backward(self):
-        for t in range(self.settings["T_MAX_CALCULATION"], -1, -1):
-            self.result[t] = self.func(t)
-
     def calculate(self):
         if self.calc_direction == "irrelevant":
             self.result = [*map(self.func, range(self.settings["T_MAX_CALCULATION"] + 1))]
         elif self.calc_direction == "forward":
-            self.calculate_forward()
+            for t in range(self.settings["T_MAX_CALCULATION"] + 1):
+                self.result[t] = self.func(t)
         elif self.calc_direction == "backward":
-            self.calculate_backward()
+            for t in range(self.settings["T_MAX_CALCULATION"], -1, -1):
+                self.result[t] = self.func(t)
         else:
             raise CashflowModelError(f"Incorrect calculation direction {self.calc_direction}")
 

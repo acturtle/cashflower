@@ -21,8 +21,6 @@ def get_calls(variable, variables):
                     raise_error_if_incorrect_argument(subnode)
                     call_names.append(subnode.func.id)
 
-    # call_visitor.visit(node)
-    # call_names = call_visitor.calls
     calls = [get_object_by_name(variables, call_name) for call_name in call_names if call_name != variable.name]
     return calls
 
