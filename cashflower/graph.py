@@ -30,13 +30,26 @@ def get_calc_direction(variables):
     # For non-cycle => single variable, for cycle => variables from the cycle
     variable_names = [variable.name for variable in variables]
 
-    visitor = CalcDirectionVisitor(variable_names)
     for variable in variables:
         node = ast.parse(inspect.getsource(variable.func))
-        visitor.visit(node)
-        variable.calc_direction = visitor.calc_direction
+        for subnode in ast.walk(node):
+            if isinstance(subnode, ast.Call):
+                if isinstance(subnode.func, ast.Name):  # not a method
+                    if subnode.func.id in variable_names:  # single variable or another variable in the cycle
+                        arg = subnode.args[0]
+                        if isinstance(arg, ast.BinOp):
+                            # Does it call t+... or t-...?
+                            check1 = isinstance(arg.left, ast.Name) and arg.left.id == "t"
+                            check2 = isinstance(arg.op, ast.Add)
+                            check3 = isinstance(arg.op, ast.Sub)
 
-    return None
+                            if check1 and check2:
+                                return "backward"
+
+                            if check1 and check3:
+                                return "forward"
+
+    return "irrelevant"
 
 
 def get_predecessors(node, DG):
@@ -90,26 +103,3 @@ def raise_error_if_incorrect_argument(node):
     # The model variable calls something else
     if not (isinstance(arg, ast.Name) or isinstance(arg, ast.Constant) or isinstance(arg, ast.BinOp)):
         raise CashflowModelError(msg)
-
-
-class CalcDirectionVisitor(ast.NodeVisitor):
-    def __init__(self, variable_names):
-        self.variable_names = variable_names
-        self.calc_direction = "irrelevant"
-
-    def visit_Call(self, node):
-        if isinstance(node.func, ast.Name):
-            if node.func.id in self.variable_names:
-                arg = node.args[0]
-                if isinstance(arg, ast.BinOp):
-                    # Does it call t+... or t-...?
-                    check1 = isinstance(arg.left, ast.Name) and arg.left.id == "t"
-                    check2 = isinstance(arg.op, ast.Add)
-                    check3 = isinstance(arg.op, ast.Sub)
-
-                    if check1 and check2:
-                        self.calc_direction = "backward"
-
-                    if check1 and check3:
-                        self.calc_direction = "forward"
-        return None

@@ -241,7 +241,9 @@ class Model:
         for calc_order in range(1, max_calc_order+1):
             # Either a single variable or a cycle
             variables = [variable for variable in self.variables if variable.calc_order == calc_order]
-            get_calc_direction(variables)
+            calc_direction = get_calc_direction(variables)
+            for variable in variables:
+                variable.calc_direction = calc_direction
 
         # Iterate over model points
         main = get_object_by_name(self.model_point_sets, "main")
