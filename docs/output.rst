@@ -32,7 +32,7 @@ An individual output can be created by setting :code:`AGGREGATE` to :code:`False
 
 The example of the individual output:
 
-.. image:: https://acturtle.com/static/img/39/output_individual_2.png
+.. image:: https://acturtle.com/static/img/39/output_individual.png
    :align: center
 
 The rows represent the projection periods. The column :code:`t` contains the projection month.
@@ -58,7 +58,7 @@ The aggregated output can be created by setting :code:`AGGREGATE` to :code:`True
 
 The example of the aggregated output:
 
-.. image:: https://acturtle.com/static/img/39/output_aggregated_2.png
+.. image:: https://acturtle.com/static/img/39/output_aggregated.png
    :align: center
 
 The results of the aggregated output are summed across all model points.
@@ -84,7 +84,7 @@ If not all model components are needed in the output, a subset of columns can be
 
 The value of this setting is a list containing the names of the model components in the output.
 
-.. image:: https://acturtle.com/static/img/39/output_subset_2.png
+.. image:: https://acturtle.com/static/img/39/output_subset.png
    :align: center
 
 Here, the output contains only the column :code:`bel`.
