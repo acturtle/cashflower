@@ -4,4 +4,3 @@ from tutorials.asset.bond.settings import settings
 
 if __name__ == "__main__":
     output = start("tutorials.asset.bond", settings, sys.argv)
-    print(output.to_string(index=False))
