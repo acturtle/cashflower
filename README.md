@@ -32,11 +32,9 @@ create_model("my_model")
 
 my_model/input.py
 ```python
-main = ModelPointSet(data=pd.read_csv("C:/my_data/main.csv"))
+runplan = Runplan(data=pd.DataFrame({"version": [1]}))
 
-assumption = dict()
-assumption["interest_rates"] = pd.read_csv("C:/my_data/interest_rates.csv")
-assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv", index_col="age")
+main = ModelPointSet(data=pd.DataFrame({"id": [1]}))
 ```
 
 ## Model
@@ -44,26 +42,13 @@ assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv", index_col="age
 my_model/model.py
 ```python
 @variable()
-def age(t):
+def projection_year(t):
     if t == 0:
-        return int(main.get("AGE"))
-    elif t % 12 == 0:
-        return age(t-1) + 1
+        return 0
+    elif t % 12 == 1:
+        return projection_year(t - 1) + 1
     else:
-        return age(t-1)
-
-
-@variable()
-def death_prob(t):
-    if age(t) == age(t-1):
-        return death_prob(t-1) 
-    elif age(t) <= 100:
-        sex = main.get("SEX")
-        yearly_rate = assumption["mortality"].loc[age(t)][sex]
-        monthly_rate = (1 - (1 - yearly_rate)**(1/12))
-        return monthly_rate
-    else:
-        return 1
+        return projection_year(t - 1)
 ```
 
 ## Calculate
