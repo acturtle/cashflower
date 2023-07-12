@@ -11,12 +11,14 @@ DEATH_PROB = 0.003
 def survival_rate(t):
     if t == 0:
         return 1 - DEATH_PROB
-    else:
-        return survival_rate(t-1) * (1 - DEATH_PROB)
+    return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
 @variable()
 def expected_benefit(t):
+    if t == 0:
+        return 0
+
     sum_assured = main.get("sum_assured")
     if t == settings["T_MAX_CALCULATION"]:
         return survival_rate(t-1) * sum_assured

@@ -11,8 +11,7 @@ DEATH_PROB = 0.003
 def survival_rate(t):
     if t == 0:
         return 1 - DEATH_PROB
-    else:
-        return survival_rate(t-1) * (1 - DEATH_PROB)
+    return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
 @variable()
