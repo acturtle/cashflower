@@ -12,7 +12,24 @@ from .graph import get_calc_direction, get_calls, get_predecessors
 def variable():
     """Decorator"""
     def wrapper(func):
+        # Variable must have parameter 't' or no parameters at all
+        if func.__code__.co_argcount > 1:
+            msg = f"Model variable must have maximally one parameter. Please review '{func.__name__}'."
+            raise CashflowModelError(msg)
+
+        # Parameter must be named 't'
+        if func.__code__.co_argcount == 1:
+            if not func.__code__.co_varnames[0] == 't':
+                msg = f"The name of the parameter must be named 't'. Please review '{func.__name__}'."
+                raise CashflowModelError(msg)
+
+        # Create a variable
         variable = Variable(func)
+
+        # Variable is constant if it is t-independent
+        if func.__code__.co_argcount == 0:
+            variable.constant = True
+
         return variable
     return wrapper
 
@@ -22,17 +39,28 @@ class Variable:
         self.func = func
         self.name = None
         self._settings = None
-        self.result = None
+
         self.calls = None
-        self.calc_order = None
-        self.cycle = False
         self.calc_direction = None
+        self.calc_order = None
+        self.constant = False
+        self.cycle = False
+        self.result = None
+
         self.runtime = 0
 
     def __repr__(self):
         return f"V: {self.func.__name__}"
 
-    def __call__(self, t):
+    def __call__(self, t=None):
+        # Variable is constant so all values are the same
+        if t is None and self.constant:
+            return self.result[0]
+
+        if t is None and not self.constant:
+            msg = f"Variable '{self.name}' has been called without specifying the value of 't'."
+            raise CashflowModelError(msg)
+
         if t < 0 or t > self.settings["T_MAX_CALCULATION"]:
             msg = f"Variable '{self.name}' has been called for period '{t}' which is outside of calculation range."
             raise CashflowModelError(msg)
@@ -57,19 +85,30 @@ class Variable:
         self.result = [None for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)]
 
     def calculate_t(self, t):
-        self.result[t] = self.func(t)
+        # Constant variable
+        if self.constant:
+            self.result[t] = self.func()
+        # Time-dependent variable
+        else:
+            self.result[t] = self.func(t)
 
     def calculate(self):
-        if self.calc_direction == "irrelevant":
-            self.result = [*map(self.func, range(self.settings["T_MAX_CALCULATION"] + 1))]
-        elif self.calc_direction == "forward":
-            for t in range(self.settings["T_MAX_CALCULATION"] + 1):
-                self.result[t] = self.func(t)
-        elif self.calc_direction == "backward":
-            for t in range(self.settings["T_MAX_CALCULATION"], -1, -1):
-                self.result[t] = self.func(t)
+        # Constant variable
+        if self.constant:
+            value = self.func()
+            self.result = [value for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)]
+        # Time-dependent variable
         else:
-            raise CashflowModelError(f"Incorrect calculation direction {self.calc_direction}")
+            if self.calc_direction == "irrelevant":
+                self.result = [*map(self.func, range(self.settings["T_MAX_CALCULATION"] + 1))]
+            elif self.calc_direction == "forward":
+                for t in range(self.settings["T_MAX_CALCULATION"] + 1):
+                    self.result[t] = self.func(t)
+            elif self.calc_direction == "backward":
+                for t in range(self.settings["T_MAX_CALCULATION"], -1, -1):
+                    self.result[t] = self.func(t)
+            else:
+                raise CashflowModelError(f"Incorrect calculation direction {self.calc_direction}")
 
 
 class Runplan:

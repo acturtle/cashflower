@@ -4,15 +4,15 @@ from tutorials.mortgage.input import main
 
 
 @variable()
-def monthly_interest_rate(t):
+def monthly_interest_rate():
     return main.get("interest_rate") / 12
 
 
 @variable()
-def payment(t):
+def payment():
     L = main.get("loan")
     n = main.get("term")
-    j = monthly_interest_rate(t)
+    j = monthly_interest_rate()
     v = 1 / (1 + j)
     ann = (1 - v ** n) / j
     return L / ann

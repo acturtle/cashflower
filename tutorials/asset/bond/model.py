@@ -5,7 +5,7 @@ from tutorials.asset.bond.settings import settings
 
 
 @variable()
-def t_end(t):
+def t_end():
     years = main.get("term") // 12
     months = main.get("term") - years * 12
 
@@ -51,7 +51,7 @@ def coupon(t):
 
 @variable()
 def nominal_value(t):
-    if t == t_end(t):
+    if t == t_end():
         return main.get("nominal")
     else:
         return 0

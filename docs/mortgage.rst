@@ -2,7 +2,7 @@ Mortgage
 ========
 
 A real estate mortgage is a loan from the bank to the customer that must be used to purchase real estate.
-The amount borrowed is typically quite large and the term is quite long (usually between 15 and 30 years).
+The amount borrowed is typically large and the term is long (usually between 15 and 30 years).
 The payment frequency of real estate mortgages is almost always on a monthly basis.
 
 Let's define:
@@ -59,36 +59,31 @@ Model
 ^^^^^
 
 In the model point set, we have the value of the yearly interest rate, so let's create a variable for a monthly interest rate.
-The rate does not change value from month to month so let's model it as a :code:`Constant`.
+The rate does not change value from month to month so it's a time-independent variable.
+The function has no :code:`t` parameter.
 
 ..  code-block:: python
     :caption: model.py
 
-    monthly_interest_rate = Constant()
-
-    @assign(monthly_interest_rate)
-    def _monthly_interest_rate():
-      return main.get("interest_rate") / 12
+    @variable()
+    def monthly_interest_rate():
+        return main.get("interest_rate") / 12
 
 The monthly rate is the yearly rate divided by 12.
 
-Now we need to determine the value of the regular monthly payment. We will use the equation from the theory section.
-Payment has the same value in each month so it can be also defined as a :code:`Constant`.
-
+Now we need to determine the value of the regular monthly payment.
 
 ..  code-block:: python
     :caption: model.py
 
-    payment = Constant()
-
-    @assign(payment)
-    def _payment():
-      L = main.get("loan")
-      n = main.get("term")
-      j = monthly_interest_rate()
-      v = 1 / (1 + j)
-      ann = (1 - v ** n) / j
-      return L / ann</code></pre>
+    @variable()
+    def payment():
+        L = main.get("loan")
+        n = main.get("term")
+        j = monthly_interest_rate()
+        v = 1 / (1 + j)
+        ann = (1 - v ** n) / j
+        return L / ann
 
 We now know the value of the monthly payment which further splits into principal and interest.
 The principal is the value that is deducted from the balance. Interest is the part that is the bank's earnings.
@@ -99,22 +94,22 @@ We haven't yet defined the model variable for balance but we will shortly.
 ..  code-block:: python
     :caption: model.py
 
-    @assign(interest)
-    def _interest(t):
-      if t == 0:
-        return 0
-      return balance(t-1) * monthly_interest_rate()
+    @variable()
+    def interest(t):
+        if t == 0:
+            return 0
+        return balance(t-1) * monthly_interest_rate()
 
 The principal is whatever is left from the monthly payment after deducting interest.
 
 ..  code-block:: python
     :caption: model.py
 
-    @assign(principal)
-    def _principal(t):
-      if t == 0:
-        return 0
-      return payment() - interest(t)
+    @variable()
+    def principal(t):
+        if t == 0:
+            return 0
+        return payment() - interest(t)
 
 At the start, the value of the balance amounts to the value of the loan.
 Afterwards, it decreases by the value of the principal.
@@ -122,12 +117,12 @@ Afterwards, it decreases by the value of the principal.
 ..  code-block:: python
     :caption: model.py
 
-    @assign(balance)
-    def _balance(t):
-      if t == 0:
-        return main.get("loan")
-      else:
-        return balance(t-1) - principal(t)
+    @variable()
+    def balance(t):
+        if t == 0:
+            return main.get("loan")
+        else:
+            return balance(t-1) - principal(t)
 
 We now have all components of the amortization schedule, so let's take a look at the results.
 
