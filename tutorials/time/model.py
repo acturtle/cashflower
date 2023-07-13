@@ -4,7 +4,7 @@ from cashflower import variable
 from tutorials.time.input import main, runplan
 
 
-@variable()
+@variable(repeat=True)
 def cal_month(t):
     if t == 0:
         return runplan.get("valuation_month")
@@ -14,7 +14,7 @@ def cal_month(t):
         return cal_month(t-1) + 1
 
 
-@variable()
+@variable(repeat=True)
 def cal_year(t):
     if t == 0:
         return runplan.get("valuation_year")
