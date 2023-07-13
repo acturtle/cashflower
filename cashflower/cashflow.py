@@ -321,6 +321,7 @@ class Model:
                 "calc_order": [v.calc_order for v in self.variables],
                 "cycle": [v.cycle for v in self.variables],
                 "calc_direction": [v.calc_direction for v in self.variables],
+                "constant": [v.constant for v in self.variables],
                 "runtime": [v.runtime for v in self.variables]
             })
 
