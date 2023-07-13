@@ -6,7 +6,7 @@ The settings of the model are defined in the :code:`settings.py` script.
 The table below summarizes available settings.
 
 .. list-table::
-   :widths: 25 25 50
+   :widths: 20 20 20 40
    :header-rows: 1
 
    * - Setting

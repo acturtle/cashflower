@@ -99,7 +99,7 @@ def get_variables(model_members, settings):
     variables = []
 
     for name, variable in variable_members:
-        if name in ["t", "r"]:
+        if name == "t":
             msg = f"\nA variable can not be named '{name}' because it is a system variable. Please rename it."
             raise CashflowModelError(msg)
         variable.name = name
@@ -170,14 +170,16 @@ def merge_part_model_outputs(part_model_outputs, settings):
 
 def merge_part_diagnostic(part_diagnostic):
     # Nones are returned, when number of policies < number of cpus
-    part_diagnostic = [pd for pd in part_diagnostic if pd is not None]
-    total_runtimes = sum([pd["runtime"] for pd in part_diagnostic])
+    part_diagnostic = [item for item in part_diagnostic if item is not None]
+    total_runtimes = sum([item["runtime"] for item in part_diagnostic])
     first = part_diagnostic[0]
     runtimes = pd.DataFrame({
         "variable": first["variable"],
         "calc_order": first["calc_order"],
         "cycle": first["cycle"],
         "calc_direction": first["calc_direction"],
+        "constant": first["constant"],
+        "repeat": first["repeat"],
         "runtime": total_runtimes
     })
     return runtimes
@@ -200,7 +202,7 @@ def start(model_name, settings, argv):
         output = merge_part_model_outputs(part_model_outputs, settings)
 
         # Merge runtimes
-        if settings["SAVE_RUNTIME"]:
+        if settings["SAVE_DIAGNOSTIC"]:
             part_runtimes = [p[1] for p in parts]
             diagnostic = merge_part_diagnostic(part_runtimes)
     else:

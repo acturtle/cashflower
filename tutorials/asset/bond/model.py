@@ -5,7 +5,7 @@ from tutorials.asset.bond.settings import settings
 
 
 @variable()
-def t_end(t):
+def t_end():
     years = main.get("term") // 12
     months = main.get("term") - years * 12
 
@@ -21,7 +21,7 @@ def t_end(t):
     return (end_year - valuation_year) * 12 + (end_month - valuation_month)
 
 
-@variable()
+@variable(repeat=True)
 def cal_month(t):
     if t == 0:
         return runplan.get("valuation_month")
@@ -31,7 +31,7 @@ def cal_month(t):
         return cal_month(t-1) + 1
 
 
-@variable()
+@variable(repeat=True)
 def cal_year(t):
     if t == 0:
         return runplan.get("valuation_year")
@@ -51,7 +51,7 @@ def coupon(t):
 
 @variable()
 def nominal_value(t):
-    if t == t_end(t):
+    if t == t_end():
         return main.get("nominal")
     else:
         return 0
