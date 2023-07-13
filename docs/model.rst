@@ -24,7 +24,7 @@ To define a time-dependent model variable, write a function with parameter :code
             return projection_year(t - 1)
 |
 
-To define a constant (time-independet) model variable, write a function without any parameters and decorate it with :code:`variable`.
+To define a constant (time-independent) model variable, write a function without any parameters and decorate it with :code:`variable`.
 The result for such a variable will be the same for all future projection periods.
 
 ..  code-block:: python
