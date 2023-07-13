@@ -57,10 +57,6 @@ class Variable:
         if t is None and self.constant:
             return self.result[0]
 
-        if t is None and not self.constant:
-            msg = f"Variable '{self.name}' has been called without specifying the value of 't'."
-            raise CashflowModelError(msg)
-
         if t < 0 or t > self.settings["T_MAX_CALCULATION"]:
             msg = f"Variable '{self.name}' has been called for period '{t}' which is outside of calculation range."
             raise CashflowModelError(msg)
