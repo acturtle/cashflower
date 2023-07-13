@@ -54,7 +54,7 @@ Formulas:
         return (end_year - valuation_year) * 12 + (end_month - valuation_month)
 
 
-    @variable()
+    @variable(repeat=True)
     def cal_month(t):
         if t == 0:
             return runplan.get("valuation_month")
@@ -64,7 +64,7 @@ Formulas:
             return cal_month(t-1) + 1
 
 
-    @variable()
+    @variable(repeat=True)
     def cal_year(t):
         if t == 0:
             return runplan.get("valuation_year")
@@ -219,7 +219,7 @@ The valuation year and month are read from the runplan.
 ..  code-block:: python
     :caption: model.py
 
-    @variable()
+    @variable(repeat=True)
     def cal_month(t):
         if t == 0:
             return runplan.get("valuation_month")
@@ -229,7 +229,7 @@ The valuation year and month are read from the runplan.
             return cal_month(t-1) + 1
 
 
-    @variable()
+    @variable(repeat=True)
     def cal_year(t):
         if t == 0:
             return runplan.get("valuation_year")
