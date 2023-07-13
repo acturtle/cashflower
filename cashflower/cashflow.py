@@ -9,7 +9,7 @@ from .utils import get_object_by_name, print_log, split_to_ranges, updt
 from .graph import get_calc_direction, get_calls, get_predecessors
 
 
-def variable():
+def variable(repeat=None):
     """Decorator"""
     def wrapper(func):
         # Variable must have parameter 't' or no parameters at all
@@ -30,6 +30,10 @@ def variable():
         if func.__code__.co_argcount == 0:
             variable.constant = True
 
+        # Results are repeated for all model points
+        if repeat:
+            variable.repeat = True
+
         return variable
     return wrapper
 
@@ -45,6 +49,7 @@ class Variable:
         self.calc_order = None
         self.constant = False
         self.cycle = False
+        self.repeat = False
         self.result = None
 
         self.runtime = 0
@@ -81,6 +86,9 @@ class Variable:
         self.result = [None for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)]
 
     def calculate_t(self, t):
+        if self.repeat and self.result[t] is not None:
+            return None
+
         # Constant variable
         if self.constant:
             self.result[t] = self.func()
@@ -89,6 +97,9 @@ class Variable:
             self.result[t] = self.func(t)
 
     def calculate(self):
+        if self.repeat and not any([_ is None for _ in self.result]):
+            return None
+
         # Constant variable
         if self.constant:
             value = self.func()

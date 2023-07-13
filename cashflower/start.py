@@ -201,7 +201,7 @@ def start(model_name, settings, argv):
         output = merge_part_model_outputs(part_model_outputs, settings)
 
         # Merge runtimes
-        if settings["SAVE_RUNTIME"]:
+        if settings["SAVE_DIAGNOSTIC"]:
             part_runtimes = [p[1] for p in parts]
             diagnostic = merge_part_diagnostic(part_runtimes)
     else:
