@@ -63,10 +63,7 @@ insurance.
     def survival_rate(t):
         if t == 0:
             return 1
-        elif t == 1:
-            return 1 - DEATH_PROB
-        else:
-            return survival_rate(t-1) * (1 - DEATH_PROB)
+        return survival_rate(t-1) * (1 - DEATH_PROB)
 
 The survival rate is the probability that the policyholder will survive from the beginning of the projection until the :code:`t` time.
 
@@ -116,19 +113,14 @@ Policy data contains the value of the monthly payment which is be paid to the po
     def survival_rate(t):
         if t == 0:
             return 1
-        elif t == 1:
-            return 1 - DEATH_PROB
-        else:
-            return survival_rate(t-1) * (1 - DEATH_PROB)
+        return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
     @variable()
     def expected_payment(t):
         if t == 0:
             return 0
-        else:
-            payment = main.get("payment")
-            return survival_rate(t) * payment
+        return survival_rate(t) * main.get("payment")
 
 
     @variable()
@@ -179,21 +171,14 @@ Here the remaining term is expressed in months starting the valuation period (ra
     def survival_rate(t):
         if t == 0:
             return 1
-        elif t == 1:
-            return 1 - DEATH_PROB
-        else:
-            return survival_rate(t-1) * (1 - DEATH_PROB)
+        return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
     @variable()
     def expected_payment(t):
-        if t == 0:
+        if t == 0 or t > main.get("remaining_term"):
             return 0
-        elif t > main.get("remaining_term"):
-            return 0
-        else:
-            payment = main.get("payment")
-            return survival_rate(t) * payment
+        return survival_rate(t) * main.get("payment")
 
 
     @variable()
@@ -245,19 +230,14 @@ Here the deferral period is expressed in months starting from the valuation peri
     def survival_rate(t):
         if t == 0:
             return 1
-        elif t == 1:
-            return 1 - DEATH_PROB
-        else:
-            return survival_rate(t-1) * (1 - DEATH_PROB)
+        return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
     @variable()
     def expected_payment(t):
         if t <= main.get("deferral"):
             return 0
-        else:
-            payment = main.get("payment")
-            return survival_rate(t) * payment
+        return survival_rate(t) * main.get("payment")
 
 
     @variable()

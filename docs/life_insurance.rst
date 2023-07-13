@@ -132,12 +132,7 @@ The policy data contains the sum assured which will be paid to the policyholder'
     def expected_benefit(t):
         if t == 0:
             return 0
-
-        sum_assured = main.get("sum_assured")
-        if t == settings["T_MAX_CALCULATION"]:
-            return survival_rate(t-1) * sum_assured
-
-        return survival_rate(t-1) * DEATH_PROB * sum_assured
+        return survival_rate(t-1) * DEATH_PROB * main.get("sum_assured")
 
 
     @variable()
@@ -203,12 +198,8 @@ In that case, the actuary should develop additional variables or adjust the exis
 
     @variable()
     def expected_benefit(t):
-        if t == 0:
+        if t == 0 or t > main.get("remaining_term"):
             return 0
-
-        if t > main.get("remaining_term"):
-            return 0
-
         return survival_rate(t-1) * DEATH_PROB * main.get("sum_assured")
 
 
@@ -334,8 +325,7 @@ In our case, the term is expressed as the remaining term (so starting from the v
             return survival_rate(t-1) * DEATH_PROB * sum_assured
         elif t == remaining_term:
             return survival_rate(t) * sum_assured
-        else:
-            return 0
+        return 0
 
 
     @variable()
