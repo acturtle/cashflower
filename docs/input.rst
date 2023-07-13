@@ -67,7 +67,6 @@ The primary model point set must be called :code:`main`.
     main = ModelPointSet(data=pd.read_csv("data-policy.csv"))
 
 
-
 A model can have multiple model point sets but at least one of them must be assigned to a variable :code:`main`.
 The :code:`main` model point set must have unique keys.
 
@@ -131,7 +130,7 @@ The model will read the value of the model point which is currently calculated.
 
 
     @variable()
-    def mortality_rate(t):
+    def mortality_rate():
         age = main.get("age")
         sex = main.get("sex")
         return assumption["mortality"].loc[age, sex]["rate"]
@@ -161,7 +160,7 @@ For example, to calculate the total value of fund value, use:
 ..  code-block:: python
 
     @variable()
-    def total_fund_value(t):
+    def total_fund_value():
         total_value = 0
         for i in range(0, fund.model_point_data.shape[0]):
             total_value += fund.get("fund_value", i)
@@ -173,7 +172,7 @@ A list can also be an output of the model variable.
 ..  code-block:: python
 
     @variable()
-    def fund_values(t):
+    def fund_values():
         fund_values = []
         for i in range(0, fund.model_point_data.shape[0]):
             fund_values.append(fund.get("fund_value", i))

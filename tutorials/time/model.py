@@ -25,7 +25,7 @@ def cal_year(t):
 
 
 @variable()
-def elapsed_months(t):
+def elapsed_months():
     issue_year = main.get("issue_year")
     issue_month = main.get("issue_month")
     valuation_year = runplan.get("valuation_year")
@@ -36,7 +36,7 @@ def elapsed_months(t):
 @variable()
 def pol_month(t):
     if t == 0:
-        mnth = elapsed_months(t) % 12
+        mnth = elapsed_months() % 12
         mnth = 12 if mnth == 0 else mnth
         return mnth
     if pol_month(t-1) == 12:

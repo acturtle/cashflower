@@ -11,19 +11,14 @@ DEATH_PROB = 0.003
 def survival_rate(t):
     if t == 0:
         return 1
-    elif t == 1:
-        return 1 - DEATH_PROB
-    else:
-        return survival_rate(t-1) * (1 - DEATH_PROB)
+    return survival_rate(t-1) * (1 - DEATH_PROB)
 
 
 @variable()
 def expected_payment(t):
     if t == 0:
         return 0
-    else:
-        payment = main.get("payment")
-        return survival_rate(t) * payment
+    return survival_rate(t) * main.get("payment")
 
 
 @variable()

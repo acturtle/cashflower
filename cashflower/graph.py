@@ -71,8 +71,12 @@ def get_predecessors(node, DG):
 
 
 def raise_error_if_incorrect_argument(node):
-    if len(node.args) != 1:
-        msg = f"Model variable must have one argument. Please review the call of '{node.func.id}'."
+    # Constant variable - there are no arguments
+    if len(node.args) == 0:
+        return None
+
+    if len(node.args) > 1:
+        msg = f"Model variable must have maximally one argument. Please review the call of '{node.func.id}'."
         raise CashflowModelError(msg)
 
     # Model variable can only call t, t+/-x, and x
