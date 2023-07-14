@@ -49,7 +49,7 @@ Formulas:
 
 
     @variable()
-    def elapsed_months(t):
+    def elapsed_months():
         issue_year = main.get("issue_year")
         issue_month = main.get("issue_month")
         valuation_year = runplan.get("valuation_year")
@@ -60,7 +60,7 @@ Formulas:
     @variable()
     def pol_month(t):
         if t == 0:
-            mnth = elapsed_months(t) % 12
+            mnth = elapsed_months() % 12
             mnth = 12 if mnth == 0 else mnth
             return mnth
         if pol_month(t-1) == 12:
@@ -71,7 +71,7 @@ Formulas:
     @variable()
     def pol_year(t):
         if t == 0:
-            return math.floor(elapsed_months(t) / 12)
+            return math.floor(elapsed_months() / 12)
         if pol_month(t) == 1:
             return pol_year(t-1) + 1
         return pol_year(t-1)
@@ -182,7 +182,7 @@ Elapsed months reflect how many months have passed between the policy's issue an
     :caption: model.py
 
     @variable()
-    def elapsed_months(t):
+    def elapsed_months():
         issue_year = main.get("issue_year")
         issue_month = main.get("issue_month")
         valuation_year = runplan.get("valuation_year")
@@ -201,7 +201,7 @@ Policy year and month reflect the duration of the given policy.
     @variable()
     def pol_month(t):
         if t == 0:
-            mnth = elapsed_months(t) % 12
+            mnth = elapsed_months() % 12
             mnth = 12 if mnth == 0 else mnth
             return mnth
         if pol_month(t-1) == 12:
@@ -212,7 +212,7 @@ Policy year and month reflect the duration of the given policy.
     @variable()
     def pol_year(t):
         if t == 0:
-            return math.floor(elapsed_months(t) / 12)
+            return math.floor(elapsed_months() / 12)
         if pol_month(t) == 1:
             return pol_year(t-1) + 1
         return pol_year(t-1)
