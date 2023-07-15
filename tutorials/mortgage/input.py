@@ -1,5 +1,4 @@
 import pandas as pd
-
 from cashflower import Runplan, ModelPointSet
 
 
@@ -12,7 +11,3 @@ main = ModelPointSet(data=pd.DataFrame({
     "interest_rate": [0.1],
     "term": [360]
 }))
-
-
-assumption = dict()
-# assumption["mortality"] = pd.read_csv("")

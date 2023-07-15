@@ -32,9 +32,8 @@ Formulas:
     :caption: model.py
 
     from cashflower import variable
-
-    from tutorials.asset.bond.input import main, runplan, assumption
-    from tutorials.asset.bond.settings import settings
+    from input import main, runplan, assumption
+    from settings import settings
 
 
     @variable()
@@ -104,7 +103,6 @@ Input:
     :caption: input.py
 
     import pandas as pd
-
     from cashflower import Runplan, ModelPointSet
 
 
@@ -143,7 +141,6 @@ The model uses runplan to store the information on the valuation date.
     :caption: input.py
 
     import pandas as pd
-
     from cashflower import Runplan, ModelPointSet
 
 
@@ -190,9 +187,8 @@ The number of months between the valuation date and the end of the bond.
     :caption: model.py
 
     from cashflower import variable
-
-    from tutorials.asset.bond.input import main, runplan, assumption
-    from tutorials.asset.bond.settings import settings
+    from input import main, runplan, assumption
+    from settings import settings
 
     @variable()
     def t_end(t):

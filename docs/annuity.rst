@@ -88,7 +88,6 @@ Whole life annuity provides a policyholder with a periodic (e.g. monthly) paymen
     :caption: input.py
 
     import pandas as pd
-
     from cashflower import ModelPointSet
 
     main = ModelPointSet(data=pd.DataFrame({
@@ -102,9 +101,8 @@ Policy data contains the value of the monthly payment which is be paid to the po
     :caption: model.py
 
     from cashflower import variable
-
-    from tutorials.annuity.whole_life.input import main
-    from tutorials.annuity.whole_life.settings import settings
+    from input import main
+    from settings import settings
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
@@ -142,7 +140,6 @@ An n-year temporary life annuity provides a policyholder with a periodic (e.g. m
     :caption: input.py
 
     import pandas as pd
-
     from cashflower import Runplan, ModelPointSet
 
 
@@ -160,9 +157,8 @@ Here the remaining term is expressed in months starting the valuation period (ra
     :caption: model.py
 
     from cashflower import variable
-
-    from tutorials.annuity.temporary.input import main
-    from tutorials.annuity.temporary.settings import settings
+    from input import main
+    from settings import settings
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
@@ -200,7 +196,6 @@ An m-year deferred whole life annuity provides a policyholder with a periodic (e
     :caption: input.py
 
     import pandas as pd
-
     from cashflower import Runplan, ModelPointSet
 
 
@@ -218,9 +213,8 @@ Here the deferral period is expressed in months starting from the valuation peri
     :caption: model.py
 
     from cashflower import variable
-
-    from tutorials.annuity.deferred.input import main
-    from tutorials.annuity.deferred.settings import settings
+    from input import main
+    from settings import settings
 
 
     INTEREST_RATE = 0.005

@@ -100,7 +100,6 @@ Whole life insurance provides for payment following the death of the insured at 
     :caption: input.py
 
     import pandas as pd
-
     from cashflower import ModelPointSet
 
     main = ModelPointSet(data=pd.DataFrame({
@@ -114,9 +113,8 @@ The policy data contains the sum assured which will be paid to the policyholder'
     :caption: model.py
 
     from cashflower import variable
-
-    from tutorials.life_insurance.whole_life.input import main
-    from tutorials.life_insurance.whole_life.settings import settings
+    from input import main
+    from settings import settings
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
@@ -162,7 +160,6 @@ commencing at issue.
     :caption: input.py
 
     import pandas as pd
-
     from cashflower import ModelPointSet
 
     main = ModelPointSet(data=pd.DataFrame({
@@ -182,9 +179,8 @@ In that case, the actuary should develop additional variables or adjust the exis
     :caption: model.py
 
     from cashflower import variable
-
-    from tutorials.life_insurance.term_life.input import main
-    from tutorials.life_insurance.term_life.settings import settings
+    from input import main
+    from settings import settings
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
@@ -226,7 +222,6 @@ n-years from the time of the policy issue.
     :caption: input.py
 
     import pandas as pd
-
     from cashflower import ModelPointSet
 
     main = ModelPointSet(data=pd.DataFrame({
@@ -242,9 +237,8 @@ In our case, the term is expressed as the remaining term (starting from the valu
     :caption: model.py
 
     from cashflower import variable
-
-    from tutorials.life_insurance.pure_endowment.input import main
-    from tutorials.life_insurance.pure_endowment.settings import settings
+    from input import main
+    from settings import settings
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
@@ -282,7 +276,6 @@ the survival of the insured to the end of the n-year term, whichever occurs firs
     :caption: input.py
 
     import pandas as pd
-
     from cashflower import ModelPointSet
 
     main = ModelPointSet(data=pd.DataFrame({
@@ -298,9 +291,8 @@ In our case, the term is expressed as the remaining term (so starting from the v
     :caption: model.py
 
     from cashflower import assign, ModelVariable
-
-    from tutorials.life_insurance.pure_endowment.input import main
-    from tutorials.life_insurance.pure_endowment.settings import settings
+    from input import main
+    from settings import settings
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003
@@ -350,7 +342,6 @@ at least m years following policy issue.
     :caption: input.py
 
     import pandas as pd
-
     from cashflower import ModelPointSet
 
 
@@ -368,9 +359,8 @@ In our case, the deferral period is expressed starting from the valuation period
     :caption: model.py
 
     from cashflower import variable
-
-    from tutorials.life_insurance.whole_life.input import main
-    from tutorials.life_insurance.whole_life.settings import settings
+    from input import main
+    from settings import settings
 
     INTEREST_RATE = 0.005
     DEATH_PROB = 0.003

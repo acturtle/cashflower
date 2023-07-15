@@ -1,7 +1,7 @@
 from cashflower import variable
 
-from tutorials.life_insurance.deferred.input import main
-from tutorials.life_insurance.deferred.settings import settings
+from input import main
+from settings import settings
 
 INTEREST_RATE = 0.005
 DEATH_PROB = 0.003

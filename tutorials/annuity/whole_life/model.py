@@ -1,7 +1,6 @@
 from cashflower import variable
-
-from tutorials.annuity.whole_life.input import main
-from tutorials.annuity.whole_life.settings import settings
+from input import main
+from settings import settings
 
 INTEREST_RATE = 0.005
 DEATH_PROB = 0.003

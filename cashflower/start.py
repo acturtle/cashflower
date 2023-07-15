@@ -24,13 +24,10 @@ def create_model(model):
 
     # Some scripts needs words replacements
     run_file = os.path.join(current_path, model, "run.py-tpl")
-    model_file = os.path.join(current_path, model, "model.py-tpl")
     replace_in_file(run_file, "{{ model }}", model)
-    replace_in_file(model_file, "{{ model }}", model)
 
     # Remove -tpl from template
     os.rename(run_file, run_file[:-4])
-    os.rename(model_file, model_file[:-4])
 
 
 def load_settings(settings=None):
@@ -110,8 +107,8 @@ def get_variables(model_members, settings):
 
 def prepare_model_input(model_name, settings, argv):
     """Get input for the cash flow model."""
-    input_module = importlib.import_module(model_name + ".input")
-    model_module = importlib.import_module(model_name + ".model")
+    input_module = importlib.import_module("input")
+    model_module = importlib.import_module("model")
 
     # input.py contains runplan and model point sets
     input_members = inspect.getmembers(input_module)

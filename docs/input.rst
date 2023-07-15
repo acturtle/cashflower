@@ -126,7 +126,7 @@ The model will read the value of the model point which is currently calculated.
     :caption: model.py
 
     from cashflower import variable
-    from example.input import assumption, main
+    from input import assumption, main
 
 
     @variable()
@@ -267,7 +267,7 @@ For example:
 ..  code-block:: python
     :caption: model.py
 
-    from example.input import main, runplan
+    from input import main, runplan
 
 
     @variable()

@@ -1,7 +1,6 @@
 from cashflower import variable
-
-from tutorials.annuity.deferred.input import main
-from tutorials.annuity.deferred.settings import settings
+from input import main
+from settings import settings
 
 
 INTEREST_RATE = 0.005

@@ -1,6 +1,5 @@
 from cashflower import variable
-
-from tutorials.mortgage.input import main
+from input import main
 
 
 @variable()

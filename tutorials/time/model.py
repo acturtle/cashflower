@@ -1,7 +1,7 @@
 import math
 from cashflower import variable
 
-from tutorials.time.input import main, runplan
+from input import main, runplan
 
 
 @variable(repeat=True)
