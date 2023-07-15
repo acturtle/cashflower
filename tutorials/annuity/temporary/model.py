@@ -1,7 +1,6 @@
 from cashflower import variable
-
-from tutorials.annuity.temporary.input import main
-from tutorials.annuity.temporary.settings import settings
+from input import main
+from settings import settings
 
 INTEREST_RATE = 0.005
 DEATH_PROB = 0.003

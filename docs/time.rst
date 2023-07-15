@@ -24,8 +24,7 @@ Formulas:
 
     import math
     from cashflower import variable
-
-    from tutorials.time.input import main, runplan
+    from input import main, runplan
 
 
     @variable(repeat=True)
@@ -83,7 +82,6 @@ Input:
     :caption: input.py
 
     import pandas as pd
-
     from cashflower import Runplan, ModelPointSet
 
 
@@ -117,7 +115,6 @@ Model uses runplan to store the information on the valuation date.
     :caption: input.py
 
     import pandas as pd
-
     from cashflower import Runplan, ModelPointSet
 
 

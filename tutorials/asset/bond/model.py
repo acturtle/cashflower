@@ -1,7 +1,6 @@
 from cashflower import variable
-
-from tutorials.asset.bond.input import main, runplan, assumption
-from tutorials.asset.bond.settings import settings
+from input import main, runplan, assumption
+from settings import settings
 
 
 @variable()

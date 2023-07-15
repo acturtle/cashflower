@@ -1,6 +1,5 @@
 from cashflower import variable
-
-from {{ model }}.input import assumption, main, runplan
+from input import assumption, main, runplan
 
 
 @variable()
