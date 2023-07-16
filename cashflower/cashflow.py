@@ -177,6 +177,8 @@ class ModelPointSet:
         return self.data.shape[0]
 
     def get(self, attribute, record_num=0):
+        if self.id is None:
+            return None
         return self.model_point_data.iloc[record_num][attribute]
 
     @property
@@ -187,12 +189,11 @@ class ModelPointSet:
     @id.setter
     def id(self, new_id):
         """Set model point's id and corresponding attributes."""
-        self._id = new_id
-
-        if new_id not in self.data.index:
-            raise CashflowModelError(f"There is no id '{new_id}' in model_point_set '{self.name}'.")
-
-        self.model_point_data = self.data.loc[[new_id]]
+        if new_id in self.data.index:
+            self._id = new_id
+            self.model_point_data = self.data.loc[[new_id]]
+        else:
+            self._id = None
 
     def initialize(self):
         """Name and settings are not present while creating object, so additional initialization is needed."""
