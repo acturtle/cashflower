@@ -14,23 +14,33 @@ Python version >=3.9
 
 ## Installation
 
-terminal
+*terminal*
 ```
 pip install cashflower
 ```
 
 ## Create model
 
-python console
+*python console*
 ```python
 from cashflower import create_model
 
 create_model("my_model")
 ```
 
+Creates:
+
+```
+my_model/
+    input.py
+    model.py
+    run.py
+    settings.py
+```
+
 ## Input
 
-my_model/input.py
+*my_model/input.py*
 ```python
 runplan = Runplan(data=pd.DataFrame({"version": [1]}))
 
@@ -39,7 +49,7 @@ main = ModelPointSet(data=pd.DataFrame({"id": [1]}))
 
 ## Model
 
-my_model/model.py
+*my_model/model.py*
 ```python
 @variable()
 def projection_year(t):
@@ -53,7 +63,10 @@ def projection_year(t):
 
 ## Calculate
 
-Run `run.py`
+*terminal*
+```
+python run.py
+```
 
 # Contribution
 

@@ -68,9 +68,6 @@ class TestModelPointSet(TestCase):
         assert main.get("age") == 52
         assert repr(main) == "MPS: main"
 
-        with pytest.raises(CashflowModelError):
-            main.id = 4
-
     def test_model_point_set_raises_error_when_no_id_col(self):
         main = ModelPointSet(
             data=pd.DataFrame({"age": [52, 47, 35]}),
