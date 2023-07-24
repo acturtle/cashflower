@@ -1,5 +1,6 @@
 from cashflower import variable
 from input import main
+
 from settings import settings
 
 INTEREST_RATE = 0.005
