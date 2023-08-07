@@ -2,8 +2,8 @@ from cashflower import variable
 from input import main
 from settings import settings
 
-INTEREST_RATE = 0.005
 DEATH_PROB = 0.003
+INTEREST_RATE = 0.005
 
 
 @variable()

@@ -1,12 +1,9 @@
 import functools
-import itertools
-import networkx as nx
 import time
 import pandas as pd
 
 from .error import CashflowModelError
 from .utils import get_object_by_name, print_log, split_to_ranges, updt
-from .graph import get_calc_direction, get_calls, get_predecessors
 
 
 def variable(repeat=None):
@@ -240,57 +237,6 @@ class Model:
         """Orchestrate all steps of the cash flow model run."""
         one_core = part == 0 or part is None  # single or first part
         print_log(f"Building model '{self.name}'", one_core)
-
-        # Get variables' calls
-        for variable in self.variables:
-            variable.calls = get_calls(variable, self.variables)
-
-        # Create directed graph for all variables
-        DG = nx.DiGraph()
-        for variable in self.variables:
-            DG.add_node(variable)
-            for predecessor in variable.calls:
-                DG.add_edge(predecessor, variable)
-
-        # Draw graph
-        # nx.draw(DG, with_labels=True, font_weight='bold')
-        # plt.show()
-
-        # Set calc_order in variables
-        calc_order = 0
-        while DG.nodes:
-            nodes_without_predecessors = [node for node in DG.nodes if len(list(DG.predecessors(node))) == 0]
-            if len(nodes_without_predecessors) > 0:
-                for node in nodes_without_predecessors:
-                    calc_order += 1
-                    node.calc_order = calc_order
-                DG.remove_nodes_from(nodes_without_predecessors)
-            else:  # it's a cycle
-                cycles = list(nx.simple_cycles(DG))
-                cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], DG)) == len(c)]
-
-                if len(cycles_without_predecessors) == 0:
-                    big_cycle = list(set(list(itertools.chain(*cycles))))
-                    cycles_without_predecessors = [big_cycle]
-
-                for cycle_without_predecessors in cycles_without_predecessors:
-                    calc_order += 1
-                    for node in cycle_without_predecessors:
-                        node.calc_order = calc_order
-                        node.cycle = True
-                    DG.remove_nodes_from(cycle_without_predecessors)
-
-        # Sort variables for calculation order
-        self.variables = sorted(self.variables, key=lambda x: (x.calc_order, x.name))
-
-        # Get calc_direction of calculation
-        max_calc_order = self.variables[-1].calc_order
-        for calc_order in range(1, max_calc_order+1):
-            # Either a single variable or a cycle
-            variables = [variable for variable in self.variables if variable.calc_order == calc_order]
-            calc_direction = get_calc_direction(variables)
-            for variable in variables:
-                variable.calc_direction = calc_direction
 
         # Iterate over model points
         main = get_object_by_name(self.model_point_sets, "main")

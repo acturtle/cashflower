@@ -2,13 +2,16 @@ import datetime
 import functools
 import importlib
 import inspect
+import itertools
 import multiprocessing
+import networkx as nx
 import os
 import pandas as pd
 import shutil
 
 from .cashflow import Model, ModelPointSet, Runplan, Variable
 from .error import CashflowModelError
+from .graph import get_calc_direction, get_calls, get_predecessors
 from .utils import print_log, replace_in_file
 
 
@@ -105,7 +108,7 @@ def get_variables(model_members, settings):
     return variables
 
 
-def prepare_model_input(model_name, settings, argv):
+def prepare_model_input(settings, argv):
     """Get input for the cash flow model."""
     input_module = importlib.import_module("input")
     model_module = importlib.import_module("model")
@@ -126,9 +129,62 @@ def prepare_model_input(model_name, settings, argv):
     return runplan, model_point_sets, variables
 
 
+def create_graph(variables):
+    # Dictionary of called functions
+    calls = {}
+    for variable in variables:
+        calls[variable] = get_calls(variable, variables)
+
+    # Create directed graph for all variables
+    DG = nx.DiGraph()
+    for variable in variables:
+        DG.add_node(variable)
+        for predecessor in calls[variable]:
+            DG.add_edge(predecessor, variable)
+
+    # Set calc_order in variables
+    calc_order = 0
+    while DG.nodes:
+        nodes_without_predecessors = [node for node in DG.nodes if len(list(DG.predecessors(node))) == 0]
+        if len(nodes_without_predecessors) > 0:
+            for node in nodes_without_predecessors:
+                calc_order += 1
+                node.calc_order = calc_order
+            DG.remove_nodes_from(nodes_without_predecessors)
+        else:  # it's a cycle
+            cycles = list(nx.simple_cycles(DG))
+            cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], DG)) == len(c)]
+
+            if len(cycles_without_predecessors) == 0:
+                big_cycle = list(set(list(itertools.chain(*cycles))))
+                cycles_without_predecessors = [big_cycle]
+
+            for cycle_without_predecessors in cycles_without_predecessors:
+                calc_order += 1
+                for node in cycle_without_predecessors:
+                    node.calc_order = calc_order
+                    node.cycle = True
+                DG.remove_nodes_from(cycle_without_predecessors)
+
+    # Sort variables for calculation order
+    variables = sorted(variables, key=lambda x: (x.calc_order, x.name))
+
+    # Get calc_direction of calculation
+    max_calc_order = variables[-1].calc_order
+    for calc_order in range(1, max_calc_order + 1):
+        # Multiple variables can have the same calc_order if they are part of the cycle
+        calc_order_variables = [v for v in variables if v.calc_order == calc_order]
+        calc_direction = get_calc_direction(calc_order_variables)
+        for variable in calc_order_variables:
+            variable.calc_direction = calc_direction
+
+    return variables
+
+
 def start_single_core(model_name, settings, argv):
     """Create and run a cash flow model."""
-    runplan, model_point_sets, variables = prepare_model_input(model_name, settings, argv)
+    runplan, model_point_sets, variables = prepare_model_input(settings, argv)
+    variables = create_graph(variables)
 
     # Run model on single core
     model = Model(model_name, variables, model_point_sets, settings)
@@ -138,7 +194,8 @@ def start_single_core(model_name, settings, argv):
 
 def start_multiprocessing(part, cpu_count, model_name, settings, argv):
     """Run subset of the model points using multiprocessing."""
-    runplan, model_point_sets, variables = prepare_model_input(model_name, settings, argv)
+    runplan, model_point_sets, variables = prepare_model_input(settings, argv)
+    variables = create_graph(variables)
 
     # Run model on multiple cores
     model = Model(model_name, variables, model_point_sets, settings, cpu_count)

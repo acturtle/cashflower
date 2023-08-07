@@ -21,8 +21,7 @@ def payment():
 def balance(t):
     if t == 0:
         return main.get("loan")
-    else:
-        return balance(t-1) - principal(t)
+    return balance(t-1) - principal(t)
 
 
 @variable()
