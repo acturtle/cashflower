@@ -173,6 +173,7 @@ class ModelPointSet:
     def __len__(self):
         return self.data.shape[0]
 
+    @functools.lru_cache()
     def get(self, attribute, record_num=0):
         if self.id is None:
             return None
@@ -191,6 +192,7 @@ class ModelPointSet:
             self.model_point_data = self.data.loc[[new_id]]
         else:
             self._id = None
+        self.get.cache_clear()
 
     def initialize(self):
         """Name and settings are not present while creating object, so additional initialization is needed."""
