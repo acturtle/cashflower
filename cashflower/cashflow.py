@@ -1,5 +1,6 @@
 import functools
 import time
+import numpy as np
 import pandas as pd
 
 from .error import CashflowModelError
@@ -70,14 +71,14 @@ class Variable:
     @settings.setter
     def settings(self, new_settings):
         self._settings = new_settings
-        self.result = [None for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)]
+        self.result = np.array([None for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)])
 
     def calculate_t(self, t):
         self.result[t] = self.func(t)
 
     def calculate(self):
         if self.calc_direction == "irrelevant":
-            self.result = [*map(self.func, range(self.settings["T_MAX_CALCULATION"] + 1))]
+            self.result = np.array([*map(self.func, range(self.settings["T_MAX_CALCULATION"] + 1))])
         elif self.calc_direction == "forward":
             for t in range(self.settings["T_MAX_CALCULATION"] + 1):
                 self.result[t] = self.func(t)
@@ -104,7 +105,7 @@ class ConstantVariable(Variable):
 
     def calculate(self):
         value = self.func()
-        self.result = [value for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)]
+        self.result = np.array([value for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)])
 
 
 class Runplan:
@@ -260,10 +261,15 @@ class Model:
             results = [*map(p, range(range_start, range_end))]
 
         # Concatenate or aggregate results
+        columns = [variable.name for variable in self.variables]
         if self.settings["AGGREGATE"] is False:
-            result = pd.concat(results)
+            total_data = functools.reduce(lambda a, b: np.concatenate((a, b), axis=1), results)
+            npdata = np.transpose(total_data)
+            result = pd.DataFrame(data=npdata, columns=columns)
         else:
-            result = functools.reduce(lambda x, y: x.add(y, fill_value=0), results)
+            total_data = functools.reduce(lambda a, b: a + b, results)
+            npdata = np.transpose(total_data)
+            result = pd.DataFrame(data=npdata, columns=columns)
 
         # Get diagnostic file
         diagnostic = None
@@ -315,18 +321,14 @@ class Model:
                 for variable in variables:
                     variable.runtime += avg_runtime
 
-        # Get results and trim for T_MAX_OUTPUT
-        columns = [variable.name for variable in self.variables]
-        data = [variable.result[:self.settings["T_MAX_OUTPUT"]+1] for variable in self.variables]
-        data = map(list, zip(*data))  # transpose
-        data_frame = pd.DataFrame(data, columns=columns)
-
-        # Results may contain subset of columns
+        # Get results and trim for T_MAX_OUTPUT,results may contain subset of columns
         if len(self.settings["OUTPUT_COLUMNS"]) > 0:
-            data_frame = data_frame[self.settings["OUTPUT_COLUMNS"]]
+            mp_results = np.array([v.result[:self.settings["T_MAX_OUTPUT"]+1] for v in self.variables if v.name in self.settings["OUTPUT_COLUMNS"]])
+        else:
+            mp_results = np.array([v.result[:self.settings["T_MAX_OUTPUT"]+1] for v in self.variables])
 
         # Update progessbar
         if one_core:
             updt(progressbar_max, row + 1)
 
-        return data_frame
+        return mp_results

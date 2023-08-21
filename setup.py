@@ -10,8 +10,9 @@ setup(
     description="Framework for actuarial cash flow models",
     include_package_data=True,
     install_requires=[
-        'pandas',
-        'networkx'
+        'pandas==1.5.1',
+        'networkx~=3.1',
+        'numpy==1.23.4'
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",
