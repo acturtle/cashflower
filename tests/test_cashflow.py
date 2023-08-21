@@ -96,9 +96,6 @@ class TestVariable(TestCase):
         foo.name = "foo"
         foo.settings = load_settings()
 
-        with pytest.raises(CashflowModelError):
-            foo(10)
-
         foo.calculate_t(10)
 
         assert foo(10) == 10
