@@ -10,9 +10,9 @@ setup(
     description="Framework for actuarial cash flow models",
     include_package_data=True,
     install_requires=[
-        'pandas==1.5.1',
-        'networkx~=3.1',
-        'numpy==1.23.4'
+        'pandas',
+        'networkx',
+        'numpy'
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -25,5 +25,5 @@ setup(
     },
     python_requires='>=3.9',
     url="https://github.com/acturtle/cashflower",
-    version="0.4.7",
+    version="0.4.8",
 )
