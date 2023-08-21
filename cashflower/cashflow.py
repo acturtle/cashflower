@@ -39,7 +39,7 @@ class Variable:
     def __init__(self, func):
         self.func = func
         self.name = None
-        self._settings = None
+        self._t_max = None
         self.calc_direction = None
         self.calc_order = None
         self.cycle = False
@@ -51,7 +51,7 @@ class Variable:
         return f"V: {self.func.__name__}"
 
     def __call__(self, t=None):
-        if t < 0 or t > self.settings["T_MAX_CALCULATION"]:
+        if t < 0 or t > self.t_max:
             msg = f"Variable '{self.name}' has been called for period '{t}' which is outside of calculation range."
             raise CashflowModelError(msg)
 
@@ -63,13 +63,13 @@ class Variable:
         return self.result[t]
 
     @property
-    def settings(self):
-        return self._settings
+    def t_max(self):
+        return self._t_max
 
-    @settings.setter
-    def settings(self, new_settings):
-        self._settings = new_settings
-        self.result = np.array([None for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)])
+    @t_max.setter
+    def t_max(self, new_t_max):
+        self._t_max = new_t_max
+        self.result = np.array([None for _ in range(0, self.t_max + 1)])
 
     def calculate_t(self, t):
         # This method is used for cycles only
@@ -78,13 +78,13 @@ class Variable:
             self.result[t] = self.func(t)
 
     def calculate(self):
-        if self.calc_direction == "irrelevant":
-            self.result = np.array([*map(self.func, range(self.settings["T_MAX_CALCULATION"] + 1))])
-        elif self.calc_direction == "forward":
-            for t in range(self.settings["T_MAX_CALCULATION"] + 1):
+        if self.calc_direction == 0:
+            self.result = np.array([*map(self.func, range(self.t_max + 1))])
+        elif self.calc_direction == 1:
+            for t in range(self.t_max + 1):
                 self.result[t] = self.func(t)
-        elif self.calc_direction == "backward":
-            for t in range(self.settings["T_MAX_CALCULATION"], -1, -1):
+        elif self.calc_direction == -1:
+            for t in range(self.t_max, -1, -1):
                 self.result[t] = self.func(t)
         else:
             raise CashflowModelError(f"Incorrect calculation direction {self.calc_direction}")
@@ -109,7 +109,7 @@ class ConstantVariable(Variable):
 
     def calculate(self):
         value = self.func()
-        self.result = np.array([value for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)])
+        self.result = np.array([value for _ in range(0, self.t_max + 1)])
 
 
 class Runplan:
@@ -312,7 +312,7 @@ class Model:
                 start = time.time()
                 first_variable = variables[0]
                 calc_direction = first_variable.calc_direction
-                if calc_direction in ("irrelevant", "forward"):
+                if calc_direction in (0, 1):
                     for t in range(self.settings["T_MAX_CALCULATION"] + 1):
                         for variable in variables:
                             variable.calculate_t(t)
