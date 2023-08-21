@@ -43,6 +43,7 @@ class Variable:
         self.calc_direction = None
         self.calc_order = None
         self.cycle = False
+        self.cycle_cache = set()
         self.result = None
         self.runtime = 0.0
 
@@ -52,15 +53,12 @@ class Variable:
     def __call__(self, t=None):
         if t < 0 or t > self.settings["T_MAX_CALCULATION"]:
             msg = f"Variable '{self.name}' has been called for period '{t}' which is outside of calculation range."
-            raise CashflowModelError(msg)
+            raise IndexError(msg)
 
-        # In the cycle, we don't know exact calculation order
-        if self.cycle and self.result[t] is None:
-            return self.func(t)
-
-        if self.result[t] is None:
-            msg = f"Variable '{self.name}' has been called for period '{t}' which hasn't been calculated yet."
-            raise CashflowModelError(msg)
+        # In cycle, the calculation order might not be known
+        if self.cycle and t not in self.cycle_cache:
+            self.cycle_cache.add(t)
+            self.result[t] = self.func(t)
 
         return self.result[t]
 
@@ -74,7 +72,10 @@ class Variable:
         self.result = np.array([None for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)])
 
     def calculate_t(self, t):
-        self.result[t] = self.func(t)
+        # This method is used for cycles only
+        if t not in self.cycle_cache:
+            self.cycle_cache.add(t)
+            self.result[t] = self.func(t)
 
     def calculate(self):
         if self.calc_direction == "irrelevant":
@@ -92,6 +93,9 @@ class Variable:
 class ConstantVariable(Variable):
     def __init__(self, func):
         Variable.__init__(self, func)
+
+    def __repr__(self):
+        return f"CV: {self.func.__name__}"
 
     def __call__(self, t=None):
         # In the cycle, we don't know exact calculation order
