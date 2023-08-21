@@ -6,7 +6,7 @@ from .error import CashflowModelError
 from .utils import get_object_by_name, print_log, split_to_ranges, updt
 
 
-def variable(repeat=None):
+def variable():
     """Decorator"""
     def wrapper(func):
         # Variable must have parameter 't' or no parameters at all
@@ -27,10 +27,6 @@ def variable(repeat=None):
         if func.__code__.co_argcount == 0:
             variable.constant = True
 
-        # Results are repeated for all model points
-        if repeat:
-            variable.repeat = True
-
         return variable
     return wrapper
 
@@ -40,15 +36,11 @@ class Variable:
         self.func = func
         self.name = None
         self._settings = None
-
-        self.calls = None
         self.calc_direction = None
         self.calc_order = None
         self.constant = False
         self.cycle = False
-        self.repeat = False
         self.result = None
-
         self.runtime = 0
 
     def __repr__(self):
@@ -83,9 +75,6 @@ class Variable:
         self.result = [None for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)]
 
     def calculate_t(self, t):
-        if self.repeat and self.result[t] is not None:
-            return None
-
         # Constant variable
         if self.constant:
             self.result[t] = self.func()
@@ -94,9 +83,6 @@ class Variable:
             self.result[t] = self.func(t)
 
     def calculate(self):
-        if self.repeat and not any([_ is None for _ in self.result]):
-            return None
-
         # Constant variable
         if self.constant:
             value = self.func()
@@ -282,7 +268,6 @@ class Model:
                 "cycle": [v.cycle for v in self.variables],
                 "calc_direction": [v.calc_direction for v in self.variables],
                 "constant": [v.constant for v in self.variables],
-                "repeat": [v.repeat for v in self.variables],
                 "runtime": [v.runtime for v in self.variables]
             })
 
