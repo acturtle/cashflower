@@ -232,7 +232,6 @@ def merge_part_diagnostic(part_diagnostic):
         "calc_order": first["calc_order"],
         "cycle": first["cycle"],
         "calc_direction": first["calc_direction"],
-        "constant": first["constant"],
         "runtime": total_runtimes
     })
     return runtimes
