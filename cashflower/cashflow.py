@@ -9,19 +9,22 @@ from .utils import get_object_by_name, print_log, split_to_ranges, updt
 def variable():
     """Decorator"""
     def wrapper(func):
-        # Variable must have parameter 't' or no parameters at all
+        # Variable must have parameter "t" or no parameters at all
         if func.__code__.co_argcount > 1:
             msg = f"Model variable must have maximally one parameter. Please review '{func.__name__}'."
             raise CashflowModelError(msg)
 
-        # Parameter must be named 't'
+        # Parameter must be named "t"
         if func.__code__.co_argcount == 1:
             if not func.__code__.co_varnames[0] == 't':
                 msg = f"The name of the parameter must be named 't'. Please review '{func.__name__}'."
                 raise CashflowModelError(msg)
 
         # Create a variable
-        variable = Variable(func)
+        if func.__code__.co_argcount == 0:
+            variable = ConstantVariable(func)
+        else:
+            variable = Variable(func)
 
         # Variable is constant if it is t-independent
         if func.__code__.co_argcount == 0:
@@ -38,19 +41,14 @@ class Variable:
         self._settings = None
         self.calc_direction = None
         self.calc_order = None
-        self.constant = False
         self.cycle = False
         self.result = None
-        self.runtime = 0
+        self.runtime = 0.0
 
     def __repr__(self):
         return f"V: {self.func.__name__}"
 
     def __call__(self, t=None):
-        # Variable is constant so all values are the same
-        if t is None and self.constant:
-            return self.result[0]
-
         if t < 0 or t > self.settings["T_MAX_CALCULATION"]:
             msg = f"Variable '{self.name}' has been called for period '{t}' which is outside of calculation range."
             raise CashflowModelError(msg)
@@ -75,30 +73,38 @@ class Variable:
         self.result = [None for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)]
 
     def calculate_t(self, t):
-        # Constant variable
-        if self.constant:
-            self.result[t] = self.func()
-        # Time-dependent variable
-        else:
-            self.result[t] = self.func(t)
+        self.result[t] = self.func(t)
 
     def calculate(self):
-        # Constant variable
-        if self.constant:
-            value = self.func()
-            self.result = [value for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)]
-        # Time-dependent variable
+        if self.calc_direction == "irrelevant":
+            self.result = [*map(self.func, range(self.settings["T_MAX_CALCULATION"] + 1))]
+        elif self.calc_direction == "forward":
+            for t in range(self.settings["T_MAX_CALCULATION"] + 1):
+                self.result[t] = self.func(t)
+        elif self.calc_direction == "backward":
+            for t in range(self.settings["T_MAX_CALCULATION"], -1, -1):
+                self.result[t] = self.func(t)
         else:
-            if self.calc_direction == "irrelevant":
-                self.result = [*map(self.func, range(self.settings["T_MAX_CALCULATION"] + 1))]
-            elif self.calc_direction == "forward":
-                for t in range(self.settings["T_MAX_CALCULATION"] + 1):
-                    self.result[t] = self.func(t)
-            elif self.calc_direction == "backward":
-                for t in range(self.settings["T_MAX_CALCULATION"], -1, -1):
-                    self.result[t] = self.func(t)
-            else:
-                raise CashflowModelError(f"Incorrect calculation direction {self.calc_direction}")
+            raise CashflowModelError(f"Incorrect calculation direction {self.calc_direction}")
+
+
+class ConstantVariable(Variable):
+    def __init__(self, func):
+        Variable.__init__(self, func)
+
+    def __call__(self, t=None):
+        # In the cycle, we don't know exact calculation order
+        if self.cycle:
+            return self.func()
+
+        return self.result[0]
+
+    def calculate_t(self, t):
+        self.result[t] = self.func()
+
+    def calculate(self):
+        value = self.func()
+        self.result = [value for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)]
 
 
 class Runplan:
@@ -267,7 +273,6 @@ class Model:
                 "calc_order": [v.calc_order for v in self.variables],
                 "cycle": [v.cycle for v in self.variables],
                 "calc_direction": [v.calc_direction for v in self.variables],
-                "constant": [v.constant for v in self.variables],
                 "runtime": [v.runtime for v in self.variables]
             })
 
