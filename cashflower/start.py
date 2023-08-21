@@ -103,7 +103,7 @@ def get_variables(model_members, settings):
             msg = f"\nA variable can not be named '{name}' because it is a system variable. Please rename it."
             raise CashflowModelError(msg)
         variable.name = name
-        variable.settings = settings
+        variable.t_max = settings["T_MAX_CALCULATION"]
         variables.append(variable)
     return variables
 
