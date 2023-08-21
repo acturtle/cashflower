@@ -26,7 +26,7 @@ def get_calls(variable, variables):
 
 
 def get_calc_direction(variables):
-    """Set calculation direction to irrelevant/forward/backward"""
+    """Set calculation direction to irrelevant [0] / forward [1] / backward [-1]"""
     # For non-cycle => single variable, for cycle => variables from the cycle
     variable_names = [variable.name for variable in variables]
 
@@ -44,12 +44,12 @@ def get_calc_direction(variables):
                             check3 = isinstance(arg.op, ast.Sub)
 
                             if check1 and check2:
-                                return "backward"
+                                return -1
 
                             if check1 and check3:
-                                return "forward"
+                                return 1
 
-    return "irrelevant"
+    return 0
 
 
 def get_predecessors(node, DG):

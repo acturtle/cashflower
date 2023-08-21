@@ -103,7 +103,7 @@ def get_variables(model_members, settings):
             msg = f"\nA variable can not be named '{name}' because it is a system variable. Please rename it."
             raise CashflowModelError(msg)
         variable.name = name
-        variable.settings = settings
+        variable.t_max = settings["T_MAX_CALCULATION"]
         variables.append(variable)
     return variables
 
@@ -232,8 +232,6 @@ def merge_part_diagnostic(part_diagnostic):
         "calc_order": first["calc_order"],
         "cycle": first["cycle"],
         "calc_direction": first["calc_direction"],
-        "constant": first["constant"],
-        "repeat": first["repeat"],
         "runtime": total_runtimes
     })
     return runtimes

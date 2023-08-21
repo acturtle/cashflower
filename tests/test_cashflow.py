@@ -94,10 +94,7 @@ class TestVariable(TestCase):
             return t
 
         foo.name = "foo"
-        foo.settings = load_settings()
-
-        with pytest.raises(CashflowModelError):
-            foo(10)
+        foo.t_max = 720
 
         foo.calculate_t(10)
 

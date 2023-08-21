@@ -1,35 +1,35 @@
 import functools
 import time
+import numpy as np
 import pandas as pd
 
 from .error import CashflowModelError
 from .utils import get_object_by_name, print_log, split_to_ranges, updt
 
 
-def variable(repeat=None):
+def variable():
     """Decorator"""
     def wrapper(func):
-        # Variable must have parameter 't' or no parameters at all
+        # Variable must have parameter "t" or no parameters at all
         if func.__code__.co_argcount > 1:
             msg = f"Model variable must have maximally one parameter. Please review '{func.__name__}'."
             raise CashflowModelError(msg)
 
-        # Parameter must be named 't'
+        # Parameter must be named "t"
         if func.__code__.co_argcount == 1:
             if not func.__code__.co_varnames[0] == 't':
                 msg = f"The name of the parameter must be named 't'. Please review '{func.__name__}'."
                 raise CashflowModelError(msg)
 
         # Create a variable
-        variable = Variable(func)
+        if func.__code__.co_argcount == 0:
+            variable = ConstantVariable(func)
+        else:
+            variable = Variable(func)
 
         # Variable is constant if it is t-independent
         if func.__code__.co_argcount == 0:
             variable.constant = True
-
-        # Results are repeated for all model points
-        if repeat:
-            variable.repeat = True
 
         return variable
     return wrapper
@@ -39,80 +39,77 @@ class Variable:
     def __init__(self, func):
         self.func = func
         self.name = None
-        self._settings = None
-
-        self.calls = None
+        self._t_max = None
         self.calc_direction = None
         self.calc_order = None
-        self.constant = False
         self.cycle = False
-        self.repeat = False
+        self.cycle_cache = set()
         self.result = None
-
-        self.runtime = 0
+        self.runtime = 0.0
 
     def __repr__(self):
         return f"V: {self.func.__name__}"
 
     def __call__(self, t=None):
-        # Variable is constant so all values are the same
-        if t is None and self.constant:
-            return self.result[0]
-
-        if t < 0 or t > self.settings["T_MAX_CALCULATION"]:
+        if t < 0 or t > self.t_max:
             msg = f"Variable '{self.name}' has been called for period '{t}' which is outside of calculation range."
             raise CashflowModelError(msg)
 
-        # In the cycle, we don't know exact calculation order
-        if self.cycle and self.result[t] is None:
-            return self.func(t)
-
-        if self.result[t] is None:
-            msg = f"Variable '{self.name}' has been called for period '{t}' which hasn't been calculated yet."
-            raise CashflowModelError(msg)
+        # In cycle, the calculation order might not be known
+        if self.cycle and t not in self.cycle_cache:
+            self.cycle_cache.add(t)
+            self.result[t] = self.func(t)
 
         return self.result[t]
 
     @property
-    def settings(self):
-        return self._settings
+    def t_max(self):
+        return self._t_max
 
-    @settings.setter
-    def settings(self, new_settings):
-        self._settings = new_settings
-        self.result = [None for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)]
+    @t_max.setter
+    def t_max(self, new_t_max):
+        self._t_max = new_t_max
+        self.result = np.array([None for _ in range(0, self.t_max + 1)])
 
     def calculate_t(self, t):
-        if self.repeat and self.result[t] is not None:
-            return None
-
-        # Constant variable
-        if self.constant:
-            self.result[t] = self.func()
-        # Time-dependent variable
-        else:
+        # This method is used for cycles only
+        if t not in self.cycle_cache:
+            self.cycle_cache.add(t)
             self.result[t] = self.func(t)
 
     def calculate(self):
-        if self.repeat and not any([_ is None for _ in self.result]):
-            return None
-
-        # Constant variable
-        if self.constant:
-            value = self.func()
-            self.result = [value for _ in range(0, self.settings["T_MAX_CALCULATION"] + 1)]
-        # Time-dependent variable
+        if self.calc_direction == 0:
+            self.result = np.array([*map(self.func, range(self.t_max + 1))])
+        elif self.calc_direction == 1:
+            for t in range(self.t_max + 1):
+                self.result[t] = self.func(t)
+        elif self.calc_direction == -1:
+            for t in range(self.t_max, -1, -1):
+                self.result[t] = self.func(t)
         else:
-            if self.calc_direction == "irrelevant":
-                self.result = [*map(self.func, range(self.settings["T_MAX_CALCULATION"] + 1))]
-            elif self.calc_direction == "forward":
-                for t in range(self.settings["T_MAX_CALCULATION"] + 1):
-                    self.result[t] = self.func(t)
-            elif self.calc_direction == "backward":
-                for t in range(self.settings["T_MAX_CALCULATION"], -1, -1):
-                    self.result[t] = self.func(t)
-            else:
-                raise CashflowModelError(f"Incorrect calculation direction {self.calc_direction}")
+            raise CashflowModelError(f"Incorrect calculation direction {self.calc_direction}")
+
+
+class ConstantVariable(Variable):
+    def __init__(self, func):
+        Variable.__init__(self, func)
+
+    def __repr__(self):
+        return f"CV: {self.func.__name__}"
+
+    def __call__(self, t=None):
+        # In the cycle, we don't know exact calculation order
+        if self.cycle:
+            return self.func()
+
+        return self.result[0]
+
+    def calculate_t(self, t):
+        self.result[t] = self.func()
+
+    def calculate(self):
+        value = self.func()
+        self.result = np.array([value for _ in range(0, self.t_max + 1)])
 
 
 class Runplan:
@@ -268,10 +265,15 @@ class Model:
             results = [*map(p, range(range_start, range_end))]
 
         # Concatenate or aggregate results
+        columns = [variable.name for variable in self.variables]
         if self.settings["AGGREGATE"] is False:
-            result = pd.concat(results)
+            total_data = functools.reduce(lambda a, b: np.concatenate((a, b), axis=1), results)
+            npdata = np.transpose(total_data)
+            result = pd.DataFrame(data=npdata, columns=columns)
         else:
-            result = functools.reduce(lambda x, y: x.add(y, fill_value=0), results)
+            total_data = functools.reduce(lambda a, b: a + b, results)
+            npdata = np.transpose(total_data)
+            result = pd.DataFrame(data=npdata, columns=columns)
 
         # Get diagnostic file
         diagnostic = None
@@ -281,8 +283,6 @@ class Model:
                 "calc_order": [v.calc_order for v in self.variables],
                 "cycle": [v.cycle for v in self.variables],
                 "calc_direction": [v.calc_direction for v in self.variables],
-                "constant": [v.constant for v in self.variables],
-                "repeat": [v.repeat for v in self.variables],
                 "runtime": [v.runtime for v in self.variables]
             })
 
@@ -312,7 +312,7 @@ class Model:
                 start = time.time()
                 first_variable = variables[0]
                 calc_direction = first_variable.calc_direction
-                if calc_direction in ("irrelevant", "forward"):
+                if calc_direction in (0, 1):
                     for t in range(self.settings["T_MAX_CALCULATION"] + 1):
                         for variable in variables:
                             variable.calculate_t(t)
@@ -325,18 +325,14 @@ class Model:
                 for variable in variables:
                     variable.runtime += avg_runtime
 
-        # Get results and trim for T_MAX_OUTPUT
-        columns = [variable.name for variable in self.variables]
-        data = [variable.result[:self.settings["T_MAX_OUTPUT"]+1] for variable in self.variables]
-        data = map(list, zip(*data))  # transpose
-        data_frame = pd.DataFrame(data, columns=columns)
-
-        # Results may contain subset of columns
+        # Get results and trim for T_MAX_OUTPUT,results may contain subset of columns
         if len(self.settings["OUTPUT_COLUMNS"]) > 0:
-            data_frame = data_frame[self.settings["OUTPUT_COLUMNS"]]
+            mp_results = np.array([v.result[:self.settings["T_MAX_OUTPUT"]+1] for v in self.variables if v.name in self.settings["OUTPUT_COLUMNS"]])
+        else:
+            mp_results = np.array([v.result[:self.settings["T_MAX_OUTPUT"]+1] for v in self.variables])
 
         # Update progessbar
         if one_core:
             updt(progressbar_max, row + 1)
 
-        return data_frame
+        return mp_results
