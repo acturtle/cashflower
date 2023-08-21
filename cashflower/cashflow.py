@@ -53,7 +53,7 @@ class Variable:
     def __call__(self, t=None):
         if t < 0 or t > self.settings["T_MAX_CALCULATION"]:
             msg = f"Variable '{self.name}' has been called for period '{t}' which is outside of calculation range."
-            raise IndexError(msg)
+            raise CashflowModelError(msg)
 
         # In cycle, the calculation order might not be known
         if self.cycle and t not in self.cycle_cache:
