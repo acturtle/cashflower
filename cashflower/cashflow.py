@@ -265,15 +265,19 @@ class Model:
             results = [*map(p, range(range_start, range_end))]
 
         # Concatenate or aggregate results
-        columns = [variable.name for variable in self.variables]
+        if len(self.settings["OUTPUT_COLUMNS"]) == 0:
+            output_columns = [variable.name for variable in self.variables]
+        else:
+            output_columns = self.settings["OUTPUT_COLUMNS"]
+
         if self.settings["AGGREGATE"] is False:
             total_data = functools.reduce(lambda a, b: np.concatenate((a, b), axis=1), results)
             npdata = np.transpose(total_data)
-            result = pd.DataFrame(data=npdata, columns=columns)
+            result = pd.DataFrame(data=npdata, columns=output_columns)
         else:
             total_data = functools.reduce(lambda a, b: a + b, results)
             npdata = np.transpose(total_data)
-            result = pd.DataFrame(data=npdata, columns=columns)
+            result = pd.DataFrame(data=npdata, columns=output_columns)
 
         # Get diagnostic file
         diagnostic = None
@@ -324,6 +328,11 @@ class Model:
                 avg_runtime = (end-start)/len(variables)
                 for variable in variables:
                     variable.runtime += avg_runtime
+
+        # Clear cache of cycle variables
+        for variable in self.variables:
+            if variable.cycle:
+                variable.cycle_cache.clear()
 
         # Get results and trim for T_MAX_OUTPUT,results may contain subset of columns
         if len(self.settings["OUTPUT_COLUMNS"]) > 0:
