@@ -182,17 +182,23 @@ A list can also be an output of the model variable.
 Assumptions
 -----------
 
-Assumptions contain data for predicting the future.
+Assumptions contain data that are further used in the model.
+The recommended place to store assumptions is the :code:`assumption` dictionary.
+
+For example:
 
 ..  code-block:: python
     :caption: input.py
 
     import pandas as pd
+    from cashflower import CSVReader
 
-    assumption = dict()
-    assumption["mortality"] = pd.read_csv("input/mortality.csv", index_col="AGE")
-    assumption["interest_rates"] = pd.read_csv("input/interest_rates.csv", index_col="T")
-
+    assumption = {
+        "mortality": CSVReader("input/mortality.csv"),
+        "interest_rates": pd.read_csv("input/interest_rates.csv", index_col="T"),
+        "expense_acq": 300,
+        "expense_maint": 60,
+    }
 
 Assumptions for life insurance can include:
 
@@ -200,7 +206,7 @@ Assumptions for life insurance can include:
 * market - interest rates, inflation,
 * product's characteristics.
 
-Assumptions are stored in a tabelaric form.
+Assumptions may be e.g. single numerical values, strings or may be stored in a tabular form.
 
 ..  code-block::
     :caption: mortality.csv
@@ -225,23 +231,65 @@ Assumptions are stored in a tabelaric form.
     5,0.01687
     [...]
 
-Assumptions are stored as a dictionary. Each item in the dictionary is a data frame.
+CSV Reader
+^^^^^^^^^^
 
-..  code-block:: python
-    :caption: input.py
+In the actuarial models, it is common to use assumptions only to read in a single value from a csv file.
+For this purpose, you can use a :code:`CSVReader` class.
+It is a simpler construct than, e.g. :code:`pandas` dataframe, but it is faster.
 
-    import pandas as pd
+If you want to use :code:`CSVReader`, your data must have row labels in the leftmost columns.
+The class always returns strings, so it's up to the user to perform necessary conversions.
 
-    assumption = dict()
-    assumption["mortality"] = pd.read_csv("mortality.csv", index_col="AGE")
-    assumption["interest_rates"] = pd.read_csv("interest_rates.csv", index_col="T")
+To create an instance of :code:`CSVReader` provide the path to the file.
 
-To add new assumptions, create a new key in the :code:`assumption` dictionary and assing a data frame to it.
+..  code-block::
+
+    reader1 = CSVReader("data1.csv")
+
+If your data uses multiple columns for row labels, specify the number of row label columns.
+
+..  code-block::
+
+    reader2 = CSVReader("data2.csv", num_row_label_cols=2)
+
+To get value from the file, use the :code:`get_value` method.
+
+For example:
+
+..  code-block::
+    :caption: data1.csv
+
+    RowX,Col1,Col2,Col3
+    Row1,1.1,2.2,3.3
+    Row2,4.4,5.5,6.6
+    Row3,7.7,8.8,9.9
+
+..  code-block::
+
+    value = float(reader1.get_value("Row2", "Col3"))
+    # value is 6.6
+
+If your data has multiple row label columns, provide the tuple of row labels.
+
+..  code-block::
+    :caption: data2.csv
+
+    X,Y,1,2,3
+    1,1,4,5,7
+    1,2,9,2,4
+    2,1,3,5,2
+    2,2,3,9,6
+
+..  code-block::
+
+    value = int(reader2.get_value(("2", "1"), "2"))
+    # value is 5
 
 Runplan
 -------
 
-Runplan is a list of runs which the model should perform.
+Runplan is a list of runs that the model should perform.
 
 ..  code-block:: python
     :caption: input.py
@@ -278,7 +326,7 @@ For example:
     def shocked_mortality_rate(t):
         return mortality_rate(t) * (1+runplan.get("shock"))
 
-To run model with the chosen version, source the :code:`run.py` and add the version number.
+To run the model with the chosen version, source the :code:`run.py` and add the version number.
 
 For example, to run the model with the version :code:`2` , use:
 

@@ -29,3 +29,4 @@ We'd love your feedback! If you encounter an issue or have suggestions on how to
    tutorials
    developer_guide
    modules
+   Discussions <https://github.com/acturtle/cashflower/discussions>
