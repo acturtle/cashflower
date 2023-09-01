@@ -30,3 +30,4 @@ We'd love your feedback! If you encounter an issue or have suggestions on how to
    developer_guide
    modules
    Discussions <https://github.com/acturtle/cashflower/discussions>
+   Cheat sheet <https://www.acturtle.com/static/pdf/cheat_sheet.pdf>
