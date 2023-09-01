@@ -166,18 +166,6 @@ For example, to calculate the total value of fund value, use:
             total_value += fund.get("fund_value", i)
         return total_value
 
-If you prefer to work on each value separetely, you can use a list structure.
-A list can also be an output of the model variable.
-
-..  code-block:: python
-
-    @variable()
-    def fund_values():
-        fund_values = []
-        for i in range(0, fund.model_point_data.shape[0]):
-            fund_values.append(fund.get("fund_value", i))
-        return fund_values
-
 
 Assumptions
 -----------
