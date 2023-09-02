@@ -29,6 +29,24 @@ Cashflower's features:
  * **open source** - freely accessible to all users and available on PyPI,
  * **flexible** - integrate your project with other popular Python libraries.
 
+Rapid start
+^^^^^^^^^^^
+
+You're just a few commands away from running your first cash flow model with cashflower:
+
+..  code-block::
+    :caption: terminal
+
+    $ pip install cashflower
+    $ python
+    >>> from cashflower import create_model
+    >>> create_model("mymodel")
+    >>> quit()
+    $ cd mymodel
+    $ python run.py
+
+Congratulations, you're all set!
+
 Getting Started
 ^^^^^^^^^^^^^^^
 
