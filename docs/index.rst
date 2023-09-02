@@ -9,21 +9,22 @@ cashflower
 
 Cashflower is an open-source Python framework for actuarial cash flow models.
 
+.. image:: https://acturtle.com/static/img/logo/turtle.png
+   :width: 240px
+   :align: center
 
 Overview
 ^^^^^^^^
 
-Welcome to the Cashflower documentation, your go-to resource for mastering financial and actuarial cash flow modelling
-with Python. Cashflower simplifies complex financial scenarios, enabling actuaries, analysts, and developers to make
-data-driven decisions and achieve financial success.
+Welcome to the **cashflower** documentation, your resource for financial and actuarial cash flow modeling with Python.
+Cashflower simplifies complex financial scenarios, allowing actuaries, analysts, and developers to make data-driven decisions effectively.
 
-Cashflower's flexible framework empowers you to model diverse financial scenarios, from insurance policies and
-annuities to investment portfolios and loans. This documentation is your comprehensive guide to installing and
-effectively using the package.
+Cashflower's flexible framework empowers you to model various financial scenarios, from insurance policies and annuities to investment portfolios and loans.
+This documentation is here to assist you in understanding and using the package to achieve your financial modeling goals.
 
 Key features
 ^^^^^^^^^^^^
-
+Cashflower's features:
  * **easy to use** - run your first cash flow model with just few commands,
  * **open source** - freely accessible to all users and available on PyPI,
  * **flexible** - integrate your project with other popular Python libraries.
@@ -31,25 +32,22 @@ Key features
 Getting Started
 ^^^^^^^^^^^^^^^
 
-To get started with Cashflower, follow these steps:
-
-1. **Quick Start**: Get up and running quickly with a step-by-step tutorial. See the :ref:`Getting Started`.
-
-2. **Tutorials**: Check out our collection of practical examples to see how Cashflower can be applied to real-world
-scenarios. See the :ref:`Tutorials`.
-
-3. **User Guide**: Dive into more features in the :ref:`User Guide`.
-
-4. **Discussions**: If you encounter any issues, join a `Discussion <https://github.com/acturtle/cashflower/discussions>`_.
+To get started with the cashflower package, follow these steps:
+ #. **Quick Start**: Get up and running quickly with the :ref:`Getting started` section.
+ #. **Tutorials**: Check out our collection of practical examples in the :ref:`Tutorials` section.
+ #. **Discussions**: If you encounter any issues, share your thoughts in the `Discussions <https://github.com/acturtle/cashflower/discussions>`_ page.
 
 Cheat sheet
 ^^^^^^^^^^^
-A cheat sheet is a concise, one-page reference document that provides a quick overview of the most important syntax,
-functions, and usage examples within Cashflower. It's designed to assist users in quickly finding and recalling
-key information, making it a handy companion to your documentation.
 
-You can download `the Cashflower Cheat Sheet (PDF) <https://www.acturtle.com/static/pdf/cheat_sheet.pdf>`_
-to have a concise reference at your fingertips.
+A cheat sheet is a quick-reference document that provides essential code snippets and syntax examples.
+
+You can download `the Cashflower cheat sheet (PDF) <https://www.acturtle.com/static/pdf/cheat_sheet.pdf>`_.
+
+.. image:: https://acturtle.com/static/img/docs/cheat_sheet_mini.jpg
+   :target: https://www.acturtle.com/static/pdf/cheat_sheet.pdf
+   :align: center
+
 
 License
 ^^^^^^^
