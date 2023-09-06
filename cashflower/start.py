@@ -25,7 +25,7 @@ def create_model(model):
 
     shutil.copytree(template_path, model)
 
-    # Some scripts needs words replacements
+    # Some scripts need words replacements
     run_file = os.path.join(current_path, model, "run.py-tpl")
     replace_in_file(run_file, "{{ model }}", model)
 
@@ -55,10 +55,12 @@ def load_settings(settings=None):
 
     # Maximal output t can't exceed maximal calculation t
     if initial_settings["T_MAX_CALCULATION"] < initial_settings["T_MAX_OUTPUT"]:
-        initial_settings["T_MAX_OUTPUT"] = initial_settings["T_MAX_CALCULATION"]
-        msg = "The T_MAX_CALCULATION setting is greater than the T_MAX_OUTPUT setting. " \
-              "T_MAX_OUTPUT has been set to T_MAX_CALCULATION."
+        out = initial_settings["T_MAX_OUTPUT"]
+        cal = initial_settings["T_MAX_CALCULATION"]
+        msg = (f"T_MAX_OUTPUT ('{out}') exceeds T_MAX_CALCULATION ('{cal}'); "
+               f"T_MAX_OUTPUT adjusted to match T_MAX_CALCULATION.")
         print_log(msg)
+        initial_settings["T_MAX_OUTPUT"] = initial_settings["T_MAX_CALCULATION"]
 
     return initial_settings
 

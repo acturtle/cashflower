@@ -147,6 +147,7 @@ class Runplan:
         """Set 'version' column as an index of the data frame."""
         self.data = self.data.set_index("version")
 
+    @functools.lru_cache()
     def get(self, attribute):
         """Get a value from the runplan for the current version."""
         if attribute not in self.data.columns:
@@ -265,19 +266,18 @@ class Model:
             results = [*map(p, range(range_start, range_end))]
 
         # Concatenate or aggregate results
+        print_log("Preparing output")
         if len(self.settings["OUTPUT_COLUMNS"]) == 0:
             output_columns = [variable.name for variable in self.variables]
         else:
             output_columns = self.settings["OUTPUT_COLUMNS"]
 
         if self.settings["AGGREGATE"] is False:
-            total_data = functools.reduce(lambda a, b: np.concatenate((a, b), axis=1), results)
-            npdata = np.transpose(total_data)
-            result = pd.DataFrame(data=npdata, columns=output_columns)
+            total_data = np.transpose(functools.reduce(lambda a, b: np.concatenate((a, b), axis=1), results))
+            result = pd.DataFrame(data=total_data, columns=output_columns)
         else:
-            total_data = functools.reduce(lambda a, b: a + b, results)
-            npdata = np.transpose(total_data)
-            result = pd.DataFrame(data=npdata, columns=output_columns)
+            total_data = np.transpose(functools.reduce(lambda a, b: a + b, results))
+            result = pd.DataFrame(data=total_data, columns=output_columns)
 
         # Get diagnostic file
         diagnostic = None
