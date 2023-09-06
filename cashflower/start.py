@@ -25,7 +25,7 @@ def create_model(model):
 
     shutil.copytree(template_path, model)
 
-    # Some scripts needs words replacements
+    # Some scripts need words replacements
     run_file = os.path.join(current_path, model, "run.py-tpl")
     replace_in_file(run_file, "{{ model }}", model)
 

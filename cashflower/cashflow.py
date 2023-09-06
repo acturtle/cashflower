@@ -265,6 +265,7 @@ class Model:
             results = [*map(p, range(range_start, range_end))]
 
         # Concatenate or aggregate results
+        print_log("Preparing output")
         if len(self.settings["OUTPUT_COLUMNS"]) == 0:
             output_columns = [variable.name for variable in self.variables]
         else:
