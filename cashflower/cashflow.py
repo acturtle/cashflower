@@ -271,13 +271,11 @@ class Model:
             output_columns = self.settings["OUTPUT_COLUMNS"]
 
         if self.settings["AGGREGATE"] is False:
-            total_data = functools.reduce(lambda a, b: np.concatenate((a, b), axis=1), results)
-            npdata = np.transpose(total_data)
-            result = pd.DataFrame(data=npdata, columns=output_columns)
+            total_data = np.transpose(functools.reduce(lambda a, b: np.concatenate((a, b), axis=1), results))
+            result = pd.DataFrame(data=total_data, columns=output_columns)
         else:
-            total_data = functools.reduce(lambda a, b: a + b, results)
-            npdata = np.transpose(total_data)
-            result = pd.DataFrame(data=npdata, columns=output_columns)
+            total_data = np.transpose(functools.reduce(lambda a, b: a + b, results))
+            result = pd.DataFrame(data=total_data, columns=output_columns)
 
         # Get diagnostic file
         diagnostic = None
