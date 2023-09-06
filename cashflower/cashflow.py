@@ -147,6 +147,7 @@ class Runplan:
         """Set 'version' column as an index of the data frame."""
         self.data = self.data.set_index("version")
 
+    @functools.lru_cache()
     def get(self, attribute):
         """Get a value from the runplan for the current version."""
         if attribute not in self.data.columns:
