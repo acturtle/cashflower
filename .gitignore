@@ -3,6 +3,7 @@ example/*
 example2/*
 example3/*
 example_test/*
+savings/*
 
 # Outputs of tutorials
 tutorials/**/output/
