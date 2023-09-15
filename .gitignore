@@ -1,12 +1,6 @@
-# Example model for ad-hoc tests
-example/*
-example2/*
-example3/*
-example_test/*
-savings/*
-
-# Outputs of tutorials
+# Outputs of dev_models and tutorials
 tutorials/**/output/
+dev_models/**/output/
 
 # Pycharm and static testing
 .flake8
