@@ -3,6 +3,7 @@ import inspect
 
 from queue import Queue
 
+from .cashflow import ConstantVariable, Variable
 from .error import CashflowModelError
 from .utils import get_object_by_name
 
@@ -18,7 +19,7 @@ def get_calls(variable, variables):
         if isinstance(subnode, ast.Call):
             if isinstance(subnode.func, ast.Name):
                 if subnode.func.id in variable_names:
-                    raise_error_if_incorrect_argument(subnode)
+                    raise_error_if_incorrect_argument(subnode, variables)
                     call_names.append(subnode.func.id)
 
     calls = [get_object_by_name(variables, call_name) for call_name in call_names if call_name != variable.name]
@@ -53,7 +54,7 @@ def get_calc_direction(variables):
 
 
 def get_predecessors(node, DG):
-    """Get predecessors and their predecessors and their..."""
+    """Get list of predecessors and their predecessors and their..."""
     queue = Queue()
     visited = []
 
@@ -70,11 +71,16 @@ def get_predecessors(node, DG):
     return visited
 
 
-def raise_error_if_incorrect_argument(node):
-    # Constant variable - there are no arguments
+def raise_error_if_incorrect_argument(node, variables):
+    # No arguments
     if len(node.args) == 0:
+        variable = get_object_by_name(variables, node.func.id)
+        if not isinstance(variable, ConstantVariable):
+            raise CashflowModelError(f"Variable '{variable.name}' was called without any arguments. "
+                                     f"Please check the calls of this variable.")
         return None
 
+    # More than 1 argument
     if len(node.args) > 1:
         msg = f"Model variable must have maximally one argument. Please review the call of '{node.func.id}'."
         raise CashflowModelError(msg)
