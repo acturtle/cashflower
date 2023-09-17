@@ -12,7 +12,7 @@ import shutil
 from .cashflow import Model, ModelPointSet, Runplan, Variable
 from .error import CashflowModelError
 from .graph import get_calc_direction, get_calls, get_predecessors
-from .utils import print_log, replace_in_file
+from .utils import get_object_by_name, print_log, replace_in_file
 
 
 def create_model(model):
@@ -131,18 +131,37 @@ def prepare_model_input(settings, argv):
     return runplan, model_point_sets, variables
 
 
-def create_graph(variables):
+def resolve_calculation_order(variables, output_columns):
+    """Determines a safe execution order for variables to avoid recursion errors."""
     # Dictionary of called functions
     calls = {}
     for variable in variables:
         calls[variable] = get_calls(variable, variables)
 
-    # Create directed graph for all variables
+    # Create directed graph for variables
     DG = nx.DiGraph()
     for variable in variables:
         DG.add_node(variable)
         for predecessor in calls[variable]:
             DG.add_edge(predecessor, variable)
+
+    # User has chosen output so ignore not needed variables
+    # Model should contain only chosen variables and their predecessors
+    if output_columns is not None:
+        needed_variables = set()
+        output_variables = [get_object_by_name(variables, name) for name in output_columns]
+        for output_variable in output_variables:
+            needed_variables.add(output_variable)
+            needed_variables.update(get_predecessors(output_variable, DG))
+
+        unneeded_variables = set(variables) - needed_variables
+        DG.remove_nodes_from(unneeded_variables)
+        variables = list(needed_variables)
+
+    # Draw graph (debug)
+    # import matplotlib.pyplot as plt
+    # nx.draw(DG, with_labels=True)
+    # plt.show()
 
     # Set calc_order in variables
     calc_order = 0
@@ -186,7 +205,8 @@ def create_graph(variables):
 def start_single_core(model_name, settings, argv):
     """Create and run a cash flow model."""
     runplan, model_point_sets, variables = prepare_model_input(settings, argv)
-    variables = create_graph(variables)
+    output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
+    variables = resolve_calculation_order(variables, output_columns)
 
     # Run model on single core
     model = Model(model_name, variables, model_point_sets, settings)
@@ -197,7 +217,8 @@ def start_single_core(model_name, settings, argv):
 def start_multiprocessing(part, cpu_count, model_name, settings, argv):
     """Run subset of the model points using multiprocessing."""
     runplan, model_point_sets, variables = prepare_model_input(settings, argv)
-    variables = create_graph(variables)
+    output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
+    variables = resolve_calculation_order(variables, output_columns)
 
     # Run model on multiple cores
     model = Model(model_name, variables, model_point_sets, settings, cpu_count)

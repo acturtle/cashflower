@@ -53,7 +53,7 @@ def get_calc_direction(variables):
 
 
 def get_predecessors(node, DG):
-    """Get predecessors and their predecessors and their..."""
+    """Get list of predecessors and their predecessors and their..."""
     queue = Queue()
     visited = []
 
