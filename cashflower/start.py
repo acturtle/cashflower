@@ -138,15 +138,14 @@ def resolve_calculation_order(variables, output_columns):
     for variable in variables:
         calls[variable] = get_calls(variable, variables)
 
-    # Create directed graph for variables
+    # Create directed graph for all variables
     DG = nx.DiGraph()
     for variable in variables:
         DG.add_node(variable)
         for predecessor in calls[variable]:
             DG.add_edge(predecessor, variable)
 
-    # User has chosen output so ignore not needed variables
-    # Model should contain only chosen variables and their predecessors
+    # User has chosen output so remove not needed variables
     if output_columns is not None:
         needed_variables = set()
         output_variables = [get_object_by_name(variables, name) for name in output_columns]
