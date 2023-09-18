@@ -1,5 +1,0 @@
-﻿poind_id,spec_id,age_at_entry,sex,policy_term,policy_count,sum_assured,duration_mth,premium_pp,av_pp_init,accum_prem_init_pp
-1,A,20,M,10,100,500000,0,500000,0,0
-2,B,50,M,20,100,500000,0,500000,0,0
-3,C,20,M,9999,100,500000,0,1000,0,0
-4,D,50,M,9999,100,500000,0,1000,0,0
