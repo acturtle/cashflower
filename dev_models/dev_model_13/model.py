@@ -1,5 +1,5 @@
 from cashflower import variable
-from input import assumption, main, runplan
+from settings import settings
 
 
 @variable()
@@ -10,3 +10,8 @@ def projection_year(t):
         return projection_year(t - 1) + 1
     else:
         return projection_year(t - 1)
+
+
+@variable(array=True)
+def aaa():
+    return projection_year.result * 2

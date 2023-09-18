@@ -3,7 +3,7 @@ import inspect
 
 from queue import Queue
 
-from .cashflow import ConstantVariable, Variable
+from .cashflow import ArrayVariable, ConstantVariable
 from .error import CashflowModelError
 from .utils import get_object_by_name
 
@@ -13,16 +13,28 @@ def get_calls(variable, variables):
     call_names = []
     variable_names = [variable.name for variable in variables]
 
-    # print("\n", ast.dump(node, indent=2))
     node = ast.parse(inspect.getsource(variable.func))
+
+    # Print ast tree (debug)
+    # print("\n", ast.dump(node, indent=2))
+
     for subnode in ast.walk(node):
+        # Variable calls other variable directly (e.g. projection_year(t))
         if isinstance(subnode, ast.Call):
             if isinstance(subnode.func, ast.Name):
                 if subnode.func.id in variable_names:
                     raise_error_if_incorrect_argument(subnode, variables)
                     call_names.append(subnode.func.id)
 
+        # Variable calls "result" attribute for arrayed calculations (e.g. projection_year.result)
+        if isinstance(subnode, ast.Attribute):
+            if subnode.attr == "result":
+                if isinstance(subnode.value, ast.Name):
+                    if subnode.value.id in variable_names:
+                        call_names.append(subnode.value.id)
+
     calls = [get_object_by_name(variables, call_name) for call_name in call_names if call_name != variable.name]
+
     return calls
 
 
@@ -75,7 +87,7 @@ def raise_error_if_incorrect_argument(node, variables):
     # No arguments
     if len(node.args) == 0:
         variable = get_object_by_name(variables, node.func.id)
-        if not isinstance(variable, ConstantVariable):
+        if not (isinstance(variable, ConstantVariable) or isinstance(variable, ArrayVariable)):
             raise CashflowModelError(f"Variable '{variable.name}' was called without any arguments. "
                                      f"Please check the calls of this variable.")
         return None
