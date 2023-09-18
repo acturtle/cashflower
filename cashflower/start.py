@@ -131,7 +131,8 @@ def prepare_model_input(settings, argv):
     return runplan, model_point_sets, variables
 
 
-def create_graph(variables):
+def resolve_calculation_order(variables, output_columns):
+    """Determines a safe execution order for variables to avoid recursion errors."""
     # Dictionary of called functions
     calls = {}
     for variable in variables:
@@ -143,6 +144,23 @@ def create_graph(variables):
         DG.add_node(variable)
         for predecessor in calls[variable]:
             DG.add_edge(predecessor, variable)
+
+    # User has chosen output so remove not needed variables
+    if output_columns is not None:
+        needed_variables = set()
+        output_variables = [get_object_by_name(variables, name) for name in output_columns]
+        for output_variable in output_variables:
+            needed_variables.add(output_variable)
+            needed_variables.update(get_predecessors(output_variable, DG))
+
+        unneeded_variables = set(variables) - needed_variables
+        DG.remove_nodes_from(unneeded_variables)
+        variables = list(needed_variables)
+
+    # Draw graph (debug)
+    # import matplotlib.pyplot as plt
+    # nx.draw(DG, with_labels=True)
+    # plt.show()
 
     # Set calc_order in variables
     calc_order = 0
@@ -188,12 +206,13 @@ def start_single_core(settings, argv):
     # Prepare model components
     print_log("Reading model components")
     runplan, model_point_sets, variables = prepare_model_input(settings, argv)
-    variables = create_graph(variables)
-    main = get_object_by_name(model_point_sets, "main")
+    output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
+    variables = resolve_calculation_order(variables, output_columns)
 
     # Log number of model points
+    main = get_object_by_name(model_point_sets, "main")
     print_log(f"Total number of model points: {len(main)}")
-
+    
     # Run model on single core
     model = Model(variables, model_point_sets, settings)
     output, runtime = model.run()
@@ -208,10 +227,11 @@ def start_multiprocessing(part, settings, argv):
     # Prepare model components
     print_log("Reading model components", show_log)
     runplan, model_point_sets, variables = prepare_model_input(settings, argv)
-    variables = create_graph(variables)
-    main = get_object_by_name(model_point_sets, "main")
-
+    output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
+    variables = resolve_calculation_order(variables, output_columns)
+    
     # Log number of model points
+    main = get_object_by_name(model_point_sets, "main")
     print_log(f"Total number of model points: {len(main)}", show_log)
     print_log(f"Multiprocessing on {cpu_count} cores", show_log)
     print_log(f"Calculation of ca. {len(main) // cpu_count} model points per core", show_log)
