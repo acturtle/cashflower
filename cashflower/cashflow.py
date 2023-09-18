@@ -372,25 +372,21 @@ class Model:
             # Single
             if len(variables) == 1:
                 v = variables[0]
-                print("SingleVar -->", v.name, "   |   ", type(v))
                 start = time.time()
                 v.calculate()
                 v.runtime += time.time() - start
             # Cycle
             else:
                 start = time.time()
-                print("cycle:", variables)
                 first_variable = variables[0]
                 calc_direction = first_variable.calc_direction
                 if calc_direction in (0, 1):
                     for t in range(self.settings["T_MAX_CALCULATION"] + 1):
                         for v in variables:
-                            print("Cycle -->", v.name, "   |   ", type(v))
                             v.calculate_t(t)
                 else:
                     for t in range(self.settings["T_MAX_CALCULATION"], -1, -1):
                         for v in variables:
-                            print("Cycle -->", v.name, "   |   ", type(v))
                             v.calculate_t(t)
                 end = time.time()
                 avg_runtime = (end-start)/len(variables)
