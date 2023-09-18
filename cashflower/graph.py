@@ -90,7 +90,7 @@ def raise_error_if_incorrect_argument(node, variables):
     msg = f"\nPlease review '{node.func.id}'. The argument of a model variable can be only:\n" \
           f"- t,\n" \
           f"- t plus/minus integer (e.g. t+1 or t-12),\n" \
-          f"- an integer (e.g. 0 or 12)."
+          f"- a non-negative integer (e.g. 0 or 12)."
 
     # The model variable calls a variable
     if isinstance(arg, ast.Name):
