@@ -20,20 +20,16 @@ def variable():
         # Parameter must be named "t"
         if func.__code__.co_argcount == 1:
             if not func.__code__.co_varnames[0] == 't':
-                msg = f"The name of the parameter must be named 't'. Please review '{func.__name__}'."
+                msg = f"The parameter must be named 't'. Please review '{func.__name__}'."
                 raise CashflowModelError(msg)
 
         # Create a variable
         if func.__code__.co_argcount == 0:
-            variable = ConstantVariable(func)
+            v = ConstantVariable(func)
         else:
-            variable = Variable(func)
+            v = Variable(func)
 
-        # Variable is constant if it is t-independent
-        if func.__code__.co_argcount == 0:
-            variable.constant = True
-
-        return variable
+        return v
     return wrapper
 
 
