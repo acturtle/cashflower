@@ -30,7 +30,7 @@ ensuring that they do not clutter the version control system.
 | 04 | True  | id | True  | []   | True  | True  | 720      | 720     | 1    | 100 |
 | 05 | False | id | False | []   | True  | True  | 720      | 720     | 1    | 10  |
 | 06 | True  | mp | False | []   | True  | True  | 720      | 720     | 1    | 10  |
-| 07 | True  | id | False | 2    | True  | True  | 720      | 720     | 3    | 1   |
+| 07 | True  | id | False | 1    | True  | True  | 720      | 720     | 8    | 1   |
 | 08 | True  | id | False | []   | False | True  | 720      | 720     | 1    | 1   |
 | 09 | True  | id | False | []   | True  | False | 720      | 720     | 1    | 1   |
 | 10 | True  | id | False | []   | True  | True  | 720      | 720     | 1    | 1   |
@@ -45,10 +45,9 @@ ensuring that they do not clutter the version control system.
 * `04` - basic model with 100 model points and `MULTIPROCESSING = True`
 * `05` - basic model with 10 model points and individual results (`AGGREGATE = False`)
 * `06` - basic model with 10 model points and id column set to `mp`
-* `07` - model with 3 simple variables and `OUTPUT_COLUMNS = ["a", "c"]`
+* `07` - model with `OUTPUT_COLUMNS = ["f"]`
 * `08` - basic model with `SAVE_DIAGNOSTIC = False`
 * `09` - basic model with `SAVE_OUTPUT = False`
 * `10` - model with variable that is calculated backward
 * `11` - model with variables forming a cycle (real estate mortgage)
 * `12` - model in which runplan is used
-* `13` - memory management tests

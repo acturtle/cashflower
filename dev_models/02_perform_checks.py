@@ -68,12 +68,21 @@ def check_dev_model_06():
 def check_dev_model_07():
     basic_check("dev_model_07")
 
-    # Output file should have 3 columns ("t", "a", "c")
+    # Output file should have 2 columns ("t", "f")
     print("Check 3: Output file has subset of columns.", end=" ")
     output_files = [f for f in os.listdir("dev_model_07/output") if f.endswith("output.csv")]
     last_output_file = output_files[-1]
     last_output = pd.read_csv(f"dev_model_07/output/{last_output_file}")
-    assert last_output.shape[1] == 3
+    assert last_output.shape[1] == 2
+    print("OK")
+
+    # Unnecessary columns were not calculated
+    print("Check 4: Unnecessary column were not evaluated.", end=" ")
+    diagnostic_files = [f for f in os.listdir("dev_model_07/output") if f.endswith("diagnostic.csv")]
+    last_diagnostic_file = diagnostic_files[-1]
+    last_diagnostic = pd.read_csv(f"dev_model_07/output/{last_diagnostic_file}")
+    assert "g" not in last_diagnostic["variable"].tolist()
+    assert "h" not in last_diagnostic["variable"].tolist()
     print("OK")
     print("\n")
 
