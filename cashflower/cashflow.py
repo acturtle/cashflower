@@ -1,7 +1,9 @@
 import functools
 import time
+import multiprocessing
 import numpy as np
 import pandas as pd
+import psutil
 
 from .error import CashflowModelError
 from .utils import get_object_by_name, print_log, split_to_ranges, updt
@@ -225,31 +227,20 @@ class ModelPointSet:
 class Model:
     """Actuarial cash flow model.
     Model combines model variables and model point sets."""
-    def __init__(self, name, variables, model_point_sets, settings, cpu_count=None):
-        self.name = name
+    def __init__(self, variables, model_point_sets, settings):
         self.variables = variables
         self.model_point_sets = model_point_sets
         self.settings = settings
-        self.cpu_count = cpu_count
-        self.output = None
 
     def run(self, part=None):
         """Orchestrate all steps of the cash flow model run."""
         one_core = part == 0 or part is None  # single or first part
-        print_log(f"Building model '{self.name}'", one_core)
-
-        # Iterate over model points
         main = get_object_by_name(self.model_point_sets, "main")
-        print_log(f"Total number of model points: {main.data.shape[0]}", one_core)
-        if one_core and self.settings["MULTIPROCESSING"]:
-            if len(main) > self.cpu_count:
-                print_log(f"Multiprocessing on {self.cpu_count} cores")
-                print_log(f"Calculation of ca. {len(main) // self.cpu_count} model points per core")
 
-        # Set calculation ranges for multiprocessing
-        range_start, range_end = None, None
+        # Set calculation ranges
+        range_start, range_end = 0, len(main)
         if self.settings["MULTIPROCESSING"]:
-            main_ranges = split_to_ranges(len(main), self.cpu_count)
+            main_ranges = split_to_ranges(len(main), multiprocessing.cpu_count())
             # Number of model points is lower than the number of cpus, only calculate on the 1st core
             if part >= len(main_ranges):
                 return None
@@ -260,24 +251,24 @@ class Model:
         p = functools.partial(self.calculate_model_point, one_core=one_core, progressbar_max=progressbar_max)
 
         # Perform calculations
-        if self.settings["MULTIPROCESSING"] is False:
-            results = [*map(p, range(len(main)))]
+        if self.settings["AGGREGATE"]:
+            results = self.compute_aggregated_results(range_start, range_end, one_core, progressbar_max)
         else:
-            results = [*map(p, range(range_start, range_end))]
+            results = self.compute_individual_results(range_start, range_end, one_core, progressbar_max)
 
-        # Concatenate or aggregate results
-        print_log("Preparing output")
+        # Prepare the 'output' data frame
+        print_log("Preparing output", one_core)
         if len(self.settings["OUTPUT_COLUMNS"]) == 0:
             output_columns = [variable.name for variable in self.variables]
         else:
             output_columns = self.settings["OUTPUT_COLUMNS"]
 
-        if self.settings["AGGREGATE"] is False:
-            total_data = np.transpose(functools.reduce(lambda a, b: np.concatenate((a, b), axis=1), results))
-            result = pd.DataFrame(data=total_data, columns=output_columns)
+        if self.settings["AGGREGATE"]:
+            output = pd.DataFrame(data=results, columns=output_columns)
         else:
-            total_data = np.transpose(functools.reduce(lambda a, b: a + b, results))
-            result = pd.DataFrame(data=total_data, columns=output_columns)
+            total_data = [pd.DataFrame(np.transpose(arr)) for arr in results]
+            output = pd.concat(total_data, axis=0)
+            output.columns = output_columns
 
         # Get diagnostic file
         diagnostic = None
@@ -290,7 +281,66 @@ class Model:
                 "runtime": [v.runtime for v in self.variables]
             })
 
-        return result, diagnostic
+        return output, diagnostic
+
+    def compute_aggregated_results(self, range_start, range_end, one_core, progressbar_max):
+        results = None
+        p = functools.partial(self.calculate_model_point, one_core=one_core, progressbar_max=progressbar_max)
+
+        # Calculate batch_size based on available memory
+        t = self.settings["T_MAX_OUTPUT"] + 1
+        v = len(self.variables) if len(self.settings["OUTPUT_COLUMNS"]) == 0 else len(self.settings["OUTPUT_COLUMNS"])
+        float_size = np.dtype(np.float64).itemsize
+        num_cores = 1 if not self.settings["MULTIPROCESSING"] else multiprocessing.cpu_count()
+        batch_size = int((psutil.virtual_memory().available * 0.95) // ((t * v) * float_size) // num_cores)
+
+        # Calculate batches iteratively
+        batch_start, batch_end = range_start, min(range_start + batch_size, range_end)
+        first = True
+        while batch_start < range_end:
+            lst = [*map(p, range(batch_start, batch_end))]
+            if first:
+                results = functools.reduce(lambda a, b: a + b, lst)
+                first = False
+            else:
+                results += functools.reduce(lambda a, b: a + b, lst)
+
+            batch_start = batch_end
+            batch_end = min(batch_end+batch_size, range_end)
+
+        results = np.transpose(results)
+        return results
+
+    def compute_individual_results(self, range_start, range_end, one_core, progressbar_max):
+        p = functools.partial(self.calculate_model_point, one_core=one_core, progressbar_max=progressbar_max)
+
+        # Allocate memory for results
+        t = self.settings["T_MAX_OUTPUT"] + 1
+        v = len(self.variables) if len(self.settings["OUTPUT_COLUMNS"]) == 0 else len(self.settings["OUTPUT_COLUMNS"])
+        mp = range_end - range_start
+        float_size = np.dtype(np.float64).itemsize
+        results_size = t * v * mp * float_size
+        results_size_mb = results_size / (1024 ** 2)
+        num_cores = 1 if not self.settings["MULTIPROCESSING"] else multiprocessing.cpu_count()
+
+        # Results may require a lot of memory
+        msg = (f"Failed to allocate memory for the output with {t} periods, {v} variables, and {mp} model points "
+               f"(~{results_size_mb:.0f}) MB. Terminating model execution.")
+
+        # Results do not fit into total RAM memory
+        total_ram_memory = psutil.virtual_memory().total / num_cores
+        if results_size > total_ram_memory:
+            raise CashflowModelError(msg)
+
+        # Allocate results to available RAM memory
+        try:
+            results = [np.empty((v, t), dtype=float) for _ in range(mp)]
+        except MemoryError:
+            raise CashflowModelError(msg)
+        else:
+            results = [*map(p, range(range_start, range_end))]
+
+        return results
 
     def calculate_model_point(self, row, one_core, progressbar_max):
         main = get_object_by_name(self.model_point_sets, "main")
@@ -340,7 +390,7 @@ class Model:
         else:
             mp_results = np.array([v.result[:self.settings["T_MAX_OUTPUT"]+1] for v in self.variables])
 
-        # Update progessbar
+        # Update progressbar
         if one_core:
             updt(progressbar_max, row + 1)
 

@@ -12,7 +12,7 @@ import shutil
 from .cashflow import Model, ModelPointSet, Runplan, Variable
 from .error import CashflowModelError
 from .graph import get_calc_direction, get_calls, get_predecessors
-from .utils import print_log, replace_in_file
+from .utils import get_object_by_name, print_log, replace_in_file
 
 
 def create_model(model):
@@ -131,7 +131,8 @@ def prepare_model_input(settings, argv):
     return runplan, model_point_sets, variables
 
 
-def create_graph(variables):
+def resolve_calculation_order(variables, output_columns):
+    """Determines a safe execution order for variables to avoid recursion errors."""
     # Dictionary of called functions
     calls = {}
     for variable in variables:
@@ -143,6 +144,23 @@ def create_graph(variables):
         DG.add_node(variable)
         for predecessor in calls[variable]:
             DG.add_edge(predecessor, variable)
+
+    # User has chosen output so remove not needed variables
+    if output_columns is not None:
+        needed_variables = set()
+        output_variables = [get_object_by_name(variables, name) for name in output_columns]
+        for output_variable in output_variables:
+            needed_variables.add(output_variable)
+            needed_variables.update(get_predecessors(output_variable, DG))
+
+        unneeded_variables = set(variables) - needed_variables
+        DG.remove_nodes_from(unneeded_variables)
+        variables = list(needed_variables)
+
+    # Draw graph (debug)
+    # import matplotlib.pyplot as plt
+    # nx.draw(DG, with_labels=True)
+    # plt.show()
 
     # Set calc_order in variables
     calc_order = 0
@@ -183,31 +201,50 @@ def create_graph(variables):
     return variables
 
 
-def start_single_core(model_name, settings, argv):
+def start_single_core(settings, argv):
     """Create and run a cash flow model."""
+    # Prepare model components
+    print_log("Reading model components")
     runplan, model_point_sets, variables = prepare_model_input(settings, argv)
-    variables = create_graph(variables)
+    output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
+    variables = resolve_calculation_order(variables, output_columns)
 
+    # Log number of model points
+    main = get_object_by_name(model_point_sets, "main")
+    print_log(f"Total number of model points: {len(main)}")
+    
     # Run model on single core
-    model = Model(model_name, variables, model_point_sets, settings)
-    model_output, runtime = model.run()
-    return model_output, runtime
+    model = Model(variables, model_point_sets, settings)
+    output, runtime = model.run()
+    return output, runtime
 
 
-def start_multiprocessing(part, cpu_count, model_name, settings, argv):
+def start_multiprocessing(part, settings, argv):
     """Run subset of the model points using multiprocessing."""
+    cpu_count = multiprocessing.cpu_count()
+    show_log = part == 0
+
+    # Prepare model components
+    print_log("Reading model components", show_log)
     runplan, model_point_sets, variables = prepare_model_input(settings, argv)
-    variables = create_graph(variables)
+    output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
+    variables = resolve_calculation_order(variables, output_columns)
+    
+    # Log number of model points
+    main = get_object_by_name(model_point_sets, "main")
+    print_log(f"Total number of model points: {len(main)}", show_log)
+    print_log(f"Multiprocessing on {cpu_count} cores", show_log)
+    print_log(f"Calculation of ca. {len(main) // cpu_count} model points per core", show_log)
 
     # Run model on multiple cores
-    model = Model(model_name, variables, model_point_sets, settings, cpu_count)
-    output = model.run(part)
+    model = Model(variables, model_point_sets, settings)
+    model_run = model.run(part)
 
-    if output is None:
-        part_model_output, part_runtime = None, None
+    if model_run is None:
+        part_output, part_runtime = None, None
     else:
-        part_model_output, part_runtime = output
-    return part_model_output, part_runtime
+        part_output, part_runtime = model_run
+    return part_output, part_runtime
 
 
 def merge_part_model_outputs(part_model_outputs, settings):
@@ -244,10 +281,21 @@ def start(model_name, settings, argv):
     settings = load_settings(settings)
     output, diagnostic = None, None
 
+    # Start log
+    print_log(f"Building model '{model_name}'")
+    print_log(f"Timestamp: {timestamp}")
+    print_log("Settings:")
+    for key, value in settings.items():
+        print(f"{' ' * 10} {key}: {value}")
+
+    # Run on single core
+    if not settings["MULTIPROCESSING"]:
+        output, diagnostic = start_single_core(settings, argv)
+
+    # Run on multiple cores
     if settings["MULTIPROCESSING"]:
+        p = functools.partial(start_multiprocessing, settings=settings, argv=argv)
         cpu_count = multiprocessing.cpu_count()
-        p = functools.partial(start_multiprocessing, cpu_count=cpu_count, model_name=model_name, settings=settings,
-                              argv=argv)
         with multiprocessing.Pool(cpu_count) as pool:
             parts = pool.map(p, range(cpu_count))
 
@@ -259,28 +307,27 @@ def start(model_name, settings, argv):
         if settings["SAVE_DIAGNOSTIC"]:
             part_runtimes = [p[1] for p in parts]
             diagnostic = merge_part_diagnostic(part_runtimes)
-    else:
-        output, diagnostic = start_single_core(model_name, settings, argv)
 
     # Add time column
     values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output.shape[0] / (settings["T_MAX_OUTPUT"]+1))
     output.insert(0, "t", values)
 
     # Save to csv files
-    if not os.path.exists("output"):
-        os.makedirs("output")
+    if settings["SAVE_OUTPUT"] or settings["SAVE_DIAGNOSTIC"]:
+        if not os.path.exists("output"):
+            os.makedirs("output")
 
-    if settings["SAVE_OUTPUT"]:
-        print_log("Saving output:")
-        filepath = f"output/{timestamp}_output.csv"
-        output.to_csv(filepath, index=False)
-        print(f"{' ' * 10} {filepath}")
+        if settings["SAVE_OUTPUT"]:
+            print_log("Saving output:")
+            filepath = f"output/{timestamp}_output.csv"
+            output.to_csv(filepath, index=False)
+            print(f"{' ' * 10} {filepath}")
 
-    if settings["SAVE_DIAGNOSTIC"]:
-        print_log("Saving diagnostic file:")
-        filepath = f"output/{timestamp}_diagnostic.csv"
-        diagnostic.to_csv(filepath, index=False)
-        print(f"{' ' * 10} {filepath}")
+        if settings["SAVE_DIAGNOSTIC"]:
+            print_log("Saving diagnostic file:")
+            filepath = f"output/{timestamp}_diagnostic.csv"
+            diagnostic.to_csv(filepath, index=False)
+            print(f"{' ' * 10} {filepath}")
 
     print_log("Finished")
     return output

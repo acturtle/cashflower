@@ -11,6 +11,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'pandas',
+        'psutil',
         'networkx',
         'numpy'
     ],
@@ -26,5 +27,5 @@ setup(
     },
     python_requires='>=3.9',
     url="https://github.com/acturtle/cashflower",
-    version="0.4.11",
+    version="0.5.0",
 )
