@@ -1,4 +1,3 @@
-import os
 import sys
 
 from datetime import datetime
@@ -19,9 +18,6 @@ def print_log(msg, show_time=True, visible=True):
 
 
 def save_log_to_file(timestamp):
-    if not os.path.exists("output"):
-        os.makedirs("output")
-
     with open(f"output/{timestamp}_log.txt", "w") as file:
         for message in log_messages:
             file.write(message + '\n')
