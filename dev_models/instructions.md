@@ -36,6 +36,7 @@ ensuring that they do not clutter the version control system.
 | 10 | True  | id | False | []   | True  | True  | 720      | 720     | 1    | 1   |
 | 11 | True  | id | False | []   | True  | True  | 720      | 720     | 5    | 1   |
 | 12 | True  | id | False | []   | True  | True  | 0        | 0       | 1    | 1   |
+| 13 | True  | id | False | []   | True  | True  | 720      | 720     | 2    | 1   |
 
 ### Description
 
@@ -51,3 +52,4 @@ ensuring that they do not clutter the version control system.
 * `10` - model with variable that is calculated backward
 * `11` - model with variables forming a cycle (real estate mortgage)
 * `12` - model in which runplan is used
+* `13` - model with array variable (`@variable(array=True)`)

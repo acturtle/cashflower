@@ -12,7 +12,7 @@ def run_model(model_name):
 
 
 if __name__ == "__main__":
-    num_dev_models = 12
+    num_dev_models = 13
     for num in range(1, num_dev_models+1):
         print(f"\nModel {num}:")
         run_model(f"dev_model_{num:02}")

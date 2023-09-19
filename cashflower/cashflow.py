@@ -9,19 +9,33 @@ from .error import CashflowModelError
 from .utils import get_object_by_name, print_log, split_to_ranges, updt
 
 
+def get_variable_type(v):
+    if isinstance(v, ConstantVariable):
+        return "constant"
+    elif isinstance(v, ArrayVariable):
+        return "array"
+    else:
+        return "default"
+
+
 def variable(array=False):
     """Transform a function with decorator into an object of class Variable"""
     def wrapper(func):
-        # Variable must have parameter "t" or no parameters at all
+        # Variable has maximally 1 parameter
         if func.__code__.co_argcount > 1:
-            msg = f"Model variable must have maximally one parameter. Please review '{func.__name__}'."
+            msg = f"Error in '{func.__name__}': The model variable should have at most one parameter."
             raise CashflowModelError(msg)
 
         # Parameter must be named "t"
         if func.__code__.co_argcount == 1:
             if not func.__code__.co_varnames[0] == 't':
-                msg = f"The parameter must be named 't'. Please review '{func.__name__}'."
+                msg = f"Error in '{func.__name__}': The parameter should be named 't'."
                 raise CashflowModelError(msg)
+
+        # Array variables don't have parameters
+        if array and not func.__code__.co_argcount == 0:
+            msg = f"Error in '{func.__name__}': Array variables cannot have parameters."
+            raise CashflowModelError(msg)
 
         # Create a variable
         if array:
@@ -272,7 +286,6 @@ class Model:
 
         # Create partial calculation function for map
         progressbar_max = len(main) if range_end is None else range_end
-        p = functools.partial(self.calculate_model_point, one_core=one_core, progressbar_max=progressbar_max)
 
         # Perform calculations
         if self.settings["AGGREGATE"]:
@@ -283,7 +296,7 @@ class Model:
         # Prepare the 'output' data frame
         print_log("Preparing output", one_core)
         if len(self.settings["OUTPUT_COLUMNS"]) == 0:
-            output_columns = [variable.name for variable in self.variables]
+            output_columns = [v.name for v in self.variables]
         else:
             output_columns = self.settings["OUTPUT_COLUMNS"]
 
@@ -302,6 +315,7 @@ class Model:
                 "calc_order": [v.calc_order for v in self.variables],
                 "cycle": [v.cycle for v in self.variables],
                 "calc_direction": [v.calc_direction for v in self.variables],
+                "type": [get_variable_type(v) for v in self.variables],
                 "runtime": [v.runtime for v in self.variables]
             })
 

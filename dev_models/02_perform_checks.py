@@ -179,6 +179,10 @@ def check_dev_model_12():
     os.chdir("..")
 
 
+def check_dev_model_13():
+    basic_check("dev_model_13")
+
+
 if __name__ == "__main__":
     check_dev_model_01()
     check_dev_model_02()
@@ -192,4 +196,5 @@ if __name__ == "__main__":
     check_dev_model_10()
     check_dev_model_11()
     check_dev_model_12()
+    check_dev_model_13()
     print("\nFinished! All checks completed successfully.")

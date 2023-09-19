@@ -1,5 +1,4 @@
 from cashflower import variable
-from settings import settings
 
 
 @variable()
@@ -13,5 +12,5 @@ def projection_year(t):
 
 
 @variable(array=True)
-def aaa():
-    return projection_year.result * 2
+def my_var():
+    return projection_year() * 2
