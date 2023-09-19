@@ -131,7 +131,7 @@ class ConstantVariable(Variable):
 
     def calculate(self):
         value = self.func()
-        self.result = np.array([value for _ in range(0, self.t_max + 1)])
+        self.result = np.array([value for _ in range(0, self.t_max + 1)], dtype=np.float64)
 
 
 class ArrayVariable(Variable):
