@@ -55,4 +55,3 @@ class CSVReader:
         else:
             raise ValueError(f"Row '{row_label}' or column '{col_label}' label not found in '{self.filename}'.\n"
                              f"Please ensure that row label(s) and column label are strings.")
-

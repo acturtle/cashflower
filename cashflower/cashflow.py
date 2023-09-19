@@ -9,22 +9,38 @@ from .error import CashflowModelError
 from .utils import get_object_by_name, print_log, split_to_ranges, updt
 
 
-def variable():
-    """Decorator"""
+def get_variable_type(v):
+    if isinstance(v, ConstantVariable):
+        return "constant"
+    elif isinstance(v, ArrayVariable):
+        return "array"
+    else:
+        return "default"
+
+
+def variable(array=False):
+    """Transform a function with decorator into an object of class Variable"""
     def wrapper(func):
-        # Variable must have parameter "t" or no parameters at all
+        # Variable has maximally 1 parameter
         if func.__code__.co_argcount > 1:
-            msg = f"Model variable must have maximally one parameter. Please review '{func.__name__}'."
+            msg = f"Error in '{func.__name__}': The model variable should have at most one parameter."
             raise CashflowModelError(msg)
 
         # Parameter must be named "t"
         if func.__code__.co_argcount == 1:
             if not func.__code__.co_varnames[0] == 't':
-                msg = f"The parameter must be named 't'. Please review '{func.__name__}'."
+                msg = f"Error in '{func.__name__}': The parameter should be named 't'."
                 raise CashflowModelError(msg)
 
+        # Array variables don't have parameters
+        if array and not func.__code__.co_argcount == 0:
+            msg = f"Error in '{func.__name__}': Array variables cannot have parameters."
+            raise CashflowModelError(msg)
+
         # Create a variable
-        if func.__code__.co_argcount == 0:
+        if array:
+            v = ArrayVariable(func)
+        elif func.__code__.co_argcount == 0:
             v = ConstantVariable(func)
         else:
             v = Variable(func)
@@ -50,18 +66,22 @@ class Variable:
 
     def __call__(self, t=None):
         # In cycle, the calculation order might not be known
-        if self.cycle and t not in self.cycle_cache:
+        if self.cycle and (t is not None and t not in self.cycle_cache):
             self.cycle_cache.add(t)
             self.result[t] = self.func(t)
 
-        try:
-            return self.result[t]
-        except IndexError as e:
-            if t > self.t_max:
-                msg = f"Variable '{self.name}' has been called for period '{t}' which is outside of calculation range."
-                raise CashflowModelError(msg)
-            else:
-                print(str(e))
+        if t is None:
+            return self.result
+        else:
+            try:
+                return self.result[t]
+            except IndexError as e:
+                if t > self.t_max:
+                    msg = (f"Variable '{self.name}' has been called for period '{t}' "
+                           f"which is outside of the calculation range.")
+                    raise CashflowModelError(msg)
+                else:
+                    print(str(e))
 
     @property
     def t_max(self):
@@ -70,7 +90,7 @@ class Variable:
     @t_max.setter
     def t_max(self, new_t_max):
         self._t_max = new_t_max
-        self.result = np.array([None for _ in range(0, self.t_max + 1)])
+        self.result = np.empty(self.t_max + 1)
 
     def calculate_t(self, t):
         # This method is used for cycles only
@@ -80,7 +100,7 @@ class Variable:
 
     def calculate(self):
         if self.calc_direction == 0:
-            self.result = np.array([*map(self.func, range(self.t_max + 1))])
+            self.result = np.array([*map(self.func, range(self.t_max + 1))], dtype=np.float64)
         elif self.calc_direction == 1:
             for t in range(self.t_max + 1):
                 self.result[t] = self.func(t)
@@ -92,6 +112,7 @@ class Variable:
 
 
 class ConstantVariable(Variable):
+    """Variable that is constant in time."""
     def __init__(self, func):
         Variable.__init__(self, func)
 
@@ -110,7 +131,25 @@ class ConstantVariable(Variable):
 
     def calculate(self):
         value = self.func()
-        self.result = np.array([value for _ in range(0, self.t_max + 1)])
+        self.result = np.array([value for _ in range(0, self.t_max + 1)], dtype=np.float64)
+
+
+class ArrayVariable(Variable):
+    """Variable that returns an array."""
+    def __init__(self, func):
+        Variable.__init__(self, func)
+
+    def __repr__(self):
+        return f"AV: {self.func.__name__}"
+
+    def __call__(self, t=None):
+        if t is None:
+            return self.result
+        else:
+            return self.result[t]
+
+    def calculate(self):
+        self.result = np.array(self.func(), dtype=np.float64)
 
 
 class Runplan:
@@ -247,7 +286,6 @@ class Model:
 
         # Create partial calculation function for map
         progressbar_max = len(main) if range_end is None else range_end
-        p = functools.partial(self.calculate_model_point, one_core=one_core, progressbar_max=progressbar_max)
 
         # Perform calculations
         if self.settings["AGGREGATE"]:
@@ -258,7 +296,7 @@ class Model:
         # Prepare the 'output' data frame
         print_log("Preparing output", one_core)
         if len(self.settings["OUTPUT_COLUMNS"]) == 0:
-            output_columns = [variable.name for variable in self.variables]
+            output_columns = [v.name for v in self.variables]
         else:
             output_columns = self.settings["OUTPUT_COLUMNS"]
 
@@ -277,6 +315,7 @@ class Model:
                 "calc_order": [v.calc_order for v in self.variables],
                 "cycle": [v.cycle for v in self.variables],
                 "calc_direction": [v.calc_direction for v in self.variables],
+                "type": [get_variable_type(v) for v in self.variables],
                 "runtime": [v.runtime for v in self.variables]
             })
 
@@ -353,13 +392,13 @@ class Model:
         max_calc_order = self.variables[-1].calc_order
         for calc_order in range(1, max_calc_order + 1):
             # Either a single variable or a cycle
-            variables = [variable for variable in self.variables if variable.calc_order == calc_order]
+            variables = [v for v in self.variables if v.calc_order == calc_order]
             # Single
             if len(variables) == 1:
-                variable = variables[0]
+                v = variables[0]
                 start = time.time()
-                variable.calculate()
-                variable.runtime += time.time() - start
+                v.calculate()
+                v.runtime += time.time() - start
             # Cycle
             else:
                 start = time.time()
@@ -367,21 +406,21 @@ class Model:
                 calc_direction = first_variable.calc_direction
                 if calc_direction in (0, 1):
                     for t in range(self.settings["T_MAX_CALCULATION"] + 1):
-                        for variable in variables:
-                            variable.calculate_t(t)
+                        for v in variables:
+                            v.calculate_t(t)
                 else:
                     for t in range(self.settings["T_MAX_CALCULATION"], -1, -1):
-                        for variable in variables:
-                            variable.calculate_t(t)
+                        for v in variables:
+                            v.calculate_t(t)
                 end = time.time()
                 avg_runtime = (end-start)/len(variables)
-                for variable in variables:
-                    variable.runtime += avg_runtime
+                for v in variables:
+                    v.runtime += avg_runtime
 
         # Clear cache of cycle variables
-        for variable in self.variables:
-            if variable.cycle:
-                variable.cycle_cache.clear()
+        for v in self.variables:
+            if v.cycle:
+                v.cycle_cache.clear()
 
         # Get results and trim for T_MAX_OUTPUT,results may contain subset of columns
         if len(self.settings["OUTPUT_COLUMNS"]) > 0:

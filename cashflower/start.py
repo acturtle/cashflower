@@ -9,7 +9,7 @@ import os
 import pandas as pd
 import shutil
 
-from .cashflow import Model, ModelPointSet, Runplan, Variable
+from .cashflow import ArrayVariable, Model, ModelPointSet, Runplan, Variable
 from .error import CashflowModelError
 from .graph import get_calc_direction, get_calls, get_predecessors
 from .utils import get_object_by_name, print_log, replace_in_file
@@ -186,6 +186,14 @@ def resolve_calculation_order(variables, output_columns):
                     node.cycle = True
                 DG.remove_nodes_from(cycle_without_predecessors)
 
+    # Ensure that there are no ArrayVariables in cycles
+    cycle_variables = [v for v in variables if v.cycle]
+    for cycle_variable in cycle_variables:
+        if isinstance(cycle_variable, ArrayVariable):
+            msg = (f"'{cycle_variable.name}' is part of a cycle so it can't be modelled as an array variable. "
+                   f"Please remove 'array=True' from the decorator and recode the variable.")
+            raise CashflowModelError(msg)
+
     # Sort variables for calculation order
     variables = sorted(variables, key=lambda x: (x.calc_order, x.name))
 
@@ -212,7 +220,7 @@ def start_single_core(settings, argv):
     # Log number of model points
     main = get_object_by_name(model_point_sets, "main")
     print_log(f"Total number of model points: {len(main)}")
-    
+
     # Run model on single core
     model = Model(variables, model_point_sets, settings)
     output, runtime = model.run()
@@ -229,7 +237,7 @@ def start_multiprocessing(part, settings, argv):
     runplan, model_point_sets, variables = prepare_model_input(settings, argv)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
-    
+
     # Log number of model points
     main = get_object_by_name(model_point_sets, "main")
     print_log(f"Total number of model points: {len(main)}", show_log)
