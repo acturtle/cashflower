@@ -101,4 +101,4 @@ class TestVariable(TestCase):
         assert foo(10) == 10
 
         with pytest.raises(CashflowModelError):
-            foo(-1)
+            foo(721)
