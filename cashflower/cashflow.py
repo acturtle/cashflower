@@ -294,7 +294,7 @@ class Model:
             results = self.compute_individual_results(range_start, range_end, one_core, progressbar_max)
 
         # Prepare the 'output' data frame
-        print_log("Preparing output", one_core)
+        print_log("Preparing output", visible=one_core)
         if len(self.settings["OUTPUT_COLUMNS"]) == 0:
             output_columns = [v.name for v in self.variables]
         else:
