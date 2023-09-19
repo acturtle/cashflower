@@ -6,10 +6,10 @@ of the actuarial cash flow model, encapsulating its logic.
 
 To define a model variable, follow these steps:
 
-1. Define a function with the :code:`t` parameter (or without any parameters),
+1. Define a function with the :code:`t` parameter (or without any parameters) that return numeric values,
 2. Decorate the function with :code:`@variable()`.
 
-Model variables produce results per model point and time , with some remaining constant throughout.
+Model variables produce results per model point and time, with some remaining constant throughout.
 
 .. image:: https://acturtle.com/static/img/31/all.png
    :align: center
@@ -20,6 +20,9 @@ There are two types of variables:
 * B - constant variable.
 
 Both types are described below.
+
+.. WARNING::
+    Model variables must return numeric values.
 
 |
 
