@@ -87,6 +87,7 @@ please visit our `GitHub repository <https://github.com/acturtle/cashflower>`_.
    :caption: Contents:
 
    user_guide
+   advanced
    tutorials
    developer_guide
    modules
