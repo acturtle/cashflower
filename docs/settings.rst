@@ -33,7 +33,7 @@ The table below summarizes available settings.
      - :code:`True` / :code:`False`
      - :code:`True`
      - Flag indicating whether a diagnostic file should be created.
-    * - SAVE_LOG
+   * - SAVE_LOG
      - :code:`True` / :code:`False`
      - :code:`True`
      - Flag indicating whether a log file should be created.
@@ -281,9 +281,9 @@ When the :code:`SAVE_DIAGNOSTIC` setting is set to :code:`True`, the model saves
     └── output/
         └── <timestamp>_diagnostic.csv
 
-If you set :code:`SAVE_DIAGNOSTIC` to :code:`False`, the diagnostic file will not be created.
-
 |
+
+If you set :code:`SAVE_DIAGNOSTIC` to :code:`False`, the diagnostic file will not be created.
 
 The diagnostic file contains various pieces of information about the model's variables, such as:
 
@@ -326,9 +326,9 @@ When :code:`SAVE_LOG` is set to :code:`True`, the model will save a file named :
     └── output/
         └── <timestamp>_log.txt
 
-|
-
 If you change the :code:`SAVE_LOG` setting to :code:`False`, no log file will be created.
+
+|
 
 The log file contains saved log messages that are printed to the console during the model's execution.
 It provides a record of key events and settings, which can be valuable for troubleshooting
@@ -390,9 +390,9 @@ When :code:`SAVE_OUTPUT` is set to :code:`True`, the model will save a file name
     └── output/
         └── <timestamp>_output.csv
 
-|
-
 If you change the :code:`SAVE_OUTPUT` setting to :code:`False`, no output file will be created.
+
+|
 
 You can use this setting to customize output file creation or perform other actions with the results, such as saving them to a database.
 
