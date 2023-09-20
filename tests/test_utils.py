@@ -2,23 +2,7 @@ import os
 
 from unittest import TestCase
 
-from cashflower.utils import get_object_by_name, print_log, replace_in_file, split_to_ranges, updt
-
-
-class TestReplaceInFile(TestCase):
-    def test_replace_in_file(self):
-        filename = "my-file.txt"
-
-        with open(filename, "w") as f:
-            f.write("Our model is called {{ model }}. Let's calculate {{ model }}.")
-
-        replace_in_file(filename, "{{ model }}", "annuity")
-
-        with open(filename, "r") as f:
-            text = f.read()
-            assert text == "Our model is called annuity. Let's calculate annuity."
-
-        os.remove(filename)
+from cashflower.utils import get_object_by_name, print_log, split_to_ranges, updt
 
 
 class TestSplitToRanges(TestCase):
