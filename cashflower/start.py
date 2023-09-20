@@ -12,7 +12,7 @@ import shutil
 from .cashflow import ArrayVariable, Model, ModelPointSet, Runplan, Variable
 from .error import CashflowModelError
 from .graph import get_calc_direction, get_calls, get_predecessors
-from .utils import get_object_by_name, print_log, replace_in_file
+from .utils import get_object_by_name, print_log, replace_in_file, save_log_to_file
 
 
 def create_model(model):
@@ -41,6 +41,7 @@ def load_settings(settings=None):
         "OUTPUT_COLUMNS": [],
         "ID_COLUMN": "id",
         "SAVE_DIAGNOSTIC": True,
+        "SAVE_LOG": True,
         "SAVE_OUTPUT": True,
         "T_MAX_CALCULATION": 720,
         "T_MAX_OUTPUT": 720,
@@ -233,16 +234,16 @@ def start_multiprocessing(part, settings, argv):
     show_log = part == 0
 
     # Prepare model components
-    print_log("Reading model components", show_log)
+    print_log("Reading model components", visible=show_log)
     runplan, model_point_sets, variables = prepare_model_input(settings, argv)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
     # Log number of model points
     main = get_object_by_name(model_point_sets, "main")
-    print_log(f"Total number of model points: {len(main)}", show_log)
-    print_log(f"Multiprocessing on {cpu_count} cores", show_log)
-    print_log(f"Calculation of ca. {len(main) // cpu_count} model points per core", show_log)
+    print_log(f"Total number of model points: {len(main)}", visible=show_log)
+    print_log(f"Multiprocessing on {cpu_count} cores", visible=show_log)
+    print_log(f"Calculation of ca. {len(main) // cpu_count} model points per core", visible=show_log)
 
     # Run model on multiple cores
     model = Model(variables, model_point_sets, settings)
@@ -294,7 +295,8 @@ def start(model_name, settings, argv):
     print_log(f"Timestamp: {timestamp}")
     print_log("Settings:")
     for key, value in settings.items():
-        print(f"{' ' * 10} {key}: {value}")
+        msg = f"{key}: {value}"
+        print_log(msg, show_time=False)
 
     # Run on single core
     if not settings["MULTIPROCESSING"]:
@@ -319,23 +321,29 @@ def start(model_name, settings, argv):
     # Add time column
     values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output.shape[0] / (settings["T_MAX_OUTPUT"]+1))
     output.insert(0, "t", values)
+    print_log("Finished")
 
     # Save to csv files
-    if settings["SAVE_OUTPUT"] or settings["SAVE_DIAGNOSTIC"]:
+    if settings["SAVE_OUTPUT"] or settings["SAVE_DIAGNOSTIC"] or settings["SAVE_LOG"]:
         if not os.path.exists("output"):
             os.makedirs("output")
 
         if settings["SAVE_OUTPUT"]:
-            print_log("Saving output:")
+            print_log("Saving output file:")
             filepath = f"output/{timestamp}_output.csv"
             output.to_csv(filepath, index=False)
-            print(f"{' ' * 10} {filepath}")
+            print_log(filepath, show_time=False)
 
         if settings["SAVE_DIAGNOSTIC"]:
             print_log("Saving diagnostic file:")
             filepath = f"output/{timestamp}_diagnostic.csv"
             diagnostic.to_csv(filepath, index=False)
-            print(f"{' ' * 10} {filepath}")
+            print_log(filepath, show_time=False)
 
-    print_log("Finished")
+        if settings["SAVE_LOG"]:
+            print_log("Saving log file:")
+            filepath = f"output/{timestamp}_log.txt"
+            print_log(filepath, show_time=False)
+            save_log_to_file(timestamp)
+
     return output

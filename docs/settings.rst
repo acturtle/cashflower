@@ -16,27 +16,31 @@ The table below summarizes available settings.
    * - AGGREGATE
      - :code:`True` / :code:`False`
      - :code:`True`
-     - Flag if results for model points should be aggregated.
+     - Flag indicating whether results should be aggregated.
    * - ID_COLUMN
      - a string
      - :code:`id`
-     - The name of the column which contains identificators of the model points.
+     - The name of the column containing identifiers of the model points.
    * - MULTIPROCESSING
      - :code:`True` / :code:`False`
      - :code:`False`
-     - Flag if multiple CPUs should be used for the calculations.
+     - Flag indicating whether multiple CPUs should be used for calculations.
    * - OUTPUT_COLUMNS
      - empty list or list of strings
      - :code:`[]`
-     - List of variables to be included in the output. If empty list, all variables are included.
+     - List of variables to be included in the output. If the list is empty, all variables are included.
    * - SAVE_DIAGNOSTIC
      - :code:`True` / :code:`False`
      - :code:`True`
-     - Flag if an additional file should be created which contains model diagnostics.
+     - Flag indicating whether a diagnostic file should be created.
+   * - SAVE_LOG
+     - :code:`True` / :code:`False`
+     - :code:`True`
+     - Flag indicating whether a log file should be created.
    * - SAVE_OUTPUT
      - :code:`True` / :code:`False`
      - :code:`True`
-     - Flag if csv output files should be created.
+     - Flag indicating whether output file should be created.
    * - T_MAX_CALCULATION
      - integer
      - :code:`720`
@@ -44,7 +48,7 @@ The table below summarizes available settings.
    * - T_MAX_OUTPUT
      - integer
      - :code:`720`
-     - The maximal month for output files.
+     - The maximal month for output file.
 
 
 Aggregate
@@ -254,11 +258,11 @@ Only the chosen columns are in the output.
 Save diagnostic
 ---------------
 
-The :code:`SAVE_DIAGNOSTIC` setting is a flag if the model should save diagnostic information.
+The :code:`SAVE_DIAGNOSTIC` setting is a boolean flag that determines whether the model should save diagnostic information.
 
 |
 
-By default, the setting has a value :code:`True`.
+By default, the setting is set to :code:`True`.
 
 ..  code-block:: python
     :caption: settings.py
@@ -269,58 +273,116 @@ By default, the setting has a value :code:`True`.
         ...
     }
 
-
-Except of the output file, there is another file created :code:`<timestamp>_diagnostic.csv`.
+When the :code:`SAVE_DIAGNOSTIC` setting is set to :code:`True`, the model saves a file named :code:`<timestamp>_diagnostic.csv` in the output folder:
 
 ..  code-block::
 
     .
     └── output/
         └── <timestamp>_diagnostic.csv
-        └── <timestamp>_output.csv
 
-If the setting will be set to :code:`False`, the diagnostic file will not be created.
+|
+
+If you set :code:`SAVE_DIAGNOSTIC` to :code:`False`, the diagnostic file will not be created.
+
+The diagnostic file contains various pieces of information about the model's variables, such as:
+
+..  code-block::
+    :caption: <timestamp>_diagnostic.csv
+
+    variable,calc_order,cycle,calc_direction,type,runtime
+    a,1,False,irrelevant,default,5.4
+    c,2,False,backward,constant,2.7
+    b,3,False,forward,array,7.1
+
+This file can be valuable for gaining insights into the model's behavior, identifying variables that require the most
+processing time, and optimizing them for better performance.
+
+Using the diagnostic file is helpful for understanding and improving the model's performance.
+
+|
+
+Save log
+--------
+
+The :code:`SAVE_LOG` setting is a boolean flag that controls whether the model should save its log to a file.
+
+By default, the setting is set to :code:`True`.
 
 ..  code-block:: python
     :caption: settings.py
 
     settings = {
         ...
-        "SAVE_DIAGNOSTIC": False,
+        "SAVE_LOG": True,
         ...
     }
 
-Only the output file will be created.
+When :code:`SAVE_LOG` is set to :code:`True`, the model will save a file named :code:`<timestamp>_log.txt` in the output folder:
 
 ..  code-block::
 
     .
     └── output/
-        └── <timestamp>_output.csv
+        └── <timestamp>_log.txt
+
+If you change the :code:`SAVE_LOG` setting to :code:`False`, no log file will be created.
 
 |
 
-The diagnostic file contains the order of variable calculation and runtime in seconds.
+The log file contains saved log messages that are printed to the console during the model's execution.
+It provides a record of key events and settings, which can be valuable for troubleshooting
+and tracking the model's behavior.
 
-..  code-block::
-    :caption: <timestamp>_diagnostic.csv
+Here is an example of the content of the log file (:code:`<timestamp>_log.txt`):
 
-    variable,calc_order,cycle,calc_direction,runtime
-    a,1,False,irrelevant,5.4
-    c,2,False,backward,2.7
-    b,3,False,forward,7.1
+..  code-block:: python
+    :caption: <timestamp>_log.txt
 
-The file can help to find variables that are the evaluated the longest and to optimize them.
+    09:40:49 | Building model 'example'
+    09:40:49 | Timestamp: 20230920_094049
+    09:40:49 | Settings:
+               AGGREGATE: True
+               MULTIPROCESSING: False
+               OUTPUT_COLUMNS: []
+               ID_COLUMN: id
+               SAVE_DIAGNOSTIC: True
+               SAVE_LOG: True
+               SAVE_OUTPUT: True
+               T_MAX_CALCULATION: 720
+               T_MAX_OUTPUT: 720
+    09:40:49 | Reading model components
+    09:40:49 | Total number of model points: 1
+    09:40:49 | Preparing output
+    09:40:49 | Finished
+    09:40:49 | Saving output file:
+               output/20230920_094049_output.csv
+    09:40:49 | Saving diagnostic file:
+               output/20230920_094049_diagnostic.csv
+    09:40:49 | Saving log file:
+               output/20230920_094049_log.txt
 
-|
+
+The log file is a valuable resource for understanding the model's execution flow and can be particularly useful for
+diagnosing issues or reviewing the model's behavior at a later time.
 
 Save output
 -----------
 
-The :code:`SAVE_OUTPUT` setting is a flag if the model should save results to the csv file.
+The :code:`SAVE_OUTPUT` setting is a boolean flag that determines whether the model should save its results to a file.
 
-By default, the setting has a value :code:`True`.
-After the run, the results are saved to the :code:`output` folder:
+By default, the setting is set to :code:`True`.
+
+..  code-block:: python
+    :caption: settings.py
+
+    settings = {
+        ...
+        "SAVE_OUTPUT": True,
+        ...
+    }
+
+When :code:`SAVE_OUTPUT` is set to :code:`True`, the model will save a file named :code:`<timestamp>_output.csv` in the output folder:
 
 ..  code-block::
 
@@ -328,30 +390,31 @@ After the run, the results are saved to the :code:`output` folder:
     └── output/
         └── <timestamp>_output.csv
 
+If you change the :code:`SAVE_OUTPUT` setting to :code:`False`, no output file will be created.
+
 |
 
-If you change the :code:`SAVE_OUTPUT` setting to :code:`False`, no files will be created.
+You can use this setting to customize output file creation or perform other actions with the results, such as saving them to a database.
 
-You can use this setting to create a custom output files or do whatever you want with the results (e.g. save to the database).
-
-To create custom output, you can use the :code:`output` variable in the :code:`run.py` script.
+To create custom output files, you can utilize the :code:`output` variable in the :code:`run.py` script.
 
 ..  code-block:: python
     :caption: run.py
 
     if __name__ == "__main__":
     output = start("example", settings, sys.argv)
-
     output.to_csv(f"results/my_awesome_results.csv")
 
-The :code:`output` variable holds a data frame with results.
-The above code, will create csv files in the :code:`results` folder:
+The output variable contains a data frame with the results. In the example above, it will create a CSV file named
+:code:`my_awesome_results.csv` in the :code:`results` folder:
 
 ..  code-block::
 
     .
     └── results/
         └── my_awesome_results.csv
+
+You can leverage this feature to tailor the output to your specific needs or further process the results as required.
 
 |
 

@@ -3,6 +3,27 @@ import sys
 from datetime import datetime
 
 
+log_messages = []
+
+
+def print_log(msg, show_time=True, visible=True):
+    """Print a log message with the timestamp and add to global messages to be saved later on."""
+    if visible:
+        if show_time:
+            log_msg = datetime.now().strftime("%H:%M:%S") + " | " + msg
+        else:
+            log_msg = f"{' ' * 10} {msg}"
+        print(log_msg)
+        log_messages.append(log_msg)
+
+
+def save_log_to_file(timestamp):
+    with open(f"output/{timestamp}_log.txt", "w") as file:
+        for message in log_messages:
+            file.write(message + '\n')
+        log_messages.clear()
+
+
 def replace_in_file(_file, _from, _to):
     """Replace a word (_from) with another word (_to) in a file (_file)."""
     # Read in the file
@@ -23,7 +44,7 @@ def split_to_ranges(n, num_ranges):
         return [(0, n)]
 
     range_size = n // num_ranges
-    # remainding items are added to the last range
+    # remaining items are added to the last range
     remainder = n - num_ranges * range_size
 
     output = [None] * num_ranges
@@ -41,13 +62,6 @@ def get_object_by_name(objects, name):
         if _object.name == name:
             return _object
     return None
-
-
-def print_log(msg, show=True):
-    """Print a log message with the timestamp."""
-    if show:
-        now = datetime.now()
-        print(now.strftime("%H:%M:%S") + " | " + msg)
 
 
 def updt(total, progress):
