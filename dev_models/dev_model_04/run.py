@@ -4,4 +4,4 @@ from settings import settings
 
 
 if __name__ == "__main__":
-    output, timestamp = start("dev_model_04", settings, sys.argv)
+    output = start(settings, sys.argv)

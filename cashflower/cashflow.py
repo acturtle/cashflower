@@ -288,13 +288,14 @@ class Model:
         progressbar_max = len(main) if range_end is None else range_end
 
         # Perform calculations
+        print_log("Starting calculations...", visible=one_core)
         if self.settings["AGGREGATE"]:
             results = self.compute_aggregated_results(range_start, range_end, one_core, progressbar_max)
         else:
             results = self.compute_individual_results(range_start, range_end, one_core, progressbar_max)
 
         # Prepare the 'output' data frame
-        print_log("Preparing output", visible=one_core)
+        print_log("Preparing output...", visible=one_core)
         if len(self.settings["OUTPUT_COLUMNS"]) == 0:
             output_columns = [v.name for v in self.variables]
         else:

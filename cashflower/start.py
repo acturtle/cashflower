@@ -1,5 +1,6 @@
 import datetime
 import functools
+import getpass
 import importlib
 import inspect
 import itertools
@@ -12,25 +13,13 @@ import shutil
 from .cashflow import ArrayVariable, Model, ModelPointSet, Runplan, Variable
 from .error import CashflowModelError
 from .graph import get_calc_direction, get_calls, get_predecessors
-from .utils import get_object_by_name, print_log, replace_in_file, save_log_to_file
+from .utils import get_git_commit_number, get_object_by_name, print_log, save_log_to_file
 
 
 def create_model(model):
-    """
-    Create a folder structure for a model.
-    Copies the whole content of the model_tpl folder and changes templates to scripts.
-    """
+    """Create a folder structure for a model."""
     template_path = os.path.join(os.path.dirname(__file__), "model_tpl")
-    current_path = os.getcwd()
-
     shutil.copytree(template_path, model)
-
-    # Some scripts need words replacements
-    run_file = os.path.join(current_path, model, "run.py-tpl")
-    replace_in_file(run_file, "{{ model }}", model)
-
-    # Remove -tpl from template
-    os.rename(run_file, run_file[:-4])
 
 
 def load_settings(settings=None):
@@ -128,6 +117,7 @@ def prepare_model_input(settings, argv):
     # User can provide runplan version in CLI command
     if runplan is not None and len(argv) > 1:
         runplan.version = argv[1]
+    print_log(f"Runplan version: {runplan.version}", show_time=False)
 
     return runplan, model_point_sets, variables
 
@@ -213,14 +203,14 @@ def resolve_calculation_order(variables, output_columns):
 def start_single_core(settings, argv):
     """Create and run a cash flow model."""
     # Prepare model components
-    print_log("Reading model components")
+    print_log("Reading model components...")
     runplan, model_point_sets, variables = prepare_model_input(settings, argv)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
     # Log number of model points
     main = get_object_by_name(model_point_sets, "main")
-    print_log(f"Total number of model points: {len(main)}")
+    print_log(f"Number of model points: {len(main)}", show_time=False)
 
     # Run model on single core
     model = Model(variables, model_point_sets, settings)
@@ -234,16 +224,16 @@ def start_multiprocessing(part, settings, argv):
     show_log = part == 0
 
     # Prepare model components
-    print_log("Reading model components", visible=show_log)
+    print_log("Reading model components...", visible=show_log)
     runplan, model_point_sets, variables = prepare_model_input(settings, argv)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
     # Log number of model points
     main = get_object_by_name(model_point_sets, "main")
-    print_log(f"Total number of model points: {len(main)}", visible=show_log)
-    print_log(f"Multiprocessing on {cpu_count} cores", visible=show_log)
-    print_log(f"Calculation of ca. {len(main) // cpu_count} model points per core", visible=show_log)
+    print_log(f"Number of model points: {len(main)}", show_time=False, visible=show_log)
+    print_log(f"Multiprocessing on {cpu_count} cores", show_time=False, visible=show_log)
+    print_log(f"Calculation of ca. {len(main) // cpu_count} model points per core", show_time=False, visible=show_log)
 
     # Run model on multiple cores
     model = Model(variables, model_point_sets, settings)
@@ -285,18 +275,26 @@ def merge_part_diagnostic(part_diagnostic):
     return runtimes
 
 
-def start(model_name, settings, argv):
+def start(settings, argv):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = os.path.dirname(os.path.abspath(argv[0]))
     settings = load_settings(settings)
     output, diagnostic = None, None
 
     # Start log
-    print_log(f"Building model '{model_name}'")
-    print_log(f"Timestamp: {timestamp}")
-    print_log("Settings:")
+    print_log(f"Model: '{os.path.basename(path)}'")
+    print_log(f"User: '{getpass.getuser()}'", show_time=False)
+    print_log(f"Path: {path}", show_time=False)
+    print_log(f"Timestamp: {timestamp}", show_time=False)
+    commit = get_git_commit_number()
+    if commit is not None:
+        print_log(f"Git commit: {commit}", show_time=False)
+    print_log("", show_time=False)
+    print_log("Settings:", show_time=False)
     for key, value in settings.items():
-        msg = f"{key}: {value}"
+        msg = f"- {key}: {value}"
         print_log(msg, show_time=False)
+    print_log("", show_time=False)
 
     # Run on single core
     if not settings["MULTIPROCESSING"]:
@@ -321,7 +319,8 @@ def start(model_name, settings, argv):
     # Add time column
     values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output.shape[0] / (settings["T_MAX_OUTPUT"]+1))
     output.insert(0, "t", values)
-    print_log("Finished")
+    print_log("Finished!")
+    print_log("", show_time=False)
 
     # Save to csv files
     if settings["SAVE_OUTPUT"] or settings["SAVE_DIAGNOSTIC"] or settings["SAVE_LOG"]:
@@ -329,21 +328,18 @@ def start(model_name, settings, argv):
             os.makedirs("output")
 
         if settings["SAVE_OUTPUT"]:
-            print_log("Saving output file:")
             filepath = f"output/{timestamp}_output.csv"
+            print_log(f"Saving output file: {filepath}")
             output.to_csv(filepath, index=False)
-            print_log(filepath, show_time=False)
 
         if settings["SAVE_DIAGNOSTIC"]:
-            print_log("Saving diagnostic file:")
             filepath = f"output/{timestamp}_diagnostic.csv"
+            print_log(f"Saving diagnostic file: {filepath}")
             diagnostic.to_csv(filepath, index=False)
-            print_log(filepath, show_time=False)
 
         if settings["SAVE_LOG"]:
-            print_log("Saving log file:")
             filepath = f"output/{timestamp}_log.txt"
-            print_log(filepath, show_time=False)
+            print_log(f"Saving log file: {filepath}")
             save_log_to_file(timestamp)
 
     return output
