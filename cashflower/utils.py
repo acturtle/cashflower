@@ -1,3 +1,4 @@
+import subprocess
 import sys
 
 from datetime import datetime
@@ -22,20 +23,6 @@ def save_log_to_file(timestamp):
         for message in log_messages:
             file.write(message + '\n')
         log_messages.clear()
-
-
-def replace_in_file(_file, _from, _to):
-    """Replace a word (_from) with another word (_to) in a file (_file)."""
-    # Read in the file
-    with open(_file, "r") as file:
-        filedata = file.read()
-
-    # Replace the target string
-    filedata = filedata.replace(_from, _to)
-
-    # Write the file out again
-    with open(_file, "w") as file:
-        file.write(filedata)
 
 
 def split_to_ranges(n, num_ranges):
@@ -77,3 +64,18 @@ def updt(total, progress):
         status)
     sys.stdout.write(text)
     sys.stdout.flush()
+
+
+def get_git_commit_number():
+    try:
+        # Run the git command to get the commit number
+        result = subprocess.run(["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                check=True)
+
+        # Extract the commit number from the output
+        commit_number = result.stdout.strip()
+
+        return commit_number
+    except subprocess.CalledProcessError:
+        # Git command failed, indicating it's not a Git repository
+        return None

@@ -1,6 +1,9 @@
 import os
 import pandas as pd
+import shutil
 import subprocess
+
+from cashflower import create_model
 
 
 def basic_check(model_name):
@@ -33,6 +36,26 @@ def basic_check(model_name):
 
     # Change directory back
     os.chdir("..")
+
+
+def check_dev_model_00():
+    """Check creating a new model from scratch."""
+    model_name = "dev_model_00"
+    create_model(model_name)
+    os.chdir(model_name)
+
+    # Run model
+    subprocess.run("python run.py", shell=True, check=True)
+
+    # Model creates output files
+    num_files = len(os.listdir("output"))
+    print("\nCheck 1: There are 3 new files in the output folder.", end=" ")
+    assert num_files == 3
+    print("OK")
+
+    # Change directory back and remove the folder
+    os.chdir("..")
+    shutil.rmtree(model_name)
 
 
 def check_dev_model_01():
@@ -184,6 +207,7 @@ def check_dev_model_13():
 
 
 if __name__ == "__main__":
+    check_dev_model_00()
     check_dev_model_01()
     check_dev_model_02()
     check_dev_model_03()
