@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import shutil
 import subprocess
 
 from cashflower import create_model
@@ -52,8 +53,9 @@ def check_dev_model_00():
     assert num_files == 3
     print("OK")
 
-    # Change directory back
+    # Change directory back and remove the folder
     os.chdir("..")
+    shutil.rmtree(model_name)
 
 
 def check_dev_model_01():
