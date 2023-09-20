@@ -5,7 +5,7 @@ import subprocess
 
 def basic_check(model_name):
     """Run model and ensure that:
-    - there are two new files in the output folder,
+    - there are three new files in the output folder,
     - the new output has the same data as previous one.
     """
     # Change directory to the model's folder
@@ -21,8 +21,8 @@ def basic_check(model_name):
     last_output_file = output_files[-1]
 
     # Perform checks
-    print("\nCheck 1: There are 2 new output files.", end=" ")
-    assert num_files1 == num_files2 - 2
+    print("\nCheck 1: There are 3 new files in the output folder.", end=" ")
+    assert num_files1 == num_files2 - 3
     print("OK")
 
     print("Check 2: Output did not change.", end=" ")
@@ -99,8 +99,8 @@ def check_dev_model_08():
     diagnostic_files = [f for f in os.listdir("output") if f.endswith("diagnostic.csv")]
 
     # Perform checks
-    print("\nCheck 1: There is 1 new output files.", end=" ")
-    assert num_files1 == num_files2 - 1
+    print("\nCheck 1: There are 2 new files in the output folder.", end=" ")
+    assert num_files1 == num_files2 - 2
     print("OK")
 
     print("Check 2: Diagnostic file has not been saved.", end=" ")
@@ -124,8 +124,8 @@ def check_dev_model_09():
     output_files = [f for f in os.listdir("output") if f.endswith("output.csv")]
 
     # Perform checks
-    print("\nCheck 1: There is 1 new output files.", end=" ")
-    assert num_files1 == num_files2 - 1
+    print("\nCheck 1: There are 2 new files in the output folder.", end=" ")
+    assert num_files1 == num_files2 - 2
     print("OK")
 
     print("Check 2: Output file has not been saved.", end=" ")

@@ -1,6 +1,5 @@
 import pytest
 
-from pandas.testing import assert_frame_equal
 from unittest import TestCase
 
 from cashflower.cashflow import *
@@ -24,8 +23,9 @@ class TestLoadSettings(TestCase):
             "MULTIPROCESSING": False,
             "OUTPUT_COLUMNS": [],
             "ID_COLUMN": "id",
-            "SAVE_OUTPUT": True,
             "SAVE_DIAGNOSTIC": True,
+            "SAVE_LOG": True,
+            "SAVE_OUTPUT": True,
             "T_MAX_CALCULATION": 720,
             "T_MAX_OUTPUT": 720,
         }
@@ -46,8 +46,9 @@ class TestLoadSettings(TestCase):
             "MULTIPROCESSING": False,
             "OUTPUT_COLUMNS": ["a", "b", "c"],
             "ID_COLUMN": "polnumber",
-            "SAVE_OUTPUT": True,
             "SAVE_DIAGNOSTIC": True,
+            "SAVE_LOG": True,
+            "SAVE_OUTPUT": True,
             "T_MAX_CALCULATION": 100,
             "T_MAX_OUTPUT": 100,
         }
