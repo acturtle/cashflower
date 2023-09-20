@@ -321,26 +321,29 @@ def start(model_name, settings, argv):
     # Add time column
     values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output.shape[0] / (settings["T_MAX_OUTPUT"]+1))
     output.insert(0, "t", values)
+    print_log("Finished")
 
     # Save to csv files
     if settings["SAVE_OUTPUT"] or settings["SAVE_DIAGNOSTIC"] or settings["SAVE_LOG"]:
         if not os.path.exists("output"):
             os.makedirs("output")
 
-    if settings["SAVE_OUTPUT"]:
-        print_log("Saving output:")
-        filepath = f"output/{timestamp}_output.csv"
-        output.to_csv(filepath, index=False)
-        print_log(filepath, show_time=False)
+        if settings["SAVE_OUTPUT"]:
+            print_log("Saving output file:")
+            filepath = f"output/{timestamp}_output.csv"
+            output.to_csv(filepath, index=False)
+            print_log(filepath, show_time=False)
 
-    if settings["SAVE_DIAGNOSTIC"]:
-        print_log("Saving diagnostic file:")
-        filepath = f"output/{timestamp}_diagnostic.csv"
-        diagnostic.to_csv(filepath, index=False)
-        print_log(filepath, show_time=False)
+        if settings["SAVE_DIAGNOSTIC"]:
+            print_log("Saving diagnostic file:")
+            filepath = f"output/{timestamp}_diagnostic.csv"
+            diagnostic.to_csv(filepath, index=False)
+            print_log(filepath, show_time=False)
 
-    print_log("Finished")
-    if settings["SAVE_LOG"]:
-        save_log_to_file(timestamp)
+        if settings["SAVE_LOG"]:
+            print_log("Saving log file:")
+            filepath = f"output/{timestamp}_log.txt"
+            print_log(filepath, show_time=False)
+            save_log_to_file(timestamp)
 
     return output
