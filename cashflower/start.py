@@ -13,25 +13,13 @@ import shutil
 from .cashflow import ArrayVariable, Model, ModelPointSet, Runplan, Variable
 from .error import CashflowModelError
 from .graph import get_calc_direction, get_calls, get_predecessors
-from .utils import get_git_commit_number, get_object_by_name, print_log, replace_in_file, save_log_to_file
+from .utils import get_git_commit_number, get_object_by_name, print_log, save_log_to_file
 
 
 def create_model(model):
-    """
-    Create a folder structure for a model.
-    Copies the whole content of the model_tpl folder and changes templates to scripts.
-    """
+    """Create a folder structure for a model."""
     template_path = os.path.join(os.path.dirname(__file__), "model_tpl")
-    current_path = os.getcwd()
-
     shutil.copytree(template_path, model)
-
-    # Some scripts need words replacements
-    run_file = os.path.join(current_path, model, "run.py-tpl")
-    replace_in_file(run_file, "{{ model }}", model)
-
-    # Remove -tpl from template
-    os.rename(run_file, run_file[:-4])
 
 
 def load_settings(settings=None):
@@ -287,14 +275,16 @@ def merge_part_diagnostic(part_diagnostic):
     return runtimes
 
 
-def start(model_name, settings, argv):
+def start(settings, argv):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = os.path.dirname(os.path.abspath(argv[0]))
     settings = load_settings(settings)
     output, diagnostic = None, None
 
     # Start log
-    print_log(f"Model: '{model_name}'")
+    print_log(f"Model: '{os.path.basename(path)}'")
     print_log(f"User: '{getpass.getuser()}'", show_time=False)
+    print_log(f"Path: {path}", show_time=False)
     print_log(f"Timestamp: {timestamp}", show_time=False)
     commit = get_git_commit_number()
     if commit is not None:

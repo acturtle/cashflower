@@ -4,4 +4,4 @@ from settings import settings
 
 
 if __name__ == "__main__":
-    output = start("dev_model_12", settings, sys.argv)
+    output = start(settings, sys.argv)
