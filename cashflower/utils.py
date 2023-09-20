@@ -1,3 +1,4 @@
+import subprocess
 import sys
 
 from datetime import datetime
@@ -77,3 +78,18 @@ def updt(total, progress):
         status)
     sys.stdout.write(text)
     sys.stdout.flush()
+
+
+def get_git_commit_number():
+    try:
+        # Run the git command to get the commit number
+        result = subprocess.run(["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                check=True)
+
+        # Extract the commit number from the output
+        commit_number = result.stdout.strip()
+
+        return commit_number
+    except subprocess.CalledProcessError:
+        # Git command failed, indicating it's not a Git repository
+        return None

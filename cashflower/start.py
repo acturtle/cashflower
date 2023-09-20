@@ -13,7 +13,7 @@ import shutil
 from .cashflow import ArrayVariable, Model, ModelPointSet, Runplan, Variable
 from .error import CashflowModelError
 from .graph import get_calc_direction, get_calls, get_predecessors
-from .utils import get_object_by_name, print_log, replace_in_file, save_log_to_file
+from .utils import get_git_commit_number, get_object_by_name, print_log, replace_in_file, save_log_to_file
 
 
 def create_model(model):
@@ -296,6 +296,9 @@ def start(model_name, settings, argv):
     print_log(f"Model: '{model_name}'")
     print_log(f"User: '{getpass.getuser()}'", show_time=False)
     print_log(f"Timestamp: {timestamp}", show_time=False)
+    commit = get_git_commit_number()
+    if commit is not None:
+        print_log(f"Git commit: {commit}", show_time=False)
     print_log("", show_time=False)
     print_log("Settings:", show_time=False)
     for key, value in settings.items():
