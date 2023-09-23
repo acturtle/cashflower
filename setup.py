@@ -16,7 +16,7 @@ extensions = [
 setup(
     author="Zuzanna Chmielewska",
     description="Framework for actuarial cash flow models",
-    ext_modules=cythonize(extensions),
+    ext_modules=cythonize(extensions, compiler_directives={"language_level": "3"}),
     include_package_data=True,
     install_requires=[
         'pandas',
