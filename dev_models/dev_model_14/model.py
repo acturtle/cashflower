@@ -23,4 +23,4 @@ def present_value1(t):
 
 @variable(array=True)
 def present_value2():
-    return discount(payment(), discount_rate())
+    return discount(cash_flows=payment(), discount_rates=discount_rate())
