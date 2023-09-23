@@ -27,5 +27,4 @@ jobs:
       run: python setup.py build_ext --inplace
 
     - name: Automated tests
-      run: |
-        python -m pytest
+      run: python -m pytest
