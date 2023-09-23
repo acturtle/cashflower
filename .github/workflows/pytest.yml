@@ -25,4 +25,5 @@ jobs:
 
     - name: Automated tests
       run: |
+        python -m pip install Cython
         python -m pytest
