@@ -37,6 +37,7 @@ ensuring that they do not clutter the version control system.
 | 11 | True  | id | False | []   | True  | True  | 720      | 720     | 5    | 1   |
 | 12 | True  | id | False | []   | True  | True  | 0        | 0       | 1    | 1   |
 | 13 | True  | id | False | []   | True  | True  | 720      | 720     | 2    | 1   |
+| 14 | True  | id | False | []   | True  | True  | 720      | 720     | 4    | 1   |
 
 ### Description
 
@@ -53,3 +54,4 @@ ensuring that they do not clutter the version control system.
 * `11` - model with variables forming a cycle (real estate mortgage)
 * `12` - model in which runplan is used
 * `13` - model with array variable (`@variable(array=True)`)
+* `14` - model that uses `discount()`

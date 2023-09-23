@@ -206,6 +206,18 @@ def check_dev_model_13():
     basic_check("dev_model_13")
 
 
+def check_dev_model_14():
+    basic_check("dev_model_14")
+
+    print("Check 3: There are no difference between two approaches to PV calculation.", end=" ")
+    output_files = [f for f in os.listdir("dev_model_14/output") if f.endswith("output.csv")]
+    last_output_file = output_files[-1]
+    last_output = pd.read_csv(f"dev_model_14/output/{last_output_file}")
+    diff = (last_output["present_value1"] - last_output["present_value2"]).sum()
+    assert abs(diff) < 0.1
+    print("OK")
+
+
 if __name__ == "__main__":
     check_dev_model_00()
     check_dev_model_01()
@@ -221,4 +233,5 @@ if __name__ == "__main__":
     check_dev_model_11()
     check_dev_model_12()
     check_dev_model_13()
+    check_dev_model_14()
     print("\nFinished! All checks completed successfully.")
