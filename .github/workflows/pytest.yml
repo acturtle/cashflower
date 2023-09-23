@@ -34,7 +34,7 @@ jobs:
 
     - name: Install our package
       run: | 
-        rm -rf build/ dist/
+        python -m pip install Cython
         python -m pip install -e .
 
     - name: Automated tests
