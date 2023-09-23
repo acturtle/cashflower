@@ -1,12 +1,26 @@
-from cashflower import variable
-from input import assumption, main, runplan
+from cashflower import discount, variable
+from input import assumption
+from settings import settings
 
 
 @variable()
-def projection_year(t):
-    if t == 0:
-        return 0
-    elif t % 12 == 1:
-        return projection_year(t - 1) + 1
+def payment(t):
+    return int(assumption["payment"].get_value(str(t), "value"))
+
+
+@variable()
+def discount_rate(t):
+    return float(assumption["discount_rate"].get_value(str(t), "value"))
+
+
+@variable()
+def present_value1(t):
+    if t == settings["T_MAX_CALCULATION"]:
+        return payment(t)
     else:
-        return projection_year(t - 1)
+        return payment(t) + present_value1(t+1) * discount_rate(t+1)
+
+
+@variable(array=True)
+def present_value2():
+    return discount(payment(), discount_rate())
