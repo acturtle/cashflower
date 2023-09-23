@@ -24,13 +24,18 @@ jobs:
     - name: Activate virtual environment
       run: source venv/bin/activate
 
+    - name: Upgrade pip
+      run: pip install --upgrade pip
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install -r requirements.txt
 
-    - name: Install package
-      run: python -m pip install -e .
+    - name: Install our package
+      run: | 
+        rm -rf build/ dist/
+        python -m pip install -e .
 
     - name: Automated tests
       run: |
