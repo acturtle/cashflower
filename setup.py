@@ -1,5 +1,5 @@
-from Cython.Build import cythonize
 from setuptools import setup, find_packages, Extension
+from Cython.Build import cythonize
 from pathlib import Path
 import numpy as np
 
