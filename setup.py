@@ -8,8 +8,8 @@ this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
 extensions = [
-    Extension(name="cashflower.cython_code.discount",
-              sources=["cashflower/cython_code/discount.pyx"],
+    Extension(name="cashflower.cython.discount",
+              sources=["cashflower/cython/discount.pyx"],
               include_dirs=[np.get_include()]),
 ]
 

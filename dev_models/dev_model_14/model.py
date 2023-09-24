@@ -1,4 +1,4 @@
-from cashflower import discount, variable
+from cashflower import cython, variable
 from input import assumption
 from settings import settings
 
@@ -23,4 +23,4 @@ def present_value1(t):
 
 @variable(array=True)
 def present_value2():
-    return discount(cash_flows=payment(), discount_rates=discount_rate())
+    return cython(cash_flows=payment(), discount_rates=discount_rate())
