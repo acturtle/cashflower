@@ -27,6 +27,9 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     name="cashflower",
+    package_data={
+            'cashflower': ["cython/discount.pyx"],
+    },
     packages=find_packages(include=["cashflower", "cashflower.*"]),
     project_urls={
         'Source': 'https://github.com/acturtle/cashflower',
