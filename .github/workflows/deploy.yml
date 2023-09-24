@@ -39,7 +39,7 @@ jobs:
       run: python setup.py build_ext --inplace
 
     - name: Build package
-      run: python setup.py sdist bdist_wheel
+      run: python -m build
 
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@release/v1
