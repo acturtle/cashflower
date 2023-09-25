@@ -1,3 +1,6 @@
 [build-system]
 requires = ["setuptools >= 46.4.0", "wheel >= 0.34.2", "Cython", "numpy"]
 build-backend = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+before-build = "pip install numpy -C-Dallow-noblas=true"
