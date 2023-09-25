@@ -3,7 +3,26 @@ name: build_deploy
 on: [push, pull_request]
 
 jobs:
+  build_extension:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ 3.9 ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Build Cython extensions
+        run: python setup.py build_ext --inplace
+
   build_wheels:
+    needs: build_extension
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -21,6 +40,7 @@ jobs:
           path: ./wheelhouse/*.whl
 
   make_sdist:
+    needs: build_extension
     name: Make SDist
     runs-on: ubuntu-latest
     steps:
