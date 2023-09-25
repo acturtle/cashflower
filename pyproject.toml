@@ -5,5 +5,4 @@ build-backend = "setuptools.build_meta"
 [tool.cibuildwheel]
 # ../../numpy/meson.build:207:4: ERROR: Problem encountered: No BLAS library detected!
 # Install one, or use the `allow-noblas` build option (note, this may be up to 100x slower for some linear algebra operations).
-skip = "pp310-manylinux_x86_64"
-skip = "cp39-manylinux_i686"
+skip = ["pp310-manylinux_x86_64", "cp39-manylinux_i686"]
