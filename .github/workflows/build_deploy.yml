@@ -26,6 +26,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install dependencies
+        run: |
+          python -m pip install Cython
+          python -m pip install numpy
+
       - name: Build SDist
         run: python setup.py sdist
 
