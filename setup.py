@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 
 
+# Display README on PyPI page
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
