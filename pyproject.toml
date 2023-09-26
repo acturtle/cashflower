@@ -11,4 +11,5 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
-skip = "pp* *_i686"
+#skip = "pp* *_i686"
+skip = "pp* *_i686 cp310* cp311* cp312*"

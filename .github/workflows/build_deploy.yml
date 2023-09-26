@@ -89,6 +89,9 @@ jobs:
           name: artifact
           path: dist
 
+      - name: Show tree content [DEBUG]
+        run: tree
+
       - name: Publish distribution 📦 to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
