@@ -1,6 +1,8 @@
 name: build_deploy
 
-on: [release]
+on:
+  release:
+    types: [published]
 
 jobs:
   build_extension:
