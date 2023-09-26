@@ -3,7 +3,7 @@ name: pytest
 on: [push]
 
 jobs:
-  lint-and-test:
+  unit-tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
