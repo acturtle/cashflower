@@ -21,30 +21,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip --upgrade setuptools
+          python -m pip install --upgrade setuptools
           python -m pip install Cython
           python -m pip install numpy
 
       - name: Build Cython extensions
         run: python setup.py build_ext --inplace
-
-  build_wheels:
-    needs: build_extension
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-20.04, windows-2019, macos-11]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.0
-
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
 
   make_sdist:
     needs: build_extension
@@ -55,6 +37,8 @@ jobs:
 
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade setuptools
           python -m pip install Cython
           python -m pip install numpy
 
@@ -64,6 +48,31 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: dist/*.tar.gz
+
+  build_wheels:
+    needs: make_sdist
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, windows-2019, macos-11]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade setuptools
+          python -m pip install Cython
+          python -m pip install numpy
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.16.0
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
 
   publish-to-testpypi:
     needs: [ build_wheels, make_sdist ]
