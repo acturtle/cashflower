@@ -77,7 +77,7 @@ jobs:
     needs: [ build_wheels, make_sdist ]
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/<package-name>
+      url: https://test.pypi.org/p/cashflower
     permissions:
       id-token: write
     runs-on: ubuntu-latest
