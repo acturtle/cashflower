@@ -2,7 +2,7 @@ import pytest
 
 from unittest import TestCase
 
-from cashflower.cashflow import *
+from cashflower.core import *
 from cashflower.start import *
 
 

@@ -1,4 +1,4 @@
-from .cashflow import *
+from .core import *
 from .error import *
 from .graph import *
 from .reader import *

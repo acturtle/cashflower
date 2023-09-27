@@ -10,7 +10,7 @@ import os
 import pandas as pd
 import shutil
 
-from .cashflow import ArrayVariable, Model, ModelPointSet, Runplan, Variable
+from .core import ArrayVariable, Model, ModelPointSet, Runplan, Variable
 from .error import CashflowModelError
 from .graph import get_calc_direction, get_calls, get_predecessors
 from .utils import get_git_commit_number, get_object_by_name, print_log, save_log_to_file
