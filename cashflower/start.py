@@ -117,7 +117,6 @@ def prepare_model_input(settings, argv):
     # User can provide runplan version in CLI command
     if runplan is not None and len(argv) > 1:
         runplan.version = argv[1]
-    print_log(f"Runplan version: {runplan.version}", show_time=False)
 
     return runplan, model_point_sets, variables
 
@@ -208,7 +207,8 @@ def start_single_core(settings, argv):
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
-    # Log number of model points
+    # Log runplan version and number of model points
+    print_log(f"Runplan version: {runplan.version}", show_time=False)
     main = get_object_by_name(model_point_sets, "main")
     print_log(f"Number of model points: {len(main)}", show_time=False)
 
@@ -229,7 +229,8 @@ def start_multiprocessing(part, settings, argv):
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
-    # Log number of model points
+    # Log runplan version and number of model points
+    print_log(f"Runplan version: {runplan.version}", show_time=False, visible=show_log)
     main = get_object_by_name(model_point_sets, "main")
     print_log(f"Number of model points: {len(main)}", show_time=False, visible=show_log)
     print_log(f"Multiprocessing on {cpu_count} cores", show_time=False, visible=show_log)
