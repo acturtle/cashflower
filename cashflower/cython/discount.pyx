@@ -11,7 +11,6 @@ cpdef np.ndarray[double] discount(np.ndarray[double] cash_flows, np.ndarray[doub
     cdef int n2 = discount_rates.shape[0]
     cdef np.ndarray[double] result = np.empty(n1)
 
-    # The length of both array must be the same
     if n1 != n2:
         raise ValueError("Arrays must have the same length.")
 
