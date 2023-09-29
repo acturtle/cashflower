@@ -55,3 +55,4 @@ ensuring that they do not clutter the version control system.
 * `12` - model in which runplan is used
 * `13` - model with array variable (`@variable(array=True)`)
 * `14` - model that uses `discount()`
+* `99` - "special" model for testing memory limits

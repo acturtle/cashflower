@@ -3,7 +3,7 @@ import pytest
 
 from unittest import TestCase
 
-from cashflower.cashflow import CashflowModelError, Model, ModelPointSet, Runplan, variable, Variable
+from cashflower.core import CashflowModelError, ModelPointSet, Runplan, variable, Variable
 from cashflower.start import load_settings
 
 

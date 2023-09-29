@@ -10,7 +10,7 @@ import os
 import pandas as pd
 import shutil
 
-from .cashflow import ArrayVariable, Model, ModelPointSet, Runplan, Variable
+from .core import ArrayVariable, Model, ModelPointSet, Runplan, Variable
 from .error import CashflowModelError
 from .graph import get_calc_direction, get_calls, get_predecessors
 from .utils import get_git_commit_number, get_object_by_name, print_log, save_log_to_file
@@ -117,7 +117,6 @@ def prepare_model_input(settings, argv):
     # User can provide runplan version in CLI command
     if runplan is not None and len(argv) > 1:
         runplan.version = argv[1]
-    print_log(f"Runplan version: {runplan.version}", show_time=False)
 
     return runplan, model_point_sets, variables
 
@@ -208,7 +207,8 @@ def start_single_core(settings, argv):
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
-    # Log number of model points
+    # Log runplan version and number of model points
+    print_log(f"Runplan version: {runplan.version}", show_time=False)
     main = get_object_by_name(model_point_sets, "main")
     print_log(f"Number of model points: {len(main)}", show_time=False)
 
@@ -229,7 +229,8 @@ def start_multiprocessing(part, settings, argv):
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
-    # Log number of model points
+    # Log runplan version and number of model points
+    print_log(f"Runplan version: {runplan.version}", show_time=False, visible=show_log)
     main = get_object_by_name(model_point_sets, "main")
     print_log(f"Number of model points: {len(main)}", show_time=False, visible=show_log)
     print_log(f"Multiprocessing on {cpu_count} cores", show_time=False, visible=show_log)
@@ -246,18 +247,18 @@ def start_multiprocessing(part, settings, argv):
     return part_output, part_runtime
 
 
-def merge_part_model_outputs(part_model_outputs, settings):
+def merge_part_outputs(part_outputs, settings):
     """Merge outputs from multiprocessing and save to files."""
     # Nones are returned, when number of policies < number of cpus
-    part_model_outputs = [pmo for pmo in part_model_outputs if pmo is not None]
+    part_outputs = [po for po in part_outputs if po is not None]
 
     # Merge or concatenate outputs into one
     if settings["AGGREGATE"] is False:
-        model_output = pd.concat(part_model_outputs)
+        output = pd.concat(part_outputs)
     else:
-        model_output = functools.reduce(lambda x, y: x.add(y, fill_value=0), part_model_outputs)
+        output = functools.reduce(lambda x, y: x.add(y, fill_value=0), part_outputs)
 
-    return model_output
+    return output
 
 
 def merge_part_diagnostic(part_diagnostic):
@@ -308,8 +309,8 @@ def start(settings, argv):
             parts = pool.map(p, range(cpu_count))
 
         # Merge model outputs
-        part_model_outputs = [p[0] for p in parts]
-        output = merge_part_model_outputs(part_model_outputs, settings)
+        part_outputs = [p[0] for p in parts]
+        output = merge_part_outputs(part_outputs, settings)
 
         # Merge runtimes
         if settings["SAVE_DIAGNOSTIC"]:
