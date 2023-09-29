@@ -247,18 +247,18 @@ def start_multiprocessing(part, settings, argv):
     return part_output, part_runtime
 
 
-def merge_part_model_outputs(part_model_outputs, settings):
+def merge_part_outputs(part_outputs, settings):
     """Merge outputs from multiprocessing and save to files."""
     # Nones are returned, when number of policies < number of cpus
-    part_model_outputs = [pmo for pmo in part_model_outputs if pmo is not None]
+    part_outputs = [po for po in part_outputs if po is not None]
 
     # Merge or concatenate outputs into one
     if settings["AGGREGATE"] is False:
-        model_output = pd.concat(part_model_outputs)
+        output = pd.concat(part_outputs)
     else:
-        model_output = functools.reduce(lambda x, y: x.add(y, fill_value=0), part_model_outputs)
+        output = functools.reduce(lambda x, y: x.add(y, fill_value=0), part_outputs)
 
-    return model_output
+    return output
 
 
 def merge_part_diagnostic(part_diagnostic):
@@ -309,8 +309,8 @@ def start(settings, argv):
             parts = pool.map(p, range(cpu_count))
 
         # Merge model outputs
-        part_model_outputs = [p[0] for p in parts]
-        output = merge_part_model_outputs(part_model_outputs, settings)
+        part_outputs = [p[0] for p in parts]
+        output = merge_part_outputs(part_outputs, settings)
 
         # Merge runtimes
         if settings["SAVE_DIAGNOSTIC"]:
