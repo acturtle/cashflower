@@ -4,39 +4,80 @@ Developer guide
 Overview
 --------
 
-The code in the cashflower package helps to transform the formulas defined by the user into the output reports.
+The repository of the :code:`cashflower` package follows this structure:
+
+.. code-block::
+
+    .
+    ├── .github/
+    │   └── workflows/
+    │       ├── deploy.yml
+    │       └── pytest.yml
+    ├── cashflower/
+    │   ├── model_tpl/           # Template for the cash flow model's structure (for users)
+    │   ├── __init__.py
+    │   ├── cashflow.py          # Main logic for cash flow models
+    │   ├── error.py             # Custom error definitions
+    │   ├── graph.py             # Dependency graph creation
+    │   ├── reader.py            # CSV file reader class
+    │   ├── start.py             # Entry point and model initialization
+    │   └── utils.py             # Utility functions
+    ├── dev_models/              # Fully-functioning models for development checks
+    ├── docs/                    # Documentation files
+    ├── tests/                   # Unit tests
+    ├── tutorials/               # Tutorials and guides
+    ├── .gitignore               # Ignored files for version control
+    ├── .readthedocs.yaml        # Configuration for ReadTheDocs platform
+    ├── LICENSE                  # License information
+    ├── MANIFEST.in              # Specifies non-python files for packaging
+    ├── pyproject.toml           # Configuration settings for build system and tools
+    ├── README.md                # Main repository README
+    ├── requirements.txt         # Required Python packages for developers
+    └── setup.py                 # Main setup file for package building
+
+
+In this section, we'll briefly describe the purpose of each file and folder.
 
 |
 
-**start.py**
+Package source
+^^^^^^^^^^^^^^
 
-As a first step, the user needs to create a model. The :code:`create_model()` function copies template files
-from the :code:`model_tpl` folder and replaces parts that require a model name.
+The :code:`cashflower` folder contains the core package source code. Here are the key files:
 
-Once the user has populated files with the formulas, the model gets started using code in the :code:`start.py` script.
-
-The :code:`start()` function gathers all components of the model:
-    * settings from :code:`settings.py`,
-    * model point sets and runplan from :code:`input.py`,
-    * model variables and constants from :code:`model.py`.
-
-After that, it creates the instance of the :code:`Model` class which is used to calculate and save the results.
+- :code:`cashflow.py` - contains the main logic for cash flow models,
+- :code:`error.py` - defines custom error class,
+- :code:`graph.py` - handles dependency graph creation for model variables and calculation order,
+- :code:`reader.py` - provides a class for reading CSV files,
+- :code:`start.py` - serves as the entry point for the package, initializing components and creating Model instances,
+- :code:`utils.py` - contains utility functions.
 
 |
 
-**core.py**
+Supporting files
+^^^^^^^^^^^^^^^^
 
-The :code:`core.py` script contains the classes for all the main objects, such as:
-    * :code:`Runplan`,
-    * :code:`ModelPointSet`,
-    * :code:`Variable`,
-    * :code:`Model`.
+Supporting files are categorized into testing, documentation, and configuration:
 
-The model object that has been created in the :code:`start.py` script creates a queue of model variables
-in a way that there are no calculation conflicts.
-After that, it iterates over each policy and calculates results for all of the components.
+**Testing:**
 
-Once the calculation is complete, the results are saved to the flat files with comma separated values.
+- :code:`tests` - contains unit tests,
+- :code:`dev_models` - fully-functioning models for development checks.
+
+**Documentation:**
+
+- :code:`docs` - stores documentation files,
+- :code:`README.md` - the main README file displayed on the repository's main page.
+
+**Configuration:**
+
+- :code:`setup.py` - the primary setup file for building the package,
+- :code:`pyproject.toml` - configuration settings for build systems and tools,
+- :code:`.github/workflows` - contains GitHub workflows that are automatically triggered,
+- :code:`.gitignore` - lists files to be ignored by version control,
+- :code:`.readthedocs.yaml` - configuration for the ReadTheDocs platform.
+- :code:`requirements.txt` - lists Python packages required for developers of the package.
+- :code:`MANIFEST.in` - specifies non-Python files to include in the package that might be ignored by packaging tools.
 
 |
 
