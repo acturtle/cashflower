@@ -1,3 +1,4 @@
 include LICENSE
 include README.md
+include cashflower/data/illustrative_life_table.csv
 graft cashflower/model_tpl
