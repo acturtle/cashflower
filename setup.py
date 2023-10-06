@@ -29,7 +29,7 @@ setup(
     long_description_content_type="text/markdown",
     name="cashflower",
     package_data={
-            'cashflower': ["cython/discount.pyx"],
+            'cashflower': ["cython/discount.pyx", "data/illustrative_life_table.csv"],
     },
     packages=find_packages(include=["cashflower", "cashflower.*"]),
     project_urls={
