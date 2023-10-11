@@ -326,7 +326,7 @@ class Model:
         batch_start, batch_end = range_start, min(range_start + batch_size, range_end)
 
         # Aggregate all model points (without grouping)
-        if self.settings["GROUP_BY"] is None:
+        if self.settings["GROUP_BY_COLUMN"] is None:
             results = 0
 
             # Calculate batches iteratively
@@ -345,16 +345,16 @@ class Model:
         else:
             main = get_object_by_name(self.model_point_sets, "main")
             group_sums = collections.defaultdict(int)
-            group_by = self.settings["GROUP_BY"]
-            if group_by not in main.data.columns:
-                msg = (f"There is no column '{group_by}' in the main model point set. "
-                       f"Please review the 'GROUP_BY' setting.")
+            group_by_column = self.settings["GROUP_BY_COLUMN"]
+            if group_by_column not in main.data.columns:
+                msg = (f"There is no column '{group_by_column}' in the 'main' model point set. "
+                       f"Please review the 'GROUP_BY_COLUMN' setting.")
                 raise CashflowModelError(msg)
 
             # Calculate batches iteratively
             while batch_start < range_end:
                 lst = [*map(p, range(batch_start, batch_end))]  # list of mp_results
-                groups = main.data.iloc[batch_start:batch_end][group_by].tolist()
+                groups = main.data.iloc[batch_start:batch_end][group_by_column].tolist()
                 for value, group in zip(lst, groups):
                     group_sums[group] += value
                 batch_start = batch_end
@@ -365,7 +365,7 @@ class Model:
             lst_dfs = []
             for group, data in group_sums.items():
                 group_df = pd.DataFrame(data=np.transpose(data), columns=output_columns)
-                group_df.insert(0, group_by, group)
+                group_df.insert(0, group_by_column, group)
                 lst_dfs.append(group_df)
             output = pd.concat(lst_dfs, ignore_index=True)
 
