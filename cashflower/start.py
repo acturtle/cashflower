@@ -26,6 +26,7 @@ def load_settings(settings=None):
     """Add missing settings."""
     initial_settings = {
         "AGGREGATE": True,
+        "GROUP_BY": None,
         "MULTIPROCESSING": False,
         "OUTPUT_COLUMNS": [],
         "ID_COLUMN": "id",

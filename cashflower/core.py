@@ -345,11 +345,16 @@ class Model:
         else:
             main = get_object_by_name(self.model_point_sets, "main")
             group_sums = collections.defaultdict(int)
+            group_by = self.settings["GROUP_BY"]
+            if group_by not in main.data.columns:
+                msg = (f"There is no column '{group_by}' in the main model point set. "
+                       f"Please review the 'GROUP_BY' setting.")
+                raise CashflowModelError(msg)
 
             # Calculate batches iteratively
             while batch_start < range_end:
                 lst = [*map(p, range(batch_start, batch_end))]  # list of mp_results
-                groups = main.data.iloc[batch_start:batch_end][self.settings["GROUP_BY"]].tolist()
+                groups = main.data.iloc[batch_start:batch_end][group_by].tolist()
                 for value, group in zip(lst, groups):
                     group_sums[group] += value
                 batch_start = batch_end
@@ -360,7 +365,7 @@ class Model:
             lst_dfs = []
             for group, data in group_sums.items():
                 group_df = pd.DataFrame(data=np.transpose(data), columns=output_columns)
-                group_df.insert(0, self.settings["GROUP_BY"], group)
+                group_df.insert(0, group_by, group)
                 lst_dfs.append(group_df)
             output = pd.concat(lst_dfs, ignore_index=True)
 
@@ -466,7 +471,5 @@ class Model:
         # Update progressbar
         if one_core:
             updt(progressbar_max, row + 1)
-
-        print(mp_results)
 
         return mp_results
