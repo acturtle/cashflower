@@ -37,7 +37,7 @@ Aggregated output
 You can create aggregated output by setting the :code:`AGGREGATE` option to :code:`True`, which is the default setting.
 
 .. code-block:: python
-   :caption: setting.py
+   :caption: settings.py
 
    settings = {
        ...
