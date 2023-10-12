@@ -286,7 +286,7 @@ class Model:
             range_start, range_end = main_ranges[part]
 
         # Perform calculations
-        print_log("Starting calculations...", visible=one_core)
+        print_log("Starting calculations...", show_time=True, visible=one_core)
         if self.settings["AGGREGATE"]:
             output = self.compute_aggregated_results(range_start, range_end, one_core)
         else:
@@ -337,19 +337,20 @@ class Model:
                 batch_end = min(batch_end+batch_size, range_end)
 
             # Prepare the 'output' data frame
-            print_log("Preparing output...", visible=one_core)
+            print_log("Preparing output...", show_time=True, visible=one_core)
             results = np.transpose(results)
             output = pd.DataFrame(data=results, columns=output_columns)
 
         # Aggregate by groups
         else:
             main = get_object_by_name(self.model_point_sets, "main")
-            group_sums = collections.defaultdict(int)
             group_by_column = self.settings["GROUP_BY_COLUMN"]
             if group_by_column not in main.data.columns:
                 msg = (f"There is no column '{group_by_column}' in the 'main' model point set. "
                        f"Please review the 'GROUP_BY_COLUMN' setting.")
                 raise CashflowModelError(msg)
+            unique_groups = main.data[group_by_column].unique()
+            group_sums = {group: np.array([np.zeros(t) for _ in range(v)]) for group in unique_groups}
 
             # Calculate batches iteratively
             while batch_start < range_end:
@@ -361,7 +362,7 @@ class Model:
                 batch_end = min(batch_end+batch_size, range_end)
 
             # Prepare the 'output' data frame
-            print_log("Preparing output...", visible=one_core)
+            print_log("Preparing output...", show_time=True, visible=one_core)
             lst_dfs = []
             for group, data in group_sums.items():
                 group_df = pd.DataFrame(data=np.transpose(data), columns=output_columns)
@@ -407,7 +408,7 @@ class Model:
             output_columns = self.settings["OUTPUT_COLUMNS"]
 
         # Prepare the 'output' data frame
-        print_log("Preparing output...", visible=one_core)
+        print_log("Preparing output...", show_time=True, visible=one_core)
         total_data = [pd.DataFrame(np.transpose(arr)) for arr in results]
         output = pd.concat(total_data)
         output.columns = output_columns

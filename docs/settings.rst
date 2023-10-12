@@ -17,10 +17,14 @@ The table below summarizes available settings.
      - :code:`True` / :code:`False`
      - :code:`True`
      - Flag indicating whether results should be aggregated.
+   * - GROUP_BY_COLUMN
+     - a string
+     - :code:`None`
+     - The column in the 'main' model point set to group aggregated results.
    * - ID_COLUMN
      - a string
      - :code:`id`
-     - The name of the column containing identifiers of the model points.
+     - The column in the 'main' model point set containing identifiers of the model points.
    * - MULTIPROCESSING
      - :code:`True` / :code:`False`
      - :code:`False`
@@ -51,7 +55,7 @@ The table below summarizes available settings.
      - The maximal month for output file.
 
 
-Aggregate
+AGGREGATE
 ---------
 
 The :code:`AGGREGATE` setting is a flag if the results should be aggregated for model points.
@@ -90,15 +94,64 @@ If the AGGREGATE setting is set to :code:`True`, the results will be aggregated:
 
 There is only one set of results which is the sum of all results.
 
-Aggregated results make sense for some but not for all variables.
-You can choose the relevant output columns in the :code:`OUTPUT_COLUMNS` setting.
+|
 
-.. WARNING::
-   Aggregated results for some variables may not make sense.
+GROUP_BY_COLUMN
+---------------
+
+
+The :code:`GROUP_BY_COLUMN` setting is used to specify the column for grouping the aggregated results.
+By default, this setting is configured as :code:`None`, which means that results are aggregated for all model points without grouping.
+
+When you specify a column from the 'main' model point set that defines groups, the results will be grouped based on the values in this attribute.
+
+For instance, if you want to group the results by the :code:`product_code`, you can set the :code:`GROUP_BY_COLUMN`
+in your configuration file, :code:`settings.py`, as follows:
+
+..  code-block:: python
+    :caption: settings.py
+
+    settings = {
+        ...
+        "GROUP_BY_COLUMN": "product_code",
+        ...
+    }
 
 |
 
-ID column
+Ensure that there is a corresponding column in your 'main' model point set, as shown in :code:`input.py`:
+
+..  code-block:: python
+    :caption: input.py
+
+    main = ModelPointSet(data=pd.DataFrame({
+        "id": [1, 2, 3],
+        "product_code": ["A", "B", "A"]
+    }))
+
+|
+
+The resulting output will contain aggregated results grouped by the specified column, as demonstrated in the following CSV output:
+
+..  code-block::
+    :caption: <timestamp>_output.csv
+
+    t,product_code,fund_value
+    0,A,24000
+    1,A,24048
+    2,A,24096.1
+    3,A,24144.29
+    0,B,3000
+    1,B,3006
+    2,B,3012.01
+    3,B,3018.03
+
+
+By setting the :code:`GROUP_BY_COLUMN` appropriately, you can conveniently aggregate and group your results according to your specific needs.
+
+|
+
+ID_COLUMN
 ---------
 
 Each model point must have a column with a key column used for identification.
@@ -156,7 +209,7 @@ The model point must have a column with this name.
 
 |
 
-Multiprocessing
+MULTIPROCESSING
 ---------------
 
 By default, the model is evaluated for each model point one after another in a linear process.
@@ -175,7 +228,7 @@ For the development phase, it is recommended to use single core.
 
 |
 
-Output columns
+OUTPUT_COLUMNS
 --------------
 
 By default, the model outputs all variables.
@@ -255,7 +308,7 @@ Only the chosen columns are in the output.
 
 |
 
-Save diagnostic
+SAVE_DIAGNOSTIC
 ---------------
 
 The :code:`SAVE_DIAGNOSTIC` setting is a boolean flag that determines whether the model should save diagnostic information.
@@ -302,7 +355,7 @@ Using the diagnostic file is helpful for understanding and improving the model's
 
 |
 
-Save log
+SAVE_LOG
 --------
 
 The :code:`SAVE_LOG` setting is a boolean flag that controls whether the model should save its log to a file.
@@ -366,7 +419,7 @@ Here is an example of the content of the log file (:code:`<timestamp>_log.txt`):
 The log file is a valuable resource for understanding the model's execution flow and can be particularly useful for
 diagnosing issues or reviewing the model's behavior at a later time.
 
-Save output
+SAVE_OUTPUT
 -----------
 
 The :code:`SAVE_OUTPUT` setting is a boolean flag that determines whether the model should save its results to a file.
@@ -418,8 +471,8 @@ You can leverage this feature to tailor the output to your specific needs or fur
 
 |
 
-Maximal calculation time
-------------------------
+T_MAX_CALCULATION
+-----------------
 
 The :code:`T_MAX_CALCULATION` is the maximal month of the calculation.
 
@@ -429,8 +482,8 @@ By default, the setting is set to :code:`720` months (:code:`60` years).
 
 |
 
-Maximal output time
--------------------
+T_MAX_OUTPUT
+------------
 
 The :code:`T_MAX_OUTPUT` is the maximal month in the output file.
 

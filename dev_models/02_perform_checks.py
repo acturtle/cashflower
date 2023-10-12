@@ -40,7 +40,7 @@ def basic_check(model_name):
 
 def check_dev_model_00():
     """Check creating a new model from scratch."""
-    model_name = "dev_model_00"
+    model_name = "dev_model_delete_me"
     create_model(model_name)
     os.chdir(model_name)
 
@@ -218,6 +218,10 @@ def check_dev_model_14():
     print("OK")
 
 
+def check_dev_model_15():
+    basic_check("dev_model_15")
+
+
 if __name__ == "__main__":
     check_dev_model_00()
     check_dev_model_01()
@@ -234,4 +238,5 @@ if __name__ == "__main__":
     check_dev_model_12()
     check_dev_model_13()
     check_dev_model_14()
+    check_dev_model_15()
     print("\nFinished! All checks completed successfully.")
