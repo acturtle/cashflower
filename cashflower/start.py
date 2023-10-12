@@ -26,9 +26,10 @@ def load_settings(settings=None):
     """Add missing settings."""
     initial_settings = {
         "AGGREGATE": True,
+        "GROUP_BY_COLUMN": None,
+        "ID_COLUMN": "id",
         "MULTIPROCESSING": False,
         "OUTPUT_COLUMNS": [],
-        "ID_COLUMN": "id",
         "SAVE_DIAGNOSTIC": True,
         "SAVE_LOG": True,
         "SAVE_OUTPUT": True,
@@ -202,15 +203,15 @@ def resolve_calculation_order(variables, output_columns):
 def start_single_core(settings, argv):
     """Create and run a cash flow model."""
     # Prepare model components
-    print_log("Reading model components...")
+    print_log("Reading model components...", show_time=True)
     runplan, model_point_sets, variables = prepare_model_input(settings, argv)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
     # Log runplan version and number of model points
-    print_log(f"Runplan version: {runplan.version}", show_time=False)
+    print_log(f"Runplan version: {runplan.version}")
     main = get_object_by_name(model_point_sets, "main")
-    print_log(f"Number of model points: {len(main)}", show_time=False)
+    print_log(f"Number of model points: {len(main)}")
 
     # Run model on single core
     model = Model(variables, model_point_sets, settings)
@@ -221,20 +222,20 @@ def start_single_core(settings, argv):
 def start_multiprocessing(part, settings, argv):
     """Run subset of the model points using multiprocessing."""
     cpu_count = multiprocessing.cpu_count()
-    show_log = part == 0
+    one_core = part == 0
 
     # Prepare model components
-    print_log("Reading model components...", visible=show_log)
+    print_log("Reading model components...", show_time=True, visible=one_core)
     runplan, model_point_sets, variables = prepare_model_input(settings, argv)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
     # Log runplan version and number of model points
-    print_log(f"Runplan version: {runplan.version}", show_time=False, visible=show_log)
+    print_log(f"Runplan version: {runplan.version}", visible=one_core)
     main = get_object_by_name(model_point_sets, "main")
-    print_log(f"Number of model points: {len(main)}", show_time=False, visible=show_log)
-    print_log(f"Multiprocessing on {cpu_count} cores", show_time=False, visible=show_log)
-    print_log(f"Calculation of ca. {len(main) // cpu_count} model points per core", show_time=False, visible=show_log)
+    print_log(f"Number of model points: {len(main)}", visible=one_core)
+    print_log(f"Multiprocessing on {cpu_count} cores", visible=one_core)
+    print_log(f"Calculation of ca. {len(main) // cpu_count} model points per core", visible=one_core)
 
     # Run model on multiple cores
     model = Model(variables, model_point_sets, settings)
@@ -253,10 +254,13 @@ def merge_part_outputs(part_outputs, settings):
     part_outputs = [po for po in part_outputs if po is not None]
 
     # Merge or concatenate outputs into one
-    if settings["AGGREGATE"] is False:
-        output = pd.concat(part_outputs)
-    else:
+    if settings["AGGREGATE"]:
         output = functools.reduce(lambda x, y: x.add(y, fill_value=0), part_outputs)
+        if settings["GROUP_BY_COLUMN"] is not None:
+            # group_by_column should not be added up
+            output[settings["GROUP_BY_COLUMN"]] = part_outputs[0][settings["GROUP_BY_COLUMN"]]
+    else:
+        output = pd.concat(part_outputs)
 
     return output
 
@@ -283,19 +287,19 @@ def start(settings, argv):
     output, diagnostic = None, None
 
     # Start log
-    print_log(f"Model: '{os.path.basename(path)}'")
-    print_log(f"User: '{getpass.getuser()}'", show_time=False)
-    print_log(f"Path: {path}", show_time=False)
-    print_log(f"Timestamp: {timestamp}", show_time=False)
+    print_log(f"Model: '{os.path.basename(path)}'", show_time=True)
+    print_log(f"User: '{getpass.getuser()}'")
+    print_log(f"Path: {path}")
+    print_log(f"Timestamp: {timestamp}")
     commit = get_git_commit_number()
     if commit is not None:
-        print_log(f"Git commit: {commit}", show_time=False)
-    print_log("", show_time=False)
-    print_log("Settings:", show_time=False)
+        print_log(f"Git commit: {commit}")
+    print_log("")
+    print_log("Settings:")
     for key, value in settings.items():
         msg = f"- {key}: {value}"
-        print_log(msg, show_time=False)
-    print_log("", show_time=False)
+        print_log(msg)
+    print_log("")
 
     # Run on single core
     if not settings["MULTIPROCESSING"]:
@@ -320,8 +324,8 @@ def start(settings, argv):
     # Add time column
     values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output.shape[0] / (settings["T_MAX_OUTPUT"]+1))
     output.insert(0, "t", values)
-    print_log("Finished!")
-    print_log("", show_time=False)
+    print_log("Finished!", show_time=True)
+    print_log("")
 
     # Save to csv files
     if settings["SAVE_OUTPUT"] or settings["SAVE_DIAGNOSTIC"] or settings["SAVE_LOG"]:
@@ -330,17 +334,17 @@ def start(settings, argv):
 
         if settings["SAVE_OUTPUT"]:
             filepath = f"output/{timestamp}_output.csv"
-            print_log(f"Saving output file: {filepath}")
+            print_log(f"Saving output file: {filepath}", show_time=True)
             output.to_csv(filepath, index=False)
 
         if settings["SAVE_DIAGNOSTIC"]:
             filepath = f"output/{timestamp}_diagnostic.csv"
-            print_log(f"Saving diagnostic file: {filepath}")
+            print_log(f"Saving diagnostic file: {filepath}", show_time=True)
             diagnostic.to_csv(filepath, index=False)
 
         if settings["SAVE_LOG"]:
             filepath = f"output/{timestamp}_log.txt"
-            print_log(f"Saving log file: {filepath}")
+            print_log(f"Saving log file: {filepath}", show_time=True)
             save_log_to_file(timestamp)
 
     return output
