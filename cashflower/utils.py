@@ -7,7 +7,7 @@ from datetime import datetime
 log_messages = []
 
 
-def print_log(msg, show_time=True, visible=True):
+def print_log(msg, show_time=False, visible=True):
     """Print a log message with the timestamp and add to global messages to be saved later on."""
     if visible:
         if show_time:

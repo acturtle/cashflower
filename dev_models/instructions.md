@@ -22,22 +22,23 @@ ensuring that they do not clutter the version control system.
 
 ### Configuration
 
-| #  | AGGRE | ID | MULTI | COLS | DIAGN | OUTPU | MAX_CALC | MAX_OUT | VARS | MP  |
-|----|-------|----|-------|------|-------|-------|----------|---------|------|-----|
-| 01 | True  | id | False | []   | True  | True  | 720      | 720     | 1    | 1   |
-| 02 | True  | id | True  | []   | True  | True  | 720      | 720     | 1    | 1   |
-| 03 | True  | id | False | []   | True  | True  | 720      | 720     | 1    | 100 |
-| 04 | True  | id | True  | []   | True  | True  | 720      | 720     | 1    | 100 |
-| 05 | False | id | False | []   | True  | True  | 720      | 720     | 1    | 10  |
-| 06 | True  | mp | False | []   | True  | True  | 720      | 720     | 1    | 10  |
-| 07 | True  | id | False | 1    | True  | True  | 720      | 720     | 8    | 1   |
-| 08 | True  | id | False | []   | False | True  | 720      | 720     | 1    | 1   |
-| 09 | True  | id | False | []   | True  | False | 720      | 720     | 1    | 1   |
-| 10 | True  | id | False | []   | True  | True  | 720      | 720     | 1    | 1   |
-| 11 | True  | id | False | []   | True  | True  | 720      | 720     | 5    | 1   |
-| 12 | True  | id | False | []   | True  | True  | 0        | 0       | 1    | 1   |
-| 13 | True  | id | False | []   | True  | True  | 720      | 720     | 2    | 1   |
-| 14 | True  | id | False | []   | True  | True  | 720      | 720     | 4    | 1   |
+| #  | AGGRE | GROUP | ID | MULTI | COLS | DIAGN | OUTPU | MAX_CALC | MAX_OUT | VARS | MP  |
+|----|-------|-------|----|-------|------|-------|-------|----------|---------|------|-----|
+| 01 | True  | None  | id | False | []   | True  | True  | 720      | 720     | 1    | 1   |
+| 02 | True  | None  | id | True  | []   | True  | True  | 720      | 720     | 1    | 1   |
+| 03 | True  | None  | id | False | []   | True  | True  | 720      | 720     | 1    | 100 |
+| 04 | True  | None  | id | True  | []   | True  | True  | 720      | 720     | 1    | 100 |
+| 05 | False | None  | id | False | []   | True  | True  | 720      | 720     | 1    | 10  |
+| 06 | True  | None  | mp | False | []   | True  | True  | 720      | 720     | 1    | 10  |
+| 07 | True  | None  | id | False | 1    | True  | True  | 720      | 720     | 8    | 1   |
+| 08 | True  | None  | id | False | []   | False | True  | 720      | 720     | 1    | 1   |
+| 09 | True  | None  | id | False | []   | True  | False | 720      | 720     | 1    | 1   |
+| 10 | True  | None  | id | False | []   | True  | True  | 720      | 720     | 1    | 1   |
+| 11 | True  | None  | id | False | []   | True  | True  | 720      | 720     | 5    | 1   |
+| 12 | True  | None  | id | False | []   | True  | True  | 0        | 0       | 1    | 1   |
+| 13 | True  | None  | id | False | []   | True  | True  | 720      | 720     | 2    | 1   |
+| 14 | True  | None  | id | False | []   | True  | True  | 720      | 720     | 4    | 1   |
+| 15 | True  | code  | id | False | []   | True  | True  | 720      | 720     | 1    | 1   |
 
 ### Description
 
@@ -55,4 +56,5 @@ ensuring that they do not clutter the version control system.
 * `12` - model in which runplan is used
 * `13` - model with array variable (`@variable(array=True)`)
 * `14` - model that uses `discount()`
+* `15` - model with results aggregated by groups (`GROUP_BY_COLUMN = 'product_code'`)
 * `99` - "special" model for testing memory limits
