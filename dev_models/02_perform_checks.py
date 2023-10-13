@@ -188,7 +188,7 @@ def check_dev_model_12():
     os.chdir("dev_model_12")
 
     # Run model and save information
-    subprocess.run("python run.py 2", shell=True, check=True)
+    subprocess.run("python run.py --version 2", shell=True, check=True)
     output_files = [f for f in os.listdir("output") if f.endswith("output.csv")]
     last_output_file = output_files[-1]
 
