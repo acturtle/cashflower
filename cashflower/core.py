@@ -153,13 +153,18 @@ class ArrayVariable(Variable):
 
 
 class Runplan:
-    """Runplan of the cash flow model."""
-    def __init__(self, data=None, version="1"):
+    """Runplan of the cash flow model.
+
+    Runplan allows to run the model with different parameters. It is defined in the 'input.py' script.
+
+    The version can be defined either:
+    - during definition of the object in the 'input.py' script,
+    - with command-line arguments (for example: "python run.py --version 3").
+    """
+    def __init__(self, data, version=None):
         self.data = data
-        self.set_empty_data()
-        self._version = version
-        self.set_version_as_str()
-        self.set_index()
+        self.perform_checks()
+        self.set_index(version)
 
     @property
     def version(self):
@@ -167,32 +172,38 @@ class Runplan:
 
     @version.setter
     def version(self, new_version):
-        if new_version not in self.data.index:
-            raise CashflowModelError(f"There is no version '{new_version}' in the Runplan.")
-        self._version = new_version
+        if new_version is not None:
+            new_version = str(new_version)
+            if new_version not in self.data.index:
+                raise CashflowModelError(f"There is no version '{new_version}' in the runplan.")
+            self._version = new_version
 
-    def set_empty_data(self):
-        """Set minimal runplan if not provided by the user."""
-        if self.data is None:
-            self.data = pd.DataFrame({"version": ["1"]})
-
-    def set_version_as_str(self):
-        """Ensure that the 'version' column is a string."""
+    def perform_checks(self):
+        # Runplan must have a "version" column
         if "version" not in self.data.columns:
             raise CashflowModelError("Runplan must have the 'version' column.")
-        else:
-            self.data["version"] = self.data["version"].astype(str)
 
-    def set_index(self):
-        """Set 'version' column as an index of the data frame."""
+        # Version must be unique
+        if not self.data["version"].is_unique:
+            msg = "Runplan must have unique values in the 'version' column."
+            raise CashflowModelError(msg)
+
+    def set_index(self, version):
+        """Version in original form stays as a column, version as a string becomes an index."""
+        self.data["version_duplicate"] = self.data["version"]
+        self.data["version"] = self.data["version"].astype(str)
         self.data = self.data.set_index("version")
+        self.data["version"] = self.data["version_duplicate"]
+        self.data = self.data.drop(columns=["version_duplicate"])
+        if version is None:  # user has not specified version
+            self.version = str(self.data["version"].iloc[0])
+        else:  # user has specified version
+            self.version = str(version)
 
     @functools.lru_cache()
     def get(self, attribute):
         """Get a value from the runplan for the current version."""
-        if attribute not in self.data.columns:
-            raise CashflowModelError(f"There is no column '{attribute}' in the runplan.")
-        return self.data.loc[self.version][attribute]
+        return self.data.at[self.version, attribute]
 
 
 class ModelPointSet:

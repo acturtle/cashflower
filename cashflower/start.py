@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import functools
 import getpass
@@ -56,13 +57,18 @@ def load_settings(settings=None):
     return initial_settings
 
 
-def get_runplan(input_members):
-    """Get runplan object from input.py script."""
+def get_runplan(input_members, version):
+    """Get runplan object from input.py script. Assign version if provided in the CLI command."""
     runplan = None
     for name, item in input_members:
         if isinstance(item, Runplan):
             runplan = item
             break
+
+    # User can provide runplan version in CLI command
+    if runplan is not None and version is not None:
+        runplan.version = version
+
     return runplan
 
 
@@ -101,23 +107,19 @@ def get_variables(model_members, settings):
     return variables
 
 
-def prepare_model_input(settings, argv):
+def prepare_model_input(settings, version):
     """Get input for the cash flow model."""
     input_module = importlib.import_module("input")
     model_module = importlib.import_module("model")
 
     # input.py contains runplan and model point sets
     input_members = inspect.getmembers(input_module)
-    runplan = get_runplan(input_members)
+    runplan = get_runplan(input_members, version)
     model_point_sets, main = get_model_point_sets(input_members, settings)
 
     # model.py contains model variables
     model_members = inspect.getmembers(model_module)
     variables = get_variables(model_members, settings)
-
-    # User can provide runplan version in CLI command
-    if runplan is not None and len(argv) > 1:
-        runplan.version = argv[1]
 
     return runplan, model_point_sets, variables
 
@@ -200,11 +202,11 @@ def resolve_calculation_order(variables, output_columns):
     return variables
 
 
-def start_single_core(settings, argv):
+def start_single_core(settings, version):
     """Create and run a cash flow model."""
     # Prepare model components
     print_log("Reading model components...", show_time=True)
-    runplan, model_point_sets, variables = prepare_model_input(settings, argv)
+    runplan, model_point_sets, variables = prepare_model_input(settings, version)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
@@ -219,14 +221,14 @@ def start_single_core(settings, argv):
     return output, runtime
 
 
-def start_multiprocessing(part, settings, argv):
+def start_multiprocessing(part, settings, version):
     """Run subset of the model points using multiprocessing."""
     cpu_count = multiprocessing.cpu_count()
     one_core = part == 0
 
     # Prepare model components
     print_log("Reading model components...", show_time=True, visible=one_core)
-    runplan, model_point_sets, variables = prepare_model_input(settings, argv)
+    runplan, model_point_sets, variables = prepare_model_input(settings, version)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
@@ -280,16 +282,24 @@ def merge_part_diagnostic(part_diagnostic):
     return runtimes
 
 
-def start(settings, argv):
+def start(settings=None, path=None):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    path = os.path.dirname(os.path.abspath(argv[0]))
     settings = load_settings(settings)
     output, diagnostic = None, None
 
+    # Parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--version", "-v")
+    parser.add_argument("--id", "-i")
+    args = parser.parse_args()
+
     # Start log
-    print_log(f"Model: '{os.path.basename(path)}'", show_time=True)
+    if path is not None:
+        print_log(f"Model: '{os.path.basename(path)}'", show_time=True)
+        print_log(f"Path: {path}")
+    else:
+        print_log("Model", show_time=True)
     print_log(f"User: '{getpass.getuser()}'")
-    print_log(f"Path: {path}")
     print_log(f"Timestamp: {timestamp}")
     commit = get_git_commit_number()
     if commit is not None:
@@ -303,11 +313,11 @@ def start(settings, argv):
 
     # Run on single core
     if not settings["MULTIPROCESSING"]:
-        output, diagnostic = start_single_core(settings, argv)
+        output, diagnostic = start_single_core(settings, version=args.version)
 
     # Run on multiple cores
     if settings["MULTIPROCESSING"]:
-        p = functools.partial(start_multiprocessing, settings=settings, argv=argv)
+        p = functools.partial(start_multiprocessing, settings=settings, version=args.version)
         cpu_count = multiprocessing.cpu_count()
         with multiprocessing.Pool(cpu_count) as pool:
             parts = pool.map(p, range(cpu_count))
