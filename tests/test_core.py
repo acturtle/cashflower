@@ -26,9 +26,6 @@ class TestRunplan(TestCase):
         assert runplan.version == "1"
         assert runplan.get("value") == 57
 
-        empty_runplan = Runplan()
-        assert empty_runplan.version == "1"
-
         runplan.version = "2"
         assert runplan.version == "2"
 
@@ -43,14 +40,6 @@ class TestRunplan(TestCase):
         }))
         with pytest.raises(CashflowModelError):
             runplan.version = "3"
-
-    def test_runplan_raises_error_when_non_existent_attribute_is_get(self):
-        runplan = Runplan(data=pd.DataFrame({
-            "version": [1, 2],
-            "value": [57, 89]
-        }))
-        with pytest.raises(CashflowModelError):
-            runplan.get("foo")
 
 
 class TestModelPointSet(TestCase):

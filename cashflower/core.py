@@ -166,6 +166,11 @@ class Runplan:
         self.perform_checks()
         self.set_index(version)
 
+    @functools.lru_cache()
+    def get(self, attribute):
+        """Get a value from the runplan for the current version."""
+        return self.data.at[self.version, attribute]
+
     @property
     def version(self):
         return self._version
@@ -200,11 +205,6 @@ class Runplan:
         else:  # user has specified version
             self.version = str(version)
 
-    @functools.lru_cache()
-    def get(self, attribute):
-        """Get a value from the runplan for the current version."""
-        return self.data.at[self.version, attribute]
-
 
 class ModelPointSet:
     """Set of model points."""
@@ -224,8 +224,10 @@ class ModelPointSet:
 
     @functools.lru_cache()
     def get(self, attribute, record_num=0):
+        # Model point sets other than main may not have rows for all IDs
         if self.id is None:
             return None
+
         return self.model_point_data.iloc[record_num][attribute]
 
     @property
@@ -236,6 +238,7 @@ class ModelPointSet:
     @id.setter
     def id(self, new_id):
         """Set model point's id and corresponding attributes."""
+        new_id = str(new_id)
         if new_id in self.data.index:
             self._id = new_id
             self.model_point_data = self.data.loc[[new_id]]
@@ -250,24 +253,23 @@ class ModelPointSet:
         self.id = self.data.iloc[0][self.settings["ID_COLUMN"]]
 
     def perform_checks(self):
-        # Check ID columns
+        # Model point set must have id_column
         id_column = self.settings["ID_COLUMN"]
         if id_column not in self.data.columns:
             raise CashflowModelError(f"\nThere is no column '{id_column}' in model_point_set '{self.name}'.")
 
-        # Check unique keys in main
+        # ID must be unique in the 'main' model point set
         id_column = self.settings["ID_COLUMN"]
         if self.name == "main":
             if not self.data[id_column].is_unique:
-                msg = f"\nThe 'main' model_point_set must have unique values in '{id_column}' column."
+                msg = f"\nThe 'main' model point set must have unique values in '{id_column}' column."
                 raise CashflowModelError(msg)
 
-        return True
-
     def set_index(self):
+        """ID column in original form stays as a column, ID column as a string becomes an index."""
         id_column = self.settings["ID_COLUMN"]
-        self.data[id_column] = self.data[id_column].astype(str)
         self.data[id_column + "_duplicate"] = self.data[id_column]
+        self.data[id_column] = self.data[id_column].astype(str)
         self.data = self.data.set_index(id_column)
         self.data[id_column] = self.data[id_column + "_duplicate"]
         self.data = self.data.drop(columns=[id_column + "_duplicate"])

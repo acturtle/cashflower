@@ -9,9 +9,6 @@ log_messages = []
 
 def print_log(msg, show_time=False, visible=True):
     """Print a log message with the timestamp and add to global messages to be saved later on."""
-    # DEVELOP TODO TODO TODO
-    visible = False
-    # DEVELOP TODO TODO TODO
     if visible:
         if show_time:
             log_msg = datetime.now().strftime("%H:%M:%S") + " | " + msg
