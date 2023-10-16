@@ -66,16 +66,21 @@ def updt(total, progress):
     sys.stdout.flush()
 
 
-def get_git_commit_number():
+def get_git_commit_info():
     try:
-        # Run the git command to get the commit number
-        result = subprocess.run(["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                                check=True)
+        # Check if the current directory is a Git repository
+        subprocess.check_output("git rev-parse --is-inside-work-tree", shell=True)
 
-        # Extract the commit number from the output
-        commit_number = result.stdout.strip()
+        # Get the Git commit hash
+        commit_hash = subprocess.check_output("git rev-parse HEAD", shell=True).decode("utf-8").strip()
 
-        return commit_number
+        # Check if there are local changes
+        status_output = subprocess.check_output("git status --porcelain", shell=True).decode("utf-8").strip()
+
+        if status_output:
+            return f"{commit_hash} (with local changes)"
+        else:
+            return f"{commit_hash}"
     except subprocess.CalledProcessError:
-        # Git command failed, indicating it's not a Git repository
+        # Not a Git repository
         return None
