@@ -14,7 +14,7 @@ import shutil
 from .core import ArrayVariable, Model, ModelPointSet, Runplan, Variable
 from .error import CashflowModelError
 from .graph import get_calc_direction, get_calls, get_predecessors
-from .utils import get_git_commit_number, get_object_by_name, print_log, save_log_to_file
+from .utils import get_git_commit_info, get_object_by_name, print_log, save_log_to_file
 
 
 def create_model(model):
@@ -306,13 +306,13 @@ def start(settings=None, path=None):
         print_log("Model", show_time=True)
     print_log(f"Timestamp: {timestamp}")
     print_log(f"User: '{getpass.getuser()}'")
-    commit = get_git_commit_number()
+    commit = get_git_commit_info()
     if commit is not None:
         print_log(f"Git commit: {commit}")
     print_log("")
 
-    has_non_none_argument = any(arg_value is not None for arg_value in vars(args).values())
-    if has_non_none_argument:
+    has_arguments = any(arg_value is not None for arg_value in vars(args).values())
+    if has_arguments:
         print_log("Arguments:")
         for arg_name, arg_value in vars(args).items():
             if arg_value is not None:
