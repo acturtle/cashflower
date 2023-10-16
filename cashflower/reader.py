@@ -14,6 +14,10 @@ class CSVReader:
         else:
             self.load_data_n_greater_than_1()
 
+    def __getitem__(self, key):
+        row_label, col_label = key
+        return self.get_value(row_label, col_label)
+
     def load_data_n_equal_1(self):
         with open(self.filename, 'r') as file:
             reader = csv.reader(file)

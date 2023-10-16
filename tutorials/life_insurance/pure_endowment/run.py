@@ -1,4 +1,4 @@
-from cashflower import start
+from cashflower import run
 
 if __name__ == "__main__":
-    start()
+    run()

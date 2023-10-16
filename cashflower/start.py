@@ -287,7 +287,7 @@ def merge_part_diagnostic(part_diagnostic):
     return runtimes
 
 
-def start(settings=None, path=None):
+def run(settings=None, path=None):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     settings = load_settings(settings)
     output, diagnostic = None, None
