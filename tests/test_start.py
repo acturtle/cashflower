@@ -1,3 +1,4 @@
+import argparse
 import pytest
 
 from unittest import TestCase
@@ -58,9 +59,9 @@ class TestLoadSettings(TestCase):
 
 class TestGetRunplan(TestCase):
     def test_get_runplan(self):
-        runplan = Runplan()
+        runplan = Runplan(data=pd.DataFrame({"version": [1]}))
         input_members = [("foo", "foo"), ("runplan", runplan), ("bar", "bar")]
-        assert get_runplan(input_members) == runplan
+        assert get_runplan(input_members, args=argparse.Namespace(**{'version': None})) == runplan
 
 
 class TestGetModelPointSets(TestCase):
@@ -68,12 +69,12 @@ class TestGetModelPointSets(TestCase):
         main = ModelPointSet(data=pd.DataFrame({"id": [1]}))
         input_members_1 = [("main", main)]
         settings = load_settings()
-        model_point_sets, _ = get_model_point_sets(input_members_1, settings)
+        model_point_sets = get_model_point_sets(input_members_1, settings, argparse.Namespace(**{'id': None}))
         assert model_point_sets == [main]
 
         input_members_2 = [("foo", "foo"), ("bar", "bar")]
         with pytest.raises(CashflowModelError):
-            get_model_point_sets(input_members_2, settings)
+            get_model_point_sets(input_members_2, settings, argparse.Namespace(**{'id': None}))
 
 
 class TestGetVariables(TestCase):

@@ -25,13 +25,13 @@ as well as a text file for the log:
 Run a specific version
 ^^^^^^^^^^^^^^^^^^^^^^
 
-To run the model with a specific version from the runplan, append the version number to the command.
+To run the model with a specific version from the runplan, use the :code:`--version` flag.
 For instance, to run version 2, use the following command:
 
 ..  code-block::
     :caption: terminal
 
-    python run.py 2
+    python run.py --version 2
 
 This command will execute the model using data for the 2nd version specified in the runplan.
 
@@ -59,3 +59,20 @@ If you run the model with version 2, the shock value will be set to :code:`0.01`
 
 This approach allows you to easily specify and manage different versions of your model using the runplan
 and select a particular version when running the model.
+
+
+Run a specific model point
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For analytical or debugging purposes, it is often useful to run the model for a specific model point.
+
+This can be achieved by utilizing the `--id` flag in your command.
+
+For example, to run the model for the model point with id :code:`A123`, execute the following command:
+
+..  code-block::
+    :caption: terminal
+
+    python run.py --id "A123"
+
+Executing this command will initiate the model exclusively for the specified model point with ID :code:`A123`.
