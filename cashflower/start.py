@@ -89,10 +89,8 @@ def get_model_point_sets(input_members, settings, args):
         raise CashflowModelError("\nA model must have a model point set named 'main'.")
 
     if args.id is not None:
-        chosen_ids = [str(item) for item in args.id]
-        main.data = main.data.loc[chosen_ids]
-
-    # is main the element of the model_point_sets list or some other being?
+        chosen_id = str(args.id)
+        main.data = main.data.loc[chosen_id]
 
     return model_point_sets
 
@@ -296,8 +294,8 @@ def start(settings=None, path=None):
 
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("--version", "-v")
     parser.add_argument("--id", "-i")
+    parser.add_argument("--version", "-v")
     args = parser.parse_args()
 
     # Start log
@@ -312,6 +310,15 @@ def start(settings=None, path=None):
     if commit is not None:
         print_log(f"Git commit: {commit}")
     print_log("")
+
+    has_non_none_argument = any(arg_value is not None for arg_value in vars(args).values())
+    if has_non_none_argument:
+        print_log("Arguments:")
+        for arg_name, arg_value in vars(args).items():
+            if arg_value is not None:
+                print_log(f'- {arg_name}: {arg_value}')
+        print_log("")
+
     print_log("Settings:")
     for key, value in settings.items():
         msg = f"- {key}: {value}"
