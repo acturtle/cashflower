@@ -152,7 +152,7 @@ For instance, you can save results as a text file without timestamps:
     :caption: run.py
 
     if __name__ == "__main__":
-        output = start(settings, sys.argv)
+        output = run(settings)
         output.to_string("output.txt")
 
 Now, instead of creating an :code:`<timestamp>_output.csv` file, the script will generate an :code:`output.txt` file

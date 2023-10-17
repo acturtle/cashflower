@@ -153,13 +153,23 @@ class ArrayVariable(Variable):
 
 
 class Runplan:
-    """Runplan of the cash flow model."""
-    def __init__(self, data=None, version="1"):
+    """Runplan of the cash flow model.
+
+    Runplan allows to run the model with different parameters. It is defined in the 'input.py' script.
+
+    The version can be defined either:
+    - during definition of the object in the 'input.py' script,
+    - with command-line arguments (for example: "python run.py --version 3").
+    """
+    def __init__(self, data, version=None):
         self.data = data
-        self.set_empty_data()
-        self._version = version
-        self.set_version_as_str()
-        self.set_index()
+        self.perform_checks()
+        self.set_index(version)
+
+    @functools.lru_cache()
+    def get(self, attribute):
+        """Get a value from the runplan for the current version."""
+        return self.data.at[self.version, attribute]
 
     @property
     def version(self):
@@ -167,32 +177,33 @@ class Runplan:
 
     @version.setter
     def version(self, new_version):
-        if new_version not in self.data.index:
-            raise CashflowModelError(f"There is no version '{new_version}' in the Runplan.")
-        self._version = new_version
+        if new_version is not None:
+            new_version = str(new_version)
+            if new_version not in self.data.index:
+                raise CashflowModelError(f"There is no version '{new_version}' in the runplan.")
+            self._version = new_version
 
-    def set_empty_data(self):
-        """Set minimal runplan if not provided by the user."""
-        if self.data is None:
-            self.data = pd.DataFrame({"version": ["1"]})
-
-    def set_version_as_str(self):
-        """Ensure that the 'version' column is a string."""
+    def perform_checks(self):
+        # Runplan must have a "version" column
         if "version" not in self.data.columns:
             raise CashflowModelError("Runplan must have the 'version' column.")
-        else:
-            self.data["version"] = self.data["version"].astype(str)
 
-    def set_index(self):
-        """Set 'version' column as an index of the data frame."""
+        # Version must be unique
+        if not self.data["version"].is_unique:
+            msg = "Runplan must have unique values in the 'version' column."
+            raise CashflowModelError(msg)
+
+    def set_index(self, version):
+        """Version in original form stays as a column, version as a string becomes an index."""
+        self.data["version_duplicate"] = self.data["version"]
+        self.data["version"] = self.data["version"].astype(str)
         self.data = self.data.set_index("version")
-
-    @functools.lru_cache()
-    def get(self, attribute):
-        """Get a value from the runplan for the current version."""
-        if attribute not in self.data.columns:
-            raise CashflowModelError(f"There is no column '{attribute}' in the runplan.")
-        return self.data.loc[self.version][attribute]
+        self.data["version"] = self.data["version_duplicate"]
+        self.data = self.data.drop(columns=["version_duplicate"])
+        if version is None:  # user has not specified version
+            self.version = str(self.data["version"].iloc[0])
+        else:  # user has specified version
+            self.version = str(version)
 
 
 class ModelPointSet:
@@ -213,8 +224,10 @@ class ModelPointSet:
 
     @functools.lru_cache()
     def get(self, attribute, record_num=0):
+        # Model point sets other than main may not have rows for all IDs
         if self.id is None:
             return None
+
         return self.model_point_data.iloc[record_num][attribute]
 
     @property
@@ -225,6 +238,7 @@ class ModelPointSet:
     @id.setter
     def id(self, new_id):
         """Set model point's id and corresponding attributes."""
+        new_id = str(new_id)
         if new_id in self.data.index:
             self._id = new_id
             self.model_point_data = self.data.loc[[new_id]]
@@ -239,24 +253,23 @@ class ModelPointSet:
         self.id = self.data.iloc[0][self.settings["ID_COLUMN"]]
 
     def perform_checks(self):
-        # Check ID columns
+        # Model point set must have id_column
         id_column = self.settings["ID_COLUMN"]
         if id_column not in self.data.columns:
             raise CashflowModelError(f"\nThere is no column '{id_column}' in model_point_set '{self.name}'.")
 
-        # Check unique keys in main
+        # ID must be unique in the 'main' model point set
         id_column = self.settings["ID_COLUMN"]
         if self.name == "main":
             if not self.data[id_column].is_unique:
-                msg = f"\nThe 'main' model_point_set must have unique values in '{id_column}' column."
+                msg = f"\nThe 'main' model point set must have unique values in '{id_column}' column."
                 raise CashflowModelError(msg)
 
-        return True
-
     def set_index(self):
+        """ID column in original form stays as a column, ID column as a string becomes an index."""
         id_column = self.settings["ID_COLUMN"]
-        self.data[id_column] = self.data[id_column].astype(str)
         self.data[id_column + "_duplicate"] = self.data[id_column]
+        self.data[id_column] = self.data[id_column].astype(str)
         self.data = self.data.set_index(id_column)
         self.data[id_column] = self.data[id_column + "_duplicate"]
         self.data = self.data.drop(columns=[id_column + "_duplicate"])

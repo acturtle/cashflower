@@ -1,7 +1,4 @@
-import sys
-from cashflower import start
-from settings import settings
-
+from cashflower import run
 
 if __name__ == "__main__":
-    start("pure_endowment", settings, sys.argv)
+    run()
