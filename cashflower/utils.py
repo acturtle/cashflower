@@ -69,7 +69,7 @@ def updt(total, progress):
 def get_git_commit_info():
     try:
         # Check if the current directory is a Git repository
-        subprocess.check_output("git rev-parse --is-inside-work-tree", shell=True)
+        subprocess.check_output("git rev-parse --is-inside-work-tree", shell=True, stderr=subprocess.STDOUT, text=True)
 
         # Get the Git commit hash
         commit_hash = subprocess.check_output("git rev-parse HEAD", shell=True).decode("utf-8").strip()
