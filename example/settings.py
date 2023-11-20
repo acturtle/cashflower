@@ -1,10 +1,10 @@
 settings = {
     "AGGREGATE": True,
-    "GROUP_BY_COLUMN": "group",
+    "GROUP_BY_COLUMN": None,
     "ID_COLUMN": "id",
-    "MULTIPROCESSING": False,
+    "MULTIPROCESSING": True,
     "OUTPUT_COLUMNS": [],
-    "SAVE_DIAGNOSTIC": False,
+    "SAVE_DIAGNOSTIC": True,
     "SAVE_LOG": False,
     "SAVE_OUTPUT": True,
     "T_MAX_CALCULATION": 3,

@@ -313,7 +313,8 @@ class Model:
                 "calc_order": [v.calc_order for v in self.variables],
                 "cycle": [v.cycle for v in self.variables],
                 "calc_direction": [v.calc_direction for v in self.variables],
-                "type": [get_variable_type(v) for v in self.variables],
+                "variable_type": [get_variable_type(v) for v in self.variables],
+                "aggregation_type": [v.aggregation_type for v in self.variables],
                 "runtime": [v.runtime for v in self.variables]
             })
 
