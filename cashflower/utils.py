@@ -84,3 +84,13 @@ def get_git_commit_info():
     except subprocess.CalledProcessError:
         # Not a Git repository
         return None
+
+
+def get_first_indexes(items):
+    first_indexes = {}
+    for index, item in enumerate(items):
+        if item not in first_indexes:
+            first_indexes[item] = index
+
+    result = list(first_indexes.values())
+    return result

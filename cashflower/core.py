@@ -6,7 +6,7 @@ import pandas as pd
 import psutil
 
 from .error import CashflowModelError
-from .utils import get_object_by_name, print_log, split_to_ranges, updt
+from .utils import get_first_indexes, get_object_by_name, print_log, split_to_ranges, updt
 
 
 def get_variable_type(v):
@@ -373,19 +373,24 @@ class Model:
                 raise CashflowModelError(msg)
             unique_groups = main.data[group_by_column].unique()
 
+            # Indexes of the first element from each group
+            first_indexes = get_first_indexes(main.data[group_by_column])
+
             # Initiate empty results
             # group_sums = {group: np.array([np.zeros(t) for _ in range(v)]) for group in unique_groups}
             group_sums = {group: 0 for group in unique_groups}
-
-            # print("--> group_sums")
-            # print(group_sums)
 
             # Calculate batches iteratively
             while batch_start < range_end:
                 lst = [*map(p, range(batch_start, batch_end))]  # list of mp_results
                 groups = main.data.iloc[batch_start:batch_end][group_by_column].tolist()
-                for value, group in zip(lst, groups):
-                    group_sums[group] += value
+                if_firsts = [i in first_indexes for i in range(batch_start, batch_end)]
+
+                for mp_result, group, if_first in zip(lst, groups, if_firsts):
+                    if if_first:
+                        group_sums[group] += mp_result
+                    else:
+                        group_sums[group] += mp_result * multiplier[:, None]
                 batch_start = batch_end
                 batch_end = min(batch_end+batch_size, range_end)
 
