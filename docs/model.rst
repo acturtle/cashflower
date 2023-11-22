@@ -30,7 +30,7 @@ Time-dependent variable
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 
-o define a time-dependent variable, create a function with the parameter :code:`t`
+To define a time-dependent variable, create a function with the parameter :code:`t`
 and add the :code:`@variable()` decorator.
 
 ..  code-block:: python

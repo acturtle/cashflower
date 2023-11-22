@@ -1,8 +1,6 @@
-import os
-
 from unittest import TestCase
 
-from cashflower.utils import get_object_by_name, print_log, split_to_ranges, updt
+from cashflower.utils import get_first_indexes, get_object_by_name, print_log, split_to_ranges, updt
 
 
 class TestSplitToRanges(TestCase):
@@ -30,3 +28,8 @@ class TestPrintFunctions(TestCase):
         assert updt(100, 20) is None
         assert updt(100, 110) is None
         assert print_log("my message") is None
+
+
+class TestGetFirstIndexes(TestCase):
+    def test_get_first_indexes(self):
+        assert get_first_indexes(["A", "A", "B", "A", "C", "D"]) == [0, 2, 4, 5]
