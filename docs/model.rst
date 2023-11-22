@@ -17,7 +17,14 @@ To define a model variable, follow two steps:
 #. Define a function with the :code:`t` parameter (or no parameters) that returns a numeric value.
 #. Decorate the function with :code:`@variable()`.
 
+A cash flow model variable is a variable that returns a numeric value for a future periods.
+
+In the following sections, we will discuss model variables in the context of time dependence and aggregation type.
+
 |
+
+Time dependence
+---------------
 
 Model variables produce results per model point and time.
 
@@ -30,11 +37,6 @@ Regarding time dependence, there are two types of variables:
 * B - constant variable.
 
 Both types are described further in the sections below.
-
-|
-
-In :code:`cashflower`, you can define array variables for enhanced runtime efficiency.
-Array variables are covered in detail in the :doc:`advanced` section of this documentation.
 
 |
 
@@ -103,3 +105,45 @@ For example:
         ...
 
 Constant variables are particularly useful for storing information that remains unchanged over time.
+
+|
+
+Aggregation type
+----------------
+
+The actuarial cash flow model calculates results across multiple model points.
+By default, the model sums the results, which suits most variables,
+like financial cash flows such as premiums or expenses.
+
+For instance, consider this default behavior in the model variable definition:
+
+..  code-block:: python
+    :caption: model.py
+
+    @variable()
+    def my_variable(t):
+        ...
+
+It's equivalent to specifying the aggregation type as :code:`sum`:
+
+..  code-block:: python
+    :caption: model.py
+
+    @variable(aggregation_type="sum")
+    def my_variable(t):
+        ...
+
+
+However, certain results, like interest rate curves or projection years, lose their significance when summed.
+In such cases, you can specify an alternative aggregation type for a variable.
+For instance, to use only the results of the first model point,
+set the :code:`aggregation_type` parameter within the :code:`@variable()` decorator to :code:`"first"`:
+
+..  code-block:: python
+    :caption: model.py
+
+    @variable(aggregation_type="first")
+    def my_variable(t):
+        ...
+
+This configuration ensures that the output includes values solely from the first model point.
