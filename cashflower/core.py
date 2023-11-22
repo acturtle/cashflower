@@ -453,8 +453,7 @@ class Model:
         [[v1_t0, v1_t1, v1_t2, ... v1_tm],
          [v2_t0, v2_t1, v2_t2, ... v2_tm],
          ...
-         [vn_t0, vn_t1, vn_t2, ... v2_tm]]
-        """
+         [vn_t0, vn_t1, vn_t2, ... v2_tm]]"""
         main = get_object_by_name(self.model_point_sets, "main")
 
         # Set model point's id

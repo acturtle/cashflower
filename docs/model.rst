@@ -4,31 +4,42 @@ Model
 The :code:`model.py` script contains the definitions of model variables, which serve as the core components
 of the actuarial cash flow model, encapsulating its logic.
 
-To define a model variable, follow these steps:
+|
 
-1. Define a function with the :code:`t` parameter (or without any parameters) that return numeric values,
-2. Decorate the function with :code:`@variable()`.
+..  code-block:: python
 
-Model variables produce results per model point and time, with some remaining constant throughout.
+    @variable()
+    def my_variable(t):
+        ...
+
+To define a model variable, follow two steps:
+
+#. Define a function with the :code:`t` parameter (or no parameters) that returns a numeric value.
+#. Decorate the function with :code:`@variable()`.
+
+|
+
+Model variables produce results per model point and time.
 
 .. image:: https://acturtle.com/static/img/31/all.png
    :align: center
 
-There are two types of variables:
+Regarding time dependence, there are two types of variables:
 
 * A - time-dependent variable,
 * B - constant variable.
 
-Both types are described below.
+Both types are described further in the sections below.
 
-.. WARNING::
-    Model variables must return numeric values.
+|
+
+In :code:`cashflower`, you can define array variables for enhanced runtime efficiency.
+Array variables are covered in detail in the :doc:`advanced` section of this documentation.
 
 |
 
 Time-dependent variable
 ^^^^^^^^^^^^^^^^^^^^^^^
-
 
 To define a time-dependent variable, create a function with the parameter :code:`t`
 and add the :code:`@variable()` decorator.
@@ -92,7 +103,3 @@ For example:
         ...
 
 Constant variables are particularly useful for storing information that remains unchanged over time.
-
-|
-
-For more advanced types of variables, such as array variables, please refer to the :doc:`advanced` documentation.
