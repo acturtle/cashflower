@@ -378,8 +378,7 @@ class Model:
             first_indexes = get_first_indexes(main.data[group_by_column])
 
             # Initiate empty results
-            # group_sums = {group: np.array([np.zeros(t) for _ in range(v)]) for group in unique_groups}
-            group_sums = {group: 0 for group in unique_groups}
+            group_sums = {group: np.array([np.zeros(t) for _ in range(v)]) for group in unique_groups}
 
             # Calculate batches iteratively
             while batch_start < range_end:
