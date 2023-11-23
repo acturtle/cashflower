@@ -119,6 +119,27 @@ However, during calculations, results for each model point are generated individ
 To optimize memory, results are calculated in batches and aggregated after each batch, freeing up memory.
 The batch size is determined based on available RAM.
 
+Example:
+
+.. image:: https://acturtle.com/static/img/docs/batches.png
+   :align: center
+
+
+The results for all 9 model points can't be stored in memory at once. So, we split them into 3 batches.
+
+Steps:
+
+1. Calculate results for the first batch (model points 1 to 3).
+2. Aggregate results for the first batch (model point results can be removed from memory).
+3. Calculate results for the second batch (model points 4 to 6).
+4. Aggregate results of the second batch (model point results can be removed from memory).
+5. Combine results from the first and second batches (separate batch results can be removed from memory).
+6. Calculate results for the third batch (model points 7 to 9).
+7. Aggregate results of the third batch (model point results can be removed from memory).
+8. Combine results from the first and second batches with the results of the third batch.
+
+The final results are calculated while limiting memory usage.
+
 **Individual output**
 
 In the case of individual output, where the final result has :code:`t * mp` rows and :code:`v` columns,
