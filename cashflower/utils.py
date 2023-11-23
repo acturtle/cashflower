@@ -69,7 +69,7 @@ def updt(total, progress):
 def get_git_commit_info():
     try:
         # Check if the current directory is a Git repository
-        subprocess.check_output("git rev-parse --is-inside-work-tree", shell=True)
+        subprocess.check_output("git rev-parse --is-inside-work-tree", shell=True, stderr=subprocess.STDOUT, text=True)
 
         # Get the Git commit hash
         commit_hash = subprocess.check_output("git rev-parse HEAD", shell=True).decode("utf-8").strip()
@@ -84,3 +84,15 @@ def get_git_commit_info():
     except subprocess.CalledProcessError:
         # Not a Git repository
         return None
+
+
+def get_first_indexes(items):
+    """Get the list of indexes for the first occurrence of the given item in the list.
+    ["A", "A", "B", "A", "C", "D"] --> [0, 2, 4, 5]"""
+    first_indexes = {}
+    for index, item in enumerate(items):
+        if item not in first_indexes:
+            first_indexes[item] = index
+
+    result = list(first_indexes.values())
+    return result
