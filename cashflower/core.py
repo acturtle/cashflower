@@ -6,7 +6,7 @@ import pandas as pd
 import psutil
 
 from .error import CashflowModelError
-from .utils import get_object_by_name, print_log, split_to_ranges, updt
+from .utils import get_first_indexes, get_object_by_name, print_log, split_to_ranges, updt
 
 
 def get_variable_type(v):
@@ -18,7 +18,7 @@ def get_variable_type(v):
         return "default"
 
 
-def variable(array=False):
+def variable(array=False, aggregation_type="sum"):
     """Transform a function with decorator into an object of class Variable"""
     def wrapper(func):
         # Variable has maximally 1 parameter
@@ -39,19 +39,20 @@ def variable(array=False):
 
         # Create a variable
         if array:
-            v = ArrayVariable(func)
+            v = ArrayVariable(func, aggregation_type)
         elif func.__code__.co_argcount == 0:
-            v = ConstantVariable(func)
+            v = ConstantVariable(func, aggregation_type)
         else:
-            v = Variable(func)
+            v = Variable(func, aggregation_type)
 
         return v
     return wrapper
 
 
 class Variable:
-    def __init__(self, func):
+    def __init__(self, func, aggregation_type):
         self.func = func
+        self.aggregation_type = aggregation_type
         self.name = None
         self._t_max = None
         self.calc_direction = None
@@ -113,8 +114,8 @@ class Variable:
 
 class ConstantVariable(Variable):
     """Variable that is constant in time."""
-    def __init__(self, func):
-        Variable.__init__(self, func)
+    def __init__(self, func, aggregation_type):
+        Variable.__init__(self, func, aggregation_type)
 
     def __repr__(self):
         return f"CV: {self.func.__name__}"
@@ -136,8 +137,8 @@ class ConstantVariable(Variable):
 
 class ArrayVariable(Variable):
     """Variable that returns an array."""
-    def __init__(self, func):
-        Variable.__init__(self, func)
+    def __init__(self, func, aggregation_type):
+        Variable.__init__(self, func, aggregation_type)
 
     def __repr__(self):
         return f"AV: {self.func.__name__}"
@@ -312,7 +313,8 @@ class Model:
                 "calc_order": [v.calc_order for v in self.variables],
                 "cycle": [v.cycle for v in self.variables],
                 "calc_direction": [v.calc_direction for v in self.variables],
-                "type": [get_variable_type(v) for v in self.variables],
+                "variable_type": [get_variable_type(v) for v in self.variables],
+                "aggregation_type": [v.aggregation_type for v in self.variables],
                 "runtime": [v.runtime for v in self.variables]
             })
 
@@ -320,6 +322,9 @@ class Model:
 
     def compute_aggregated_results(self, range_start, range_end, one_core):
         p = functools.partial(self.calculate_model_point, one_core=one_core, progressbar_max=range_end)
+
+        # Multiplier that takes into account aggregation type
+        multiplier = np.array([1 if v.aggregation_type == "sum" else 0 for v in self.variables])
 
         # Prepare output columns
         if len(self.settings["OUTPUT_COLUMNS"]) == 0:
@@ -339,12 +344,18 @@ class Model:
 
         # Aggregate all model points (without grouping)
         if self.settings["GROUP_BY_COLUMN"] is None:
-            results = 0
+            # Initiate with results of the first model point
+            if batch_start == 0:
+                results = p(0)
+                batch_start += 1
+            else:
+                results = 0
 
             # Calculate batches iteratively
             while batch_start < range_end:
-                lst = [*map(p, range(batch_start, batch_end))]  # list of mp_results
-                results += functools.reduce(lambda a, b: a + b, lst)
+                lst = [*map(p, range(batch_start, batch_end))]  # list of mp_results (arrays of arrays)
+                batch_results = functools.reduce(lambda a, b: a + b, lst)
+                results += batch_results * multiplier[:, None]
                 batch_start = batch_end
                 batch_end = min(batch_end+batch_size, range_end)
 
@@ -362,14 +373,24 @@ class Model:
                        f"Please review the 'GROUP_BY_COLUMN' setting.")
                 raise CashflowModelError(msg)
             unique_groups = main.data[group_by_column].unique()
+
+            # Indexes of the first element from each group
+            first_indexes = get_first_indexes(main.data[group_by_column])
+
+            # Initiate empty results
             group_sums = {group: np.array([np.zeros(t) for _ in range(v)]) for group in unique_groups}
 
             # Calculate batches iteratively
             while batch_start < range_end:
                 lst = [*map(p, range(batch_start, batch_end))]  # list of mp_results
                 groups = main.data.iloc[batch_start:batch_end][group_by_column].tolist()
-                for value, group in zip(lst, groups):
-                    group_sums[group] += value
+                if_firsts = [i in first_indexes for i in range(batch_start, batch_end)]
+
+                for mp_result, group, if_first in zip(lst, groups, if_firsts):
+                    if if_first:
+                        group_sums[group] += mp_result
+                    else:
+                        group_sums[group] += mp_result * multiplier[:, None]
                 batch_start = batch_end
                 batch_end = min(batch_end+batch_size, range_end)
 
@@ -432,8 +453,7 @@ class Model:
         [[v1_t0, v1_t1, v1_t2, ... v1_tm],
          [v2_t0, v2_t1, v2_t2, ... v2_tm],
          ...
-         [vn_t0, vn_t1, vn_t2, ... v2_tm]]
-        """
+         [vn_t0, vn_t1, vn_t2, ... v2_tm]]"""
         main = get_object_by_name(self.model_point_sets, "main")
 
         # Set model point's id
