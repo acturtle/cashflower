@@ -129,19 +129,30 @@ def prepare_model_input(settings, args):
 
 def resolve_calculation_order(variables, output_columns):
     """Determines a safe execution order for variables to avoid recursion errors."""
-    # Dictionary of called functions
+    # [1] Dictionary of called functions
     calls = {}
+    calls_t = {}
+
     for variable in variables:
         calls[variable] = get_calls(variable, variables)
+        calls_t[variable] = get_calls(variable, variables, argument_t_only=True)
 
-    # Create directed graph for all variables
+    print("---> calls")
+    print(calls)
+    print("")
+
+    print("---> calls_t")
+    print(calls_t)
+    print("")
+
+    # [2] Create directed graph for all variables
     DG = nx.DiGraph()
     for variable in variables:
         DG.add_node(variable)
         for predecessor in calls[variable]:
             DG.add_edge(predecessor, variable)
 
-    # User has chosen output so remove not needed variables
+    # [3] User has chosen output so remove not needed variables
     if output_columns is not None:
         needed_variables = set()
         output_variables = [get_object_by_name(variables, name) for name in output_columns]
@@ -158,25 +169,30 @@ def resolve_calculation_order(variables, output_columns):
     # nx.draw(DG, with_labels=True)
     # plt.show()
 
-    # Set calc_order in variables
+    # [4] Set calc_order in variables
     calc_order = 0
     while DG.nodes:
         nodes_without_predecessors = [node for node in DG.nodes if len(list(DG.predecessors(node))) == 0]
+
+        # There are variables without any predecessors
+        # Each variable gets a separate 'calc_order' value
         if len(nodes_without_predecessors) > 0:
             for node in nodes_without_predecessors:
                 calc_order += 1
                 node.calc_order = calc_order
             DG.remove_nodes_from(nodes_without_predecessors)
-        else:  # it's a cycle
+
+        # Cyclic relationship between variables
+        # All the variables from a cycle have the same 'calc_order' value
+        else:
             cycles = list(nx.simple_cycles(DG))
             cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], DG)) == len(c)]
 
-            if len(cycles_without_predecessors) == 0:
-                big_cycle = list(set(list(itertools.chain(*cycles))))
-                cycles_without_predecessors = [big_cycle]
-
             for cycle_without_predecessors in cycles_without_predecessors:
                 calc_order += 1
+
+                # TODO: set variables in the cycle in the correct order ('cycle_order' attribute?)
+
                 for node in cycle_without_predecessors:
                     node.calc_order = calc_order
                     node.cycle = True

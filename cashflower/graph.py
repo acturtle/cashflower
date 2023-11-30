@@ -7,14 +7,20 @@ from .error import CashflowModelError
 from .utils import get_object_by_name
 
 
-def get_calls(variable, variables):
-    """List variables called by the given variable"""
+def get_calls(variable, variables, argument_t_only=False):
+    """List variables called by the given variable.
+
+    If argument_t_only is set to True, then filter only variables called with "t" (used for cycles).
+    For example:
+    - return my_variable(t) --> is added
+    - return my_variable(t-1) --> is omitted
+    """
     call_names = []
     variable_names = [variable.name for variable in variables]
     node = ast.parse(inspect.getsource(variable.func))
 
     # Print ast tree (debug)
-    # print("\n", ast.dump(node, indent=2))
+    print("\n", ast.dump(node, indent=2))
 
     for subnode in ast.walk(node):
         # Variable calls other variable directly (e.g. projection_year(t))
@@ -22,7 +28,13 @@ def get_calls(variable, variables):
             if isinstance(subnode.func, ast.Name):
                 if subnode.func.id in variable_names:
                     raise_error_if_incorrect_argument(subnode)
-                    call_names.append(subnode.func.id)
+                    # Add variable regardless of its argument
+                    if argument_t_only is False:
+                        call_names.append(subnode.func.id)
+                    # Add variable only if it calls "t"
+                    else:
+                        if isinstance(subnode.args[0], ast.Name):
+                            call_names.append(subnode.func.id)
 
     calls = [get_object_by_name(variables, call_name) for call_name in call_names if call_name != variable.name]
     return calls
@@ -74,6 +86,12 @@ def get_predecessors(node, DG):
 
 
 def raise_error_if_incorrect_argument(node):
+    """Model variable must call:
+    - t               | my_variable(t)
+    - t+...           | my_variable(t+1)
+    - t-...           | my_variable(t-1)
+    - constant value  | my_variable(0)
+    """
     # More than 1 argument
     if len(node.args) > 1:
         msg = f"Model variable must have maximally one argument. Please review the call of '{node.func.id}'."

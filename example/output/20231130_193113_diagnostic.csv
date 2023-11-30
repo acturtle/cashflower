@@ -1,0 +1,4 @@
+variable,calc_order,cycle,calc_direction,variable_type,aggregation_type,runtime
+balance,1,True,1,default,sum,0.0006646315256754557
+interest,1,True,1,default,sum,0.0006646315256754557
+principal,1,True,1,default,sum,0.0006646315256754557
