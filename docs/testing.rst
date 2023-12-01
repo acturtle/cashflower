@@ -12,6 +12,8 @@ During the development of the "cashflower" package, three types of tests should 
 
       pytest
 
+|
+
 2. **Development models**
 
    The cashflower package serves as a framework for actuarial cash flow models.
@@ -24,6 +26,8 @@ During the development of the "cashflower" package, three types of tests should 
 
    a. Before making any changes, run :code:`01_initial_runs.py`.
    b. After completing the development, run :code:`02_perform_checks.py` to ensure that the code changes have no adverse impact on any of the models.
+
+|
 
 3. **Static tests (linting)**
 
