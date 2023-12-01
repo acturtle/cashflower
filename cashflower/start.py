@@ -4,7 +4,6 @@ import functools
 import getpass
 import importlib
 import inspect
-import itertools
 import multiprocessing
 import networkx as nx
 import os
@@ -13,7 +12,7 @@ import shutil
 
 from .core import ArrayVariable, Model, ModelPointSet, Runplan, Variable
 from .error import CashflowModelError
-from .graph import get_calc_direction, get_calls, get_predecessors
+from .graph import create_directed_graph, filter_variables_and_graph, get_calc_direction, get_calls, get_predecessors
 from .utils import get_git_commit_info, get_object_by_name, print_log, save_log_to_file
 
 
@@ -131,72 +130,81 @@ def resolve_calculation_order(variables, output_columns):
     """Determines a safe execution order for variables to avoid recursion errors."""
     # [1] Dictionary of called functions
     calls = {}
-    calls_t = {}
-
     for variable in variables:
         calls[variable] = get_calls(variable, variables)
-        calls_t[variable] = get_calls(variable, variables, argument_t_only=True)
-
-    print("---> calls")
-    print(calls)
-    print("")
-
-    print("---> calls_t")
-    print(calls_t)
-    print("")
 
     # [2] Create directed graph for all variables
-    DG = nx.DiGraph()
-    for variable in variables:
-        DG.add_node(variable)
-        for predecessor in calls[variable]:
-            DG.add_edge(predecessor, variable)
+    dg = create_directed_graph(variables, calls)
 
-    # [3] User has chosen output so remove not needed variables
+    # [3] User has chosen output so remove unneeded variables
     if output_columns is not None:
-        needed_variables = set()
-        output_variables = [get_object_by_name(variables, name) for name in output_columns]
-        for output_variable in output_variables:
-            needed_variables.add(output_variable)
-            needed_variables.update(get_predecessors(output_variable, DG))
-
-        unneeded_variables = set(variables) - needed_variables
-        DG.remove_nodes_from(unneeded_variables)
-        variables = list(needed_variables)
+        variables, dg = filter_variables_and_graph(output_columns, variables, dg)
 
     # Draw graph (debug)
     # import matplotlib.pyplot as plt
-    # nx.draw(DG, with_labels=True)
+    # nx.draw(dg, with_labels=True)
     # plt.show()
 
-    # [4] Set calc_order in variables
+    # [4] Set calculation order of variables ('calc_order')
     calc_order = 0
-    while DG.nodes:
-        nodes_without_predecessors = [node for node in DG.nodes if len(list(DG.predecessors(node))) == 0]
+    while dg.nodes:
+        nodes_without_predecessors = [n for n in dg.nodes if len(list(dg.predecessors(n))) == 0]
 
+        # [4a]
         # There are variables without any predecessors
-        # Each variable gets a separate 'calc_order' value
         if len(nodes_without_predecessors) > 0:
             for node in nodes_without_predecessors:
                 calc_order += 1
                 node.calc_order = calc_order
-            DG.remove_nodes_from(nodes_without_predecessors)
+            dg.remove_nodes_from(nodes_without_predecessors)
 
-        # Cyclic relationship between variables
-        # All the variables from a cycle have the same 'calc_order' value
+        # [4b]
+        # There is a cyclic relationship between variables
         else:
-            cycles = list(nx.simple_cycles(DG))
-            cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], DG)) == len(c)]
+            cycles = list(nx.simple_cycles(dg))
+            cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], dg)) == len(c)]
 
-            for cycle_without_predecessors in cycles_without_predecessors:
+            for cycle in cycles_without_predecessors:
+                # [4b_1] Set the calculation order within the cycle
+                # Dictionary of called functions but only for the same time period ("t")
+                calls_t = {}
+                for variable in cycle:
+                    calls_t[variable] = get_calls(variable, variables, argument_t_only=True)
+
+                # Create directed graph for cycle variables
+                dg_cycle = create_directed_graph(variables, calls_t)
+
+                # Set 'cycle_order'
+                cycle_order = 0
+                while dg_cycle.nodes:
+                    cycle_nodes_without_predecessors = [cn for cn in dg_cycle.nodes if len(list(dg_cycle.predecessors(cn))) == 0]
+                    if len(cycle_nodes_without_predecessors) > 0:
+                        for node in cycle_nodes_without_predecessors:
+                            cycle_order += 1
+                            node.cycle_order = cycle_order
+                        dg_cycle.remove_nodes_from(cycle_nodes_without_predecessors)
+                    else:
+                        cycle_variable_nodes = [node.name for node in dg_cycle.nodes]
+                        raise CashflowModelError(f"Circular reference: {cycle_variable_nodes}")
+
+                # [4b_2] All the variables from a cycle have the same 'calc_order' value
                 calc_order += 1
-
-                # TODO: set variables in the cycle in the correct order ('cycle_order' attribute?)
-
-                for node in cycle_without_predecessors:
+                for node in cycle:
                     node.calc_order = calc_order
                     node.cycle = True
-                DG.remove_nodes_from(cycle_without_predecessors)
+                dg.remove_nodes_from(cycle)
+
+    # [5] Set calc_direction of calculation ('calc_direction')
+    max_calc_order = variables[-1].calc_order
+    for calc_order in range(1, max_calc_order + 1):
+        # Multiple variables can have the same calc_order if they are part of the cycle
+        calc_order_variables = [v for v in variables if v.calc_order == calc_order]
+        calc_direction = get_calc_direction(calc_order_variables)
+        for variable in calc_order_variables:
+            variable.calc_direction = calc_direction
+
+    # [6] Sort variables for calculation order
+    variables = sorted(variables, key=lambda x: (x.calc_order, x.name))
 
     # Ensure that there are no ArrayVariables in cycles
     cycle_variables = [v for v in variables if v.cycle]
@@ -205,18 +213,6 @@ def resolve_calculation_order(variables, output_columns):
             msg = (f"'{cycle_variable.name}' is part of a cycle so it can't be modelled as an array variable. "
                    f"Please remove 'array=True' from the decorator and recode the variable.")
             raise CashflowModelError(msg)
-
-    # Sort variables for calculation order
-    variables = sorted(variables, key=lambda x: (x.calc_order, x.name))
-
-    # Get calc_direction of calculation
-    max_calc_order = variables[-1].calc_order
-    for calc_order in range(1, max_calc_order + 1):
-        # Multiple variables can have the same calc_order if they are part of the cycle
-        calc_order_variables = [v for v in variables if v.calc_order == calc_order]
-        calc_direction = get_calc_direction(calc_order_variables)
-        for variable in calc_order_variables:
-            variable.calc_direction = calc_direction
 
     return variables
 

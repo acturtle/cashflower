@@ -59,6 +59,7 @@ class Variable:
         self.calc_order = None
         self.cycle = False
         self.cycle_cache = set()
+        self.cycle_order = None
         self.result = None
         self.runtime = 0.0
 
