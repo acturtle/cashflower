@@ -1,4 +1,0 @@
-variable,calc_order,cycle,calc_direction,variable_type,aggregation_type,runtime
-a,1,True,0,default,sum,0.0006633599599202474
-b,1,True,0,default,sum,0.0006633599599202474
-c,1,True,0,default,sum,0.0006633599599202474

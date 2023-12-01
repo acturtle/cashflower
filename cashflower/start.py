@@ -165,7 +165,15 @@ def resolve_calculation_order(variables, output_columns):
             cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], dg)) == len(c)]
 
             for cycle in cycles_without_predecessors:
-                # [4b_1] Set the calculation order within the cycle
+                # [4b_1] Ensure that there are no ArrayVariables in cycles
+                for variable in cycle:
+                    if isinstance(variable, ArrayVariable):
+                        msg = (f"Variable '{variable.name}' is part of a cycle so it can't be modelled as an array variable."
+                               f"\nCycle: {cycle}"
+                               f"\nPlease remove 'array=True' from the decorator and recode the variable.")
+                        raise CashflowModelError(msg)
+
+                # [4b_2] Set the calculation order within the cycle
                 # Dictionary of called functions but only for the same time period ("t")
                 calls_t = {}
                 for variable in cycle:
@@ -187,7 +195,7 @@ def resolve_calculation_order(variables, output_columns):
                         cycle_variable_nodes = [node.name for node in dg_cycle.nodes]
                         raise CashflowModelError(f"Circular reference: {cycle_variable_nodes}")
 
-                # [4b_2] All the variables from a cycle have the same 'calc_order' value
+                # [4b_3] All the variables from a cycle have the same 'calc_order' value
                 calc_order += 1
                 for node in cycle:
                     node.calc_order = calc_order
@@ -205,14 +213,6 @@ def resolve_calculation_order(variables, output_columns):
         calc_direction = get_calc_direction(calc_order_variables)
         for variable in calc_order_variables:
             variable.calc_direction = calc_direction
-
-    # Ensure that there are no ArrayVariables in cycles
-    cycle_variables = [v for v in variables if v.cycle]
-    for cycle_variable in cycle_variables:
-        if isinstance(cycle_variable, ArrayVariable):
-            msg = (f"'{cycle_variable.name}' is part of a cycle so it can't be modelled as an array variable. "
-                   f"Please remove 'array=True' from the decorator and recode the variable.")
-            raise CashflowModelError(msg)
 
     return variables
 
