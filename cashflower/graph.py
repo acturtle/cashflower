@@ -71,6 +71,7 @@ def get_calc_direction(variables):
     # For non-cycle => single variable, for cycle => variables from the cycle
     variable_names = [variable.name for variable in variables]
 
+    calc_directions = set()
     for variable in variables:
         node = ast.parse(inspect.getsource(variable.func))
         for subnode in ast.walk(node):
@@ -85,10 +86,20 @@ def get_calc_direction(variables):
                             check3 = isinstance(arg.op, ast.Sub)
 
                             if check1 and check2:
-                                return -1
+                                calc_directions.add(-1)
 
                             if check1 and check3:
-                                return 1
+                                calc_directions.add(1)
+
+    # One calculation direction
+    if len(calc_directions) == 1:
+        return list(calc_directions)[0]
+
+    # Bidirectional variables are not allowed
+    if len(calc_directions) > 1:
+        msg = (f"Bidirectional recursion is not allowed. Please review variables: '{', '.join(variable_names)}'."
+               f"\nIf bidirectional recursion is necessary in your project, please raise it on: github.com/acturtle/cashflower")
+        raise CashflowModelError(msg)
 
     return 0
 
