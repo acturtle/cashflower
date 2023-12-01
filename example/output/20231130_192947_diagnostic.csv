@@ -1,4 +1,0 @@
-variable,calc_order,cycle,calc_direction,variable_type,aggregation_type,runtime
-balance,1,True,1,default,sum,0.0009981791178385417
-interest,1,True,1,default,sum,0.0009981791178385417
-principal,1,True,1,default,sum,0.0009981791178385417

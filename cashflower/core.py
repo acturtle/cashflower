@@ -59,7 +59,7 @@ class Variable:
         self.calc_order = None
         self.cycle = False
         self.cycle_cache = set()
-        self.cycle_order = None
+        self.cycle_order = 0
         self.result = None
         self.runtime = 0.0
 
@@ -312,8 +312,9 @@ class Model:
             diagnostic = pd.DataFrame({
                 "variable": [v.name for v in self.variables],
                 "calc_order": [v.calc_order for v in self.variables],
-                "cycle": [v.cycle for v in self.variables],
                 "calc_direction": [v.calc_direction for v in self.variables],
+                "cycle": [v.cycle for v in self.variables],
+                "cycle_order": [v.cycle_order for v in self.variables],
                 "variable_type": [get_variable_type(v) for v in self.variables],
                 "aggregation_type": [v.aggregation_type for v in self.variables],
                 "runtime": [v.runtime for v in self.variables]

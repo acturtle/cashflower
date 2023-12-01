@@ -172,7 +172,7 @@ def resolve_calculation_order(variables, output_columns):
                     calls_t[variable] = get_calls(variable, variables, argument_t_only=True)
 
                 # Create directed graph for cycle variables
-                dg_cycle = create_directed_graph(variables, calls_t)
+                dg_cycle = create_directed_graph(cycle, calls_t)
 
                 # Set 'cycle_order'
                 cycle_order = 0
@@ -194,7 +194,10 @@ def resolve_calculation_order(variables, output_columns):
                     node.cycle = True
                 dg.remove_nodes_from(cycle)
 
-    # [5] Set calc_direction of calculation ('calc_direction')
+    # [5] Sort variables for calculation order
+    variables = sorted(variables, key=lambda x: (x.calc_order, x.cycle_order, x.name))
+
+    # [6] Set calc_direction of calculation ('calc_direction')
     max_calc_order = variables[-1].calc_order
     for calc_order in range(1, max_calc_order + 1):
         # Multiple variables can have the same calc_order if they are part of the cycle
@@ -202,9 +205,6 @@ def resolve_calculation_order(variables, output_columns):
         calc_direction = get_calc_direction(calc_order_variables)
         for variable in calc_order_variables:
             variable.calc_direction = calc_direction
-
-    # [6] Sort variables for calculation order
-    variables = sorted(variables, key=lambda x: (x.calc_order, x.name))
 
     # Ensure that there are no ArrayVariables in cycles
     cycle_variables = [v for v in variables if v.cycle]
@@ -288,15 +288,9 @@ def merge_part_diagnostic(part_diagnostic):
     # Nones are returned, when number of policies < number of cpus
     part_diagnostic = [item for item in part_diagnostic if item is not None]
     total_runtimes = sum([item["runtime"] for item in part_diagnostic])
-    first = part_diagnostic[0]
-    runtimes = pd.DataFrame({
-        "variable": first["variable"],
-        "calc_order": first["calc_order"],
-        "cycle": first["cycle"],
-        "calc_direction": first["calc_direction"],
-        "runtime": total_runtimes
-    })
-    return runtimes
+    diagnostic = part_diagnostic[0]
+    diagnostic["runtime"] = total_runtimes
+    return diagnostic
 
 
 def run(settings=None, path=None):
@@ -354,8 +348,8 @@ def run(settings=None, path=None):
 
         # Merge runtimes
         if settings["SAVE_DIAGNOSTIC"]:
-            part_runtimes = [p[1] for p in parts]
-            diagnostic = merge_part_diagnostic(part_runtimes)
+            part_diagnostic = [p[1] for p in parts]
+            diagnostic = merge_part_diagnostic(part_diagnostic)
 
     # Add time column
     values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output.shape[0] / (settings["T_MAX_OUTPUT"]+1))

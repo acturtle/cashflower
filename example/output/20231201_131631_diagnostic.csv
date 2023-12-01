@@ -1,0 +1,7 @@
+variable,calc_order,cycle,calc_direction,runtime
+b,1,False,0,0.003159046173095703
+my_independent_variable,2,False,0,0.0029969215393066406
+a,3,False,0,0.013014554977416992
+interest,4,True,1,0.02353088061014811
+principal,4,True,1,0.02353088061014811
+balance,4,True,1,0.02353088061014811
