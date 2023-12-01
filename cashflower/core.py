@@ -58,7 +58,6 @@ class Variable:
         self.calc_direction = None
         self.calc_order = None
         self.cycle = False
-        self.cycle_cache = set()
         self.cycle_order = 0
         self.result = None
         self.runtime = 0.0
@@ -478,11 +477,6 @@ class Model:
                 avg_runtime = (end-start)/len(variables)
                 for v in variables:
                     v.runtime += avg_runtime
-
-        # Clear cache of cycle variables
-        for v in self.variables:
-            if v.cycle:
-                v.cycle_cache.clear()
 
         # Get results and trim for T_MAX_OUTPUT,results may contain subset of columns
         if len(self.settings["OUTPUT_COLUMNS"]) > 0:
