@@ -1,0 +1,11 @@
+variable,calc_order,calc_direction,cycle,cycle_order,variable_type,aggregation_type,runtime
+my_independent_variable,1,0,False,0,default,sum,0.01210474967956543
+z,2,1,True,1,default,sum,0.008145968119303385
+y,2,1,True,2,default,sum,0.008145968119303385
+x,2,1,True,3,default,sum,0.008145968119303385
+interest,3,1,True,1,default,sum,0.010918219884236658
+principal,3,1,True,2,default,sum,0.010918219884236658
+balance,3,1,True,3,default,sum,0.010918219884236658
+c,4,1,True,1,default,sum,0.010235865910847982
+b,4,1,True,2,default,sum,0.010235865910847982
+a,4,1,True,3,default,sum,0.010235865910847982

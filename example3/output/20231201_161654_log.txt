@@ -1,0 +1,28 @@
+16:16:54 | Model: 'example3'
+           Path: C:\Users\admin\Desktop\Projects\cashflower\example3
+           Timestamp: 20231201_161654
+           User: 'admin'
+           Git commit: 97385ad9dc275301114e2350258fd7af86554bb0 (with local changes)
+           
+           Settings:
+           - AGGREGATE: True
+           - GROUP_BY_COLUMN: None
+           - ID_COLUMN: id
+           - MULTIPROCESSING: False
+           - OUTPUT_COLUMNS: []
+           - SAVE_DIAGNOSTIC: True
+           - SAVE_LOG: True
+           - SAVE_OUTPUT: True
+           - T_MAX_CALCULATION: 12
+           - T_MAX_OUTPUT: 12
+           
+16:16:55 | Reading model components...
+           Runplan version: 1
+           Number of model points: 1
+16:16:55 | Starting calculations...
+16:16:55 | Preparing output...
+16:16:55 | Finished!
+           
+16:16:55 | Saving output file: output/20231201_161654_output.csv
+16:16:55 | Saving diagnostic file: output/20231201_161654_diagnostic.csv
+16:16:55 | Saving log file: output/20231201_161654_log.txt

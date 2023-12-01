@@ -67,23 +67,17 @@ class Variable:
         return f"V: {self.func.__name__}"
 
     def __call__(self, t=None):
-        # In cycle, the calculation order might not be known
-        if self.cycle and (t is not None and t not in self.cycle_cache):
-            self.cycle_cache.add(t)
-            self.result[t] = self.func(t)
-
         if t is None:
             return self.result
-        else:
-            try:
-                return self.result[t]
-            except IndexError as e:
-                if t > self.t_max:
-                    msg = (f"Variable '{self.name}' has been called for period '{t}' "
-                           f"which is outside of the calculation range.")
-                    raise CashflowModelError(msg)
-                else:
-                    print(str(e))
+        try:
+            return self.result[t]
+        except IndexError as e:
+            if t < 0 or t > self.t_max:
+                msg = (f"Variable '{self.name}' has been called for period '{t}' "
+                       f"which is outside of the calculation range.")
+                raise CashflowModelError(msg)
+            else:
+                print(str(e))
 
     @property
     def t_max(self):
@@ -95,10 +89,7 @@ class Variable:
         self.result = np.empty(self.t_max + 1)
 
     def calculate_t(self, t):
-        # This method is used for cycles only
-        if t not in self.cycle_cache:
-            self.cycle_cache.add(t)
-            self.result[t] = self.func(t)
+        self.result[t] = self.func(t)
 
     def calculate(self):
         if self.calc_direction == 0:
@@ -122,10 +113,6 @@ class ConstantVariable(Variable):
         return f"CV: {self.func.__name__}"
 
     def __call__(self, t=None):
-        # In the cycle, we don't know exact calculation order
-        if self.cycle:
-            return self.func()
-
         return self.result[0]
 
     def calculate_t(self, t):

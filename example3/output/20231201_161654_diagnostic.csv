@@ -1,0 +1,2 @@
+variable,calc_order,calc_direction,cycle,cycle_order,variable_type,aggregation_type,runtime
+my_var,1,1,False,0,default,sum,0.0
