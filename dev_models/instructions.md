@@ -34,7 +34,7 @@ ensuring that they do not clutter the version control system.
 | 08 | True  | None  | id | False  | []   | False | True  | 720      | 720     | 1    | 1   |
 | 09 | True  | None  | id | False  | []   | True  | False | 720      | 720     | 1    | 1   |
 | 10 | True  | None  | id | False  | []   | True  | True  | 720      | 720     | 1    | 1   |
-| 11 | True  | None  | id | False  | []   | True  | True  | 720      | 720     | 5    | 1   |
+| 11 | True  | None  | id | False  | []   | True  | True  | 360      | 360     | 5    | 1   |
 | 12 | True  | None  | id | False  | []   | True  | True  | 0        | 0       | 1    | 1   |
 | 13 | True  | None  | id | False  | []   | True  | True  | 720      | 720     | 2    | 1   |
 | 14 | True  | None  | id | False  | []   | True  | True  | 720      | 720     | 4    | 1   |

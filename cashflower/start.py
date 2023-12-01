@@ -177,7 +177,7 @@ def resolve_calculation_order(variables, output_columns):
                 # Dictionary of called functions but only for the same time period ("t")
                 calls_t = {}
                 for variable in cycle:
-                    calls_t[variable] = get_calls(variable, variables, argument_t_only=True)
+                    calls_t[variable] = get_calls(variable, cycle, argument_t_only=True)
 
                 # Create directed graph for cycle variables
                 dg_cycle = create_directed_graph(cycle, calls_t)
