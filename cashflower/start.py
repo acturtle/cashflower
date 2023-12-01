@@ -193,7 +193,11 @@ def resolve_calculation_order(variables, output_columns):
                         dg_cycle.remove_nodes_from(cycle_nodes_without_predecessors)
                     else:
                         cycle_variable_nodes = [node.name for node in dg_cycle.nodes]
-                        raise CashflowModelError(f"Circular reference: {cycle_variable_nodes}")
+                        msg = (f"Circular relationship without time step difference is not allowed. "
+                               f"Please review variables: {cycle_variable_nodes}."
+                               f"\nIf circular relationship without time step difference is necessary in your project, "
+                               f"please raise it on: github.com/acturtle/cashflower")
+                        raise CashflowModelError(msg)
 
                 # [4b_3] All the variables from a cycle have the same 'calc_order' value
                 calc_order += 1
