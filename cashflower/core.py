@@ -68,11 +68,17 @@ class Variable:
     def __call__(self, t=None):
         if t is None:
             return self.result
+
+        if t < 0:
+            msg = (f"\n\nVariable '{self.name}' has been called for period '{t}' "
+                   f"which is outside of the calculation range.")
+            raise CashflowModelError(msg)
+
         try:
             return self.result[t]
         except IndexError as e:
-            if t < 0 or t > self.t_max:
-                msg = (f"Variable '{self.name}' has been called for period '{t}' "
+            if t > self.t_max:
+                msg = (f"\n\nVariable '{self.name}' has been called for period '{t}' "
                        f"which is outside of the calculation range.")
                 raise CashflowModelError(msg)
             else:
@@ -129,12 +135,6 @@ class ArrayVariable(Variable):
 
     def __repr__(self):
         return f"AV: {self.func.__name__}"
-
-    def __call__(self, t=None):
-        if t is None:
-            return self.result
-        else:
-            return self.result[t]
 
     def calculate(self):
         self.result = np.array(self.func(), dtype=np.float64)
