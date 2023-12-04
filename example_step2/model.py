@@ -14,33 +14,15 @@ def premium(t):
 
 
 @variable()
-def discount_rate1(t):
+def discount_rate(t, stoch):
     if t == 0:
         return 1
-    return assumption["discount_rates"].loc[t]["value1"]
+    return assumption["discount_rates"].loc[t]["value" + stoch]
 
 
 @variable()
-def discount_rate2(t):
-    if t == 0:
-        return 1
-    return assumption["discount_rates"].loc[t]["value2"]
-
-
-@variable()
-def pv_premiums1(t):
+def pv_premiums(t):
     if t == settings["T_MAX_CALCULATION"]:
         return premium(t)
-    return premium(t) + pv_premiums1(t+1) * discount_rate1(t+1)
+    return premium(t) + pv_premiums(t+1) * discount_rate(t+1)
 
-
-@variable()
-def pv_premiums2(t):
-    if t == settings["T_MAX_CALCULATION"]:
-        return premium(t)
-    return premium(t) + pv_premiums2(t+1) * discount_rate2(t+1)
-
-
-@variable(array=True)
-def pv_premiums_avg():
-    return (pv_premiums1() + pv_premiums2())/2
