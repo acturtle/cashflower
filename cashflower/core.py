@@ -58,7 +58,7 @@ class Variable:
         self.calc_direction = None
         self.calc_order = None
         self.cycle = False
-        self.cycle_cache = set()
+        self.cycle_order = 0
         self.result = None
         self.runtime = 0.0
 
@@ -66,23 +66,23 @@ class Variable:
         return f"V: {self.func.__name__}"
 
     def __call__(self, t=None):
-        # In cycle, the calculation order might not be known
-        if self.cycle and (t is not None and t not in self.cycle_cache):
-            self.cycle_cache.add(t)
-            self.result[t] = self.func(t)
-
         if t is None:
             return self.result
-        else:
-            try:
-                return self.result[t]
-            except IndexError as e:
-                if t > self.t_max:
-                    msg = (f"Variable '{self.name}' has been called for period '{t}' "
-                           f"which is outside of the calculation range.")
-                    raise CashflowModelError(msg)
-                else:
-                    print(str(e))
+
+        if t < 0:
+            msg = (f"\n\nVariable '{self.name}' has been called for period '{t}' "
+                   f"which is outside of the calculation range.")
+            raise CashflowModelError(msg)
+
+        try:
+            return self.result[t]
+        except IndexError as e:
+            if t > self.t_max:
+                msg = (f"\n\nVariable '{self.name}' has been called for period '{t}' "
+                       f"which is outside of the calculation range.")
+                raise CashflowModelError(msg)
+            else:
+                print(str(e))
 
     @property
     def t_max(self):
@@ -94,10 +94,7 @@ class Variable:
         self.result = np.empty(self.t_max + 1)
 
     def calculate_t(self, t):
-        # This method is used for cycles only
-        if t not in self.cycle_cache:
-            self.cycle_cache.add(t)
-            self.result[t] = self.func(t)
+        self.result[t] = self.func(t)
 
     def calculate(self):
         if self.calc_direction == 0:
@@ -121,10 +118,6 @@ class ConstantVariable(Variable):
         return f"CV: {self.func.__name__}"
 
     def __call__(self, t=None):
-        # In the cycle, we don't know exact calculation order
-        if self.cycle:
-            return self.func()
-
         return self.result[0]
 
     def calculate_t(self, t):
@@ -142,12 +135,6 @@ class ArrayVariable(Variable):
 
     def __repr__(self):
         return f"AV: {self.func.__name__}"
-
-    def __call__(self, t=None):
-        if t is None:
-            return self.result
-        else:
-            return self.result[t]
 
     def calculate(self):
         self.result = np.array(self.func(), dtype=np.float64)
@@ -311,8 +298,9 @@ class Model:
             diagnostic = pd.DataFrame({
                 "variable": [v.name for v in self.variables],
                 "calc_order": [v.calc_order for v in self.variables],
-                "cycle": [v.cycle for v in self.variables],
                 "calc_direction": [v.calc_direction for v in self.variables],
+                "cycle": [v.cycle for v in self.variables],
+                "cycle_order": [v.cycle_order for v in self.variables],
                 "variable_type": [get_variable_type(v) for v in self.variables],
                 "aggregation_type": [v.aggregation_type for v in self.variables],
                 "runtime": [v.runtime for v in self.variables]
@@ -489,11 +477,6 @@ class Model:
                 avg_runtime = (end-start)/len(variables)
                 for v in variables:
                     v.runtime += avg_runtime
-
-        # Clear cache of cycle variables
-        for v in self.variables:
-            if v.cycle:
-                v.cycle_cache.clear()
 
         # Get results and trim for T_MAX_OUTPUT,results may contain subset of columns
         if len(self.settings["OUTPUT_COLUMNS"]) > 0:
