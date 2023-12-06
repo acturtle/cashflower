@@ -51,8 +51,8 @@ def check_arguments(func, array):
 def variable(array=False, aggregation_type="sum"):
     """Transform a function with decorator into an object of class Variable"""
     def wrapper(func):
-        check_arguments(func, array)
-        stoch = func.__code__.co_argcount == 2  # stochastic by definition
+        check_arguments(func, array)  # check if correct argument(s) in variable's definition
+        stoch = func.__code__.co_argcount == 2
 
         # Create a variable
         if array:
@@ -83,7 +83,7 @@ class Variable:
     def __repr__(self):
         return f"V: {self.func.__name__}"
 
-    def __call__(self, t=None):
+    def __call__(self, t=None, stoch=None):
         if t is None:
             return self.result
 
@@ -116,13 +116,28 @@ class Variable:
 
     def calculate(self):
         if self.calc_direction == 0:
-            self.result = np.array([*map(self.func, range(self.t_max + 1))], dtype=np.float64)
+            if self.stoch is False:
+                self.result = np.array([*map(self.func, range(self.t_max + 1))], dtype=np.float64)
+            else:
+                # TODO
+                self.result = np.array([*map(self.func, range(self.t_max + 1), [1] * (self.t_max + 1))], dtype=np.float64)
         elif self.calc_direction == 1:
-            for t in range(self.t_max + 1):
-                self.result[t] = self.func(t)
+            if self.stoch is False:
+                for t in range(self.t_max + 1):
+                    self.result[t] = self.func(t)
+            else:
+                for t in range(self.t_max + 1):
+                    # TODO
+                    self.result[t] = self.func(t, 1)
+
         elif self.calc_direction == -1:
-            for t in range(self.t_max, -1, -1):
-                self.result[t] = self.func(t)
+            if self.stoch is False:
+                for t in range(self.t_max, -1, -1):
+                    self.result[t] = self.func(t)
+            else:
+                for t in range(self.t_max, -1, -1):
+                    # TODO
+                    self.result[t] = self.func(t, 1)
         else:
             raise CashflowModelError(f"Incorrect calculation direction {self.calc_direction}")
 
@@ -472,6 +487,7 @@ class Model:
         for calc_order in range(1, max_calc_order + 1):
             # Either a single variable or a cycle
             variables = [v for v in self.variables if v.calc_order == calc_order]
+
             # Single
             if len(variables) == 1:
                 v = variables[0]

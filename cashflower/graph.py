@@ -40,20 +40,19 @@ def get_calls(variable, variables, argument_t_only=False):
     For example:
     - return my_variable(t) --> is added
     - return my_variable(t-1) --> is omitted
+
+    Debug: print("\n", ast.dump(node, indent=2))
     """
     call_names = []
     variable_names = [variable.name for variable in variables]
     node = ast.parse(inspect.getsource(variable.func))
-
-    # Print ast tree (debug)
-    # print("\n", ast.dump(node, indent=2))
 
     for subnode in ast.walk(node):
         # Variable calls other variable directly (e.g. projection_year(t))
         if isinstance(subnode, ast.Call):
             if isinstance(subnode.func, ast.Name):
                 if subnode.func.id in variable_names:
-                    raise_error_if_incorrect_argument(subnode)
+                    raise_error_if_incorrect_argument(subnode, variable)
                     # Add variable regardless of its argument
                     if argument_t_only is False:
                         call_names.append(subnode.func.id)
@@ -122,23 +121,26 @@ def get_predecessors(node, dg):
     return visited
 
 
-def raise_error_if_incorrect_argument(node):
-    """Model variable must call one of:
-    - t               | my_variable(t)
-    - t+...           | my_variable(t+1)
-    - t-...           | my_variable(t-1)
-    - constant value  | my_variable(0)
+def raise_error_if_incorrect_argument(subnode, variable):
+    """Model variables call other variables.
+    Called variables can have maximally two arguments (for time and stochastic scenario).
+
+    The first argument should be:
+    - t               | my_variable(t, ...)
+    - t+...           | my_variable(t+1, ...)
+    - t-...           | my_variable(t-1, ...)
+    - constant value  | my_variable(0, ...)
     """
-    # More than 1 argument
-    if len(node.args) > 1:
-        msg = f"Model variable must have maximally one argument. Please review the call of '{node.func.id}'."
+    # More than 2 arguments
+    if len(subnode.args) > 2:
+        msg = (f"\n\nModel variable can have maximally two arguments. "
+               f"\nPlease review the call of '{subnode.func.id}' in '{variable.name}'.")
         raise CashflowModelError(msg)
 
-    # Exactly 1 argument
-    if len(node.args) == 1:
-        # Model variable can only call t, t+/-x, and x
-        arg = node.args[0]
-        msg = f"\n\nPlease review the calls of '{node.func.id}'. The argument of a model variable can be only:\n" \
+    # Either 1 or 2 arguments
+    if len(subnode.args) > 0:
+        arg = subnode.args[0]
+        msg = f"\n\nPlease review the calls of '{subnode.func.id}'. The first argument of a model variable can be only:\n" \
               f"- t,\n" \
               f"- t plus/minus integer (e.g. t+1 or t-12),\n" \
               f"- a non-negative integer (e.g. 0 or 12)."
@@ -146,11 +148,6 @@ def raise_error_if_incorrect_argument(node):
         # The model variable calls a variable
         if isinstance(arg, ast.Name):
             if not arg.id == "t":
-                raise CashflowModelError(msg)
-
-        # The model variable calls a constant
-        if isinstance(arg, ast.Constant):
-            if not isinstance(arg.value, int):
                 raise CashflowModelError(msg)
 
         # The model variable calls an operation
@@ -164,3 +161,19 @@ def raise_error_if_incorrect_argument(node):
         # The model variable calls something else
         if not (isinstance(arg, ast.Name) or isinstance(arg, ast.Constant) or isinstance(arg, ast.BinOp)):
             raise CashflowModelError(msg)
+
+        # The model variable calls a constant
+        if isinstance(arg, ast.Constant):
+            if not isinstance(arg.value, int):
+                raise CashflowModelError(msg)
+
+
+def set_calc_direction(variables):
+    max_calc_order = variables[-1].calc_order
+    for calc_order in range(1, max_calc_order + 1):
+        # Multiple variables can have the same calc_order if they are part of the cycle
+        calc_order_variables = [v for v in variables if v.calc_order == calc_order]
+        calc_direction = get_calc_direction(calc_order_variables)
+        for variable in calc_order_variables:
+            variable.calc_direction = calc_direction
+    return variables

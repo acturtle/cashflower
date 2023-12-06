@@ -1,7 +1,7 @@
 import pandas as pd
 from cashflower import Runplan, ModelPointSet
 
-STOCH = 2
+NUM_STOCH_SCENARIOS = 2
 
 runplan = Runplan(data=pd.DataFrame({"version": [1]}))
 

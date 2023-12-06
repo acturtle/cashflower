@@ -12,7 +12,7 @@ import shutil
 
 from .core import ArrayVariable, Model, ModelPointSet, Runplan, Variable
 from .error import CashflowModelError
-from .graph import create_directed_graph, filter_variables_and_graph, get_calc_direction, get_calls, get_predecessors
+from .graph import create_directed_graph, filter_variables_and_graph, get_calc_direction, get_calls, get_predecessors, set_calc_direction
 from .utils import get_git_commit_info, get_object_by_name, print_log, save_log_to_file
 
 
@@ -94,6 +94,27 @@ def get_model_point_sets(input_members, settings, args):
     return model_point_sets
 
 
+def get_num_stoch_scenarios(input_members):
+    """Get number of stochastic scenarios from input.py script (for stochastic runs)."""
+    result = None
+    for name, item in input_members:
+        if name == "NUM_STOCH_SCENARIOS":
+            try:
+                result = int(item)
+            except ValueError:
+                msg = ("\n\n'NUM_STOCH_SCENARIOS' variable must contain an integer."
+                       "Please review the value in the 'input.py' script.")
+                raise CashflowModelError(msg)
+            break
+
+    # There is no 'NUM_STOCH_SCENARIOS' variable in input.py
+    if result is None:
+        msg = "\n\nStochastic models must contain 'NUM_STOCH_SCENARIOS' in the 'input.py' script."
+        raise CashflowModelError(msg)
+
+    return result
+
+
 def get_variables(model_members, settings):
     """Get model variables from model.py script."""
     variable_members = [m for m in model_members if isinstance(m[1], Variable)]
@@ -123,12 +144,18 @@ def prepare_model_input(settings, args):
     model_members = inspect.getmembers(model_module)
     variables = get_variables(model_members, settings)
 
-    return runplan, model_point_sets, variables
+    # Stochastic run defines number of stochastic scenarios
+    num_stoch_scenarios = None
+    is_stochastic = any(v.stoch for v in variables)
+    if is_stochastic:
+        num_stoch_scenarios = get_num_stoch_scenarios(input_members)
+
+    return runplan, model_point_sets, variables, num_stoch_scenarios
 
 
 def resolve_calculation_order(variables, output_columns):
     """Determines a safe execution order for variables to avoid recursion errors."""
-    # [1] Dictionary of called functions
+    # [1] Dictionary of called functions (key = variable; value = other variables called by it)
     calls = {}
     for variable in variables:
         calls[variable] = get_calls(variable, variables)
@@ -140,26 +167,19 @@ def resolve_calculation_order(variables, output_columns):
     if output_columns is not None:
         variables, dg = filter_variables_and_graph(output_columns, variables, dg)
 
-    # Draw graph (debug)
-    # import matplotlib.pyplot as plt
-    # nx.draw(dg, with_labels=True)
-    # plt.show()
-
     # [4] Set calculation order of variables ('calc_order')
     calc_order = 0
     while dg.nodes:
         nodes_without_predecessors = [n for n in dg.nodes if len(list(dg.predecessors(n))) == 0]
 
-        # [4a]
-        # There are variables without any predecessors
+        # [4a] There are variables without any predecessors
         if len(nodes_without_predecessors) > 0:
             for node in nodes_without_predecessors:
                 calc_order += 1
                 node.calc_order = calc_order
             dg.remove_nodes_from(nodes_without_predecessors)
 
-        # [4b]
-        # There is a cyclic relationship between variables
+        # [4b] There is a cyclic relationship between variables
         else:
             cycles = list(nx.simple_cycles(dg))
             cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], dg)) == len(c)]
@@ -174,8 +194,7 @@ def resolve_calculation_order(variables, output_columns):
                         raise CashflowModelError(msg)
 
                 # [4b_2] Set the calculation order within the cycle
-                # Dictionary of called functions but only for the same time period ("t")
-                calls_t = {}
+                calls_t = {}  # dictionary of called functions but only for the same time period ("t")
                 for variable in cycle:
                     calls_t[variable] = get_calls(variable, cycle, argument_t_only=True)
 
@@ -209,14 +228,8 @@ def resolve_calculation_order(variables, output_columns):
     # [5] Sort variables for calculation order
     variables = sorted(variables, key=lambda x: (x.calc_order, x.cycle_order, x.name))
 
-    # [6] Set calc_direction of calculation ('calc_direction')
-    max_calc_order = variables[-1].calc_order
-    for calc_order in range(1, max_calc_order + 1):
-        # Multiple variables can have the same calc_order if they are part of the cycle
-        calc_order_variables = [v for v in variables if v.calc_order == calc_order]
-        calc_direction = get_calc_direction(calc_order_variables)
-        for variable in calc_order_variables:
-            variable.calc_direction = calc_direction
+    # [6] Set calculation direction of calculation ('calc_direction' attribute)
+    variables = set_calc_direction(variables)
 
     return variables
 
@@ -225,7 +238,7 @@ def start_single_core(settings, args):
     """Create and run a cash flow model."""
     # Prepare model components
     print_log("Reading model components...", show_time=True)
-    runplan, model_point_sets, variables = prepare_model_input(settings, args)
+    runplan, model_point_sets, variables, num_stoch_scenarios = prepare_model_input(settings, args)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
@@ -248,7 +261,7 @@ def start_multiprocessing(part, settings, args):
 
     # Prepare model components
     print_log("Reading model components...", show_time=True, visible=one_core)
-    runplan, model_point_sets, variables = prepare_model_input(settings, args)
+    runplan, model_point_sets, variables, num_stoch_scenarios = prepare_model_input(settings, args)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
