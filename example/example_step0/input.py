@@ -10,5 +10,5 @@ main = ModelPointSet(data=pd.DataFrame({
 
 assumption = {
     "indexation": 0.01,
-    "discount_rates": pd.read_csv("./assumption/discount_rates_stoch.csv", index_col="t")
+    "discount_rates": pd.read_csv("assumption/discount_rates_deter.csv", index_col="t")
 }

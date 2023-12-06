@@ -52,7 +52,7 @@ def variable(array=False, aggregation_type="sum"):
     """Transform a function with decorator into an object of class Variable"""
     def wrapper(func):
         check_arguments(func, array)  # check if correct argument(s) in variable's definition
-        stoch = func.__code__.co_argcount == 2
+        stoch = func.__code__.co_argcount == 2  # stochastic variable
 
         # Create a variable
         if array:
@@ -67,6 +67,12 @@ def variable(array=False, aggregation_type="sum"):
 
 
 class Variable:
+    # TODO: Variable does not have to contain attribute t_max
+    # TODO: it's enough that we set empty result and its length should imply the t_max
+    # TODO: in case of stochastic variables, the results should be array of arrays (rather than single array)
+    # TODO: t_max is set by the package in start.py->get_variables() and
+    # TODO: at this moment it's already known it a variable is stochastic
+
     def __init__(self, func, aggregation_type, stoch):
         self.func = func
         self.aggregation_type = aggregation_type
@@ -150,7 +156,7 @@ class ConstantVariable(Variable):
     def __repr__(self):
         return f"CV: {self.func.__name__}"
 
-    def __call__(self, t=None):
+    def __call__(self, t=None, stoch=None):
         return self.result[0]
 
     def calculate_t(self, t):

@@ -6,6 +6,7 @@ import importlib
 import inspect
 import multiprocessing
 import networkx as nx
+import numpy as np
 import os
 import pandas as pd
 import shutil
@@ -94,38 +95,24 @@ def get_model_point_sets(input_members, settings, args):
     return model_point_sets
 
 
-def get_num_stoch_scenarios(input_members):
-    """Get number of stochastic scenarios from input.py script (for stochastic runs)."""
-    result = None
-    for name, item in input_members:
-        if name == "NUM_STOCH_SCENARIOS":
-            try:
-                result = int(item)
-            except ValueError:
-                msg = ("\n\n'NUM_STOCH_SCENARIOS' variable must contain an integer."
-                       "Please review the value in the 'input.py' script.")
-                raise CashflowModelError(msg)
-            break
-
-    # There is no 'NUM_STOCH_SCENARIOS' variable in input.py
-    if result is None:
-        msg = "\n\nStochastic models must contain 'NUM_STOCH_SCENARIOS' in the 'input.py' script."
-        raise CashflowModelError(msg)
-
-    return result
-
-
 def get_variables(model_members, settings):
     """Get model variables from model.py script."""
     variable_members = [m for m in model_members if isinstance(m[1], Variable)]
     variables = []
 
     for name, variable in variable_members:
+        # Set name
         if name == "t":
             msg = f"\nA variable can not be named '{name}' because it is a system variable. Please rename it."
             raise CashflowModelError(msg)
         variable.name = name
-        variable.t_max = settings["T_MAX_CALCULATION"]
+
+        # Initiate empty results
+        if variable.stoch is False:
+            variable.result = np.empty(settings["T_MAX_CALCULATION"]+1)
+        else:
+            variable.result = np.empty((settings["STOCH_SCENARIOS_COUNT"], settings["T_MAX_CALCULATION"]+1))
+
         variables.append(variable)
     return variables
 
@@ -144,13 +131,7 @@ def prepare_model_input(settings, args):
     model_members = inspect.getmembers(model_module)
     variables = get_variables(model_members, settings)
 
-    # Stochastic run defines number of stochastic scenarios
-    num_stoch_scenarios = None
-    is_stochastic = any(v.stoch for v in variables)
-    if is_stochastic:
-        num_stoch_scenarios = get_num_stoch_scenarios(input_members)
-
-    return runplan, model_point_sets, variables, num_stoch_scenarios
+    return runplan, model_point_sets, variables
 
 
 def resolve_calculation_order(variables, output_columns):
@@ -238,7 +219,7 @@ def start_single_core(settings, args):
     """Create and run a cash flow model."""
     # Prepare model components
     print_log("Reading model components...", show_time=True)
-    runplan, model_point_sets, variables, num_stoch_scenarios = prepare_model_input(settings, args)
+    runplan, model_point_sets, variables = prepare_model_input(settings, args)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
@@ -261,7 +242,7 @@ def start_multiprocessing(part, settings, args):
 
     # Prepare model components
     print_log("Reading model components...", show_time=True, visible=one_core)
-    runplan, model_point_sets, variables, num_stoch_scenarios = prepare_model_input(settings, args)
+    runplan, model_point_sets, variables = prepare_model_input(settings, args)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
