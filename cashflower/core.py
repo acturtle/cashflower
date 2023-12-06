@@ -18,39 +18,56 @@ def get_variable_type(v):
         return "default"
 
 
+def check_arguments(func, array):
+    # Variable has maximally 2 parameters ("t" and "stoch")
+    if func.__code__.co_argcount > 2:
+        msg = f"Error in '{func.__name__}': The model variable should have at most two parameters ('t' and 'stoch')."
+        raise CashflowModelError(msg)
+
+    # First parameter must be named "t" and second "stoch"
+    if func.__code__.co_argcount == 2:
+        if not func.__code__.co_varnames[0] == 't':
+            msg = f"Error in '{func.__name__}': The first parameter should be named 't'."
+            raise CashflowModelError(msg)
+
+        if not func.__code__.co_varnames[1] == 'stoch':
+            msg = f"Error in '{func.__name__}': The second parameter should be named 'stoch'."
+            raise CashflowModelError(msg)
+
+    # Only parameter must be named "t"
+    if func.__code__.co_argcount == 1:
+        if not func.__code__.co_varnames[0] == 't':
+            msg = f"Error in '{func.__name__}': The parameter should be named 't'."
+            raise CashflowModelError(msg)
+
+    # Array variables don't have parameters
+    if array and not func.__code__.co_argcount == 0:
+        msg = f"Error in '{func.__name__}': Array variables cannot have parameters."
+        raise CashflowModelError(msg)
+
+    return None
+
+
 def variable(array=False, aggregation_type="sum"):
     """Transform a function with decorator into an object of class Variable"""
     def wrapper(func):
-        # Variable has maximally 1 parameter
-        if func.__code__.co_argcount > 1:
-            msg = f"Error in '{func.__name__}': The model variable should have at most one parameter."
-            raise CashflowModelError(msg)
-
-        # Parameter must be named "t"
-        if func.__code__.co_argcount == 1:
-            if not func.__code__.co_varnames[0] == 't':
-                msg = f"Error in '{func.__name__}': The parameter should be named 't'."
-                raise CashflowModelError(msg)
-
-        # Array variables don't have parameters
-        if array and not func.__code__.co_argcount == 0:
-            msg = f"Error in '{func.__name__}': Array variables cannot have parameters."
-            raise CashflowModelError(msg)
+        check_arguments(func, array)
+        stoch = func.__code__.co_argcount == 2  # stochastic by definition
 
         # Create a variable
         if array:
-            v = ArrayVariable(func, aggregation_type)
+            v = ArrayVariable(func, aggregation_type, stoch)
         elif func.__code__.co_argcount == 0:
-            v = ConstantVariable(func, aggregation_type)
+            v = ConstantVariable(func, aggregation_type, stoch)
         else:
-            v = Variable(func, aggregation_type)
+            v = Variable(func, aggregation_type, stoch)
 
         return v
     return wrapper
 
 
 class Variable:
-    def __init__(self, func, aggregation_type):
+    def __init__(self, func, aggregation_type, stoch):
         self.func = func
         self.aggregation_type = aggregation_type
         self.name = None
@@ -59,6 +76,7 @@ class Variable:
         self.calc_order = None
         self.cycle = False
         self.cycle_order = 0
+        self.stoch = stoch
         self.result = None
         self.runtime = 0.0
 
@@ -111,8 +129,8 @@ class Variable:
 
 class ConstantVariable(Variable):
     """Variable that is constant in time."""
-    def __init__(self, func, aggregation_type):
-        Variable.__init__(self, func, aggregation_type)
+    def __init__(self, func, aggregation_type, stoch):
+        Variable.__init__(self, func, aggregation_type, stoch)
 
     def __repr__(self):
         return f"CV: {self.func.__name__}"
@@ -130,8 +148,8 @@ class ConstantVariable(Variable):
 
 class ArrayVariable(Variable):
     """Variable that returns an array."""
-    def __init__(self, func, aggregation_type):
-        Variable.__init__(self, func, aggregation_type)
+    def __init__(self, func, aggregation_type, stoch):
+        Variable.__init__(self, func, aggregation_type, stoch)
 
     def __repr__(self):
         return f"AV: {self.func.__name__}"

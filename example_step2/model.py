@@ -25,4 +25,3 @@ def pv_premiums(t):
     if t == settings["T_MAX_CALCULATION"]:
         return premium(t)
     return premium(t) + pv_premiums(t+1) * discount_rate(t+1)
-
