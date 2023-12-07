@@ -24,4 +24,4 @@ def discount_rate(t, stoch):
 def pv_premiums(t, stoch):
     if t == settings["T_MAX_CALCULATION"]:
         return premium(t)
-    return premium(t) + pv_premiums(t+1) * discount_rate(t+1, stoch)
+    return premium(t) + pv_premiums(t+1, stoch) * discount_rate(t+1, stoch)

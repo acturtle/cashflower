@@ -11,7 +11,7 @@ import os
 import pandas as pd
 import shutil
 
-from .core import ArrayVariable, Model, ModelPointSet, Runplan, Variable
+from .core import ArrayVariable, Model, ModelPointSet, Runplan, StochasticVariable, Variable
 from .error import CashflowModelError
 from .graph import create_directed_graph, filter_variables_and_graph, get_calc_direction, get_calls, get_predecessors, set_calc_direction
 from .utils import get_git_commit_info, get_object_by_name, print_log, save_log_to_file
@@ -108,10 +108,9 @@ def get_variables(model_members, settings):
         variable.name = name
 
         # Initiate empty results
-        if variable.stoch is False:
-            variable.result = np.empty(settings["T_MAX_CALCULATION"]+1)
-        else:
-            variable.result = np.empty((settings["STOCH_SCENARIOS_COUNT"], settings["T_MAX_CALCULATION"]+1))
+        variable.result = np.empty(settings["T_MAX_CALCULATION"]+1)
+        if isinstance(variable, StochasticVariable):
+            variable.result_stoch = np.empty((settings["STOCH_SCENARIOS_COUNT"], settings["T_MAX_CALCULATION"]+1))
 
         variables.append(variable)
     return variables
