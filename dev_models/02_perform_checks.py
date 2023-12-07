@@ -238,6 +238,14 @@ def check_dev_model_19():
     basic_check("dev_model_19")
 
 
+def check_dev_model_20():
+    basic_check("dev_model_20")
+
+
+def check_dev_model_21():
+    basic_check("dev_model_21")
+
+
 if __name__ == "__main__":
     check_dev_model_00()
     check_dev_model_01()
@@ -259,4 +267,6 @@ if __name__ == "__main__":
     check_dev_model_17()
     check_dev_model_18()
     check_dev_model_19()
+    check_dev_model_20()
+    check_dev_model_21()
     print("\nFinished! All checks completed successfully.")

@@ -6,13 +6,14 @@ import importlib
 import inspect
 import multiprocessing
 import networkx as nx
+import numpy as np
 import os
 import pandas as pd
 import shutil
 
-from .core import ArrayVariable, Model, ModelPointSet, Runplan, Variable
+from .core import ArrayVariable, Model, ModelPointSet, Runplan, StochasticVariable, Variable
 from .error import CashflowModelError
-from .graph import create_directed_graph, filter_variables_and_graph, get_calc_direction, get_calls, get_predecessors
+from .graph import create_directed_graph, filter_variables_and_graph, get_calls, get_predecessors, set_calc_direction
 from .utils import get_git_commit_info, get_object_by_name, print_log, save_log_to_file
 
 
@@ -29,6 +30,7 @@ def load_settings(settings=None):
         "GROUP_BY_COLUMN": None,
         "ID_COLUMN": "id",
         "MULTIPROCESSING": False,
+        "NUM_STOCHASTIC_SCENARIOS": None,
         "OUTPUT_COLUMNS": [],
         "SAVE_DIAGNOSTIC": True,
         "SAVE_LOG": True,
@@ -100,11 +102,22 @@ def get_variables(model_members, settings):
     variables = []
 
     for name, variable in variable_members:
+        # Set name
         if name == "t":
             msg = f"\nA variable can not be named '{name}' because it is a system variable. Please rename it."
             raise CashflowModelError(msg)
         variable.name = name
-        variable.t_max = settings["T_MAX_CALCULATION"]
+
+        # Initiate empty results
+        variable.result = np.empty(settings["T_MAX_CALCULATION"]+1)
+        if isinstance(variable, StochasticVariable):
+            if settings["NUM_STOCHASTIC_SCENARIOS"] is None:
+                msg = (f"\n\nThe model contains stochastic variable ('{name}')."
+                       f"\nPlease set the number of stochastic scenarios ('NUM_STOCHASTIC_SCENARIOS' in 'settings.py').")
+                raise CashflowModelError(msg)
+
+            variable.result_stoch = np.empty((settings["NUM_STOCHASTIC_SCENARIOS"], settings["T_MAX_CALCULATION"]+1))
+
         variables.append(variable)
     return variables
 
@@ -128,7 +141,7 @@ def prepare_model_input(settings, args):
 
 def resolve_calculation_order(variables, output_columns):
     """Determines a safe execution order for variables to avoid recursion errors."""
-    # [1] Dictionary of called functions
+    # [1] Dictionary of called functions (key = variable; value = other variables called by it)
     calls = {}
     for variable in variables:
         calls[variable] = get_calls(variable, variables)
@@ -140,26 +153,19 @@ def resolve_calculation_order(variables, output_columns):
     if output_columns is not None:
         variables, dg = filter_variables_and_graph(output_columns, variables, dg)
 
-    # Draw graph (debug)
-    # import matplotlib.pyplot as plt
-    # nx.draw(dg, with_labels=True)
-    # plt.show()
-
     # [4] Set calculation order of variables ('calc_order')
     calc_order = 0
     while dg.nodes:
         nodes_without_predecessors = [n for n in dg.nodes if len(list(dg.predecessors(n))) == 0]
 
-        # [4a]
-        # There are variables without any predecessors
+        # [4a] There are variables without any predecessors
         if len(nodes_without_predecessors) > 0:
             for node in nodes_without_predecessors:
                 calc_order += 1
                 node.calc_order = calc_order
             dg.remove_nodes_from(nodes_without_predecessors)
 
-        # [4b]
-        # There is a cyclic relationship between variables
+        # [4b] There is a cyclic relationship between variables
         else:
             cycles = list(nx.simple_cycles(dg))
             cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], dg)) == len(c)]
@@ -174,8 +180,7 @@ def resolve_calculation_order(variables, output_columns):
                         raise CashflowModelError(msg)
 
                 # [4b_2] Set the calculation order within the cycle
-                # Dictionary of called functions but only for the same time period ("t")
-                calls_t = {}
+                calls_t = {}  # dictionary of called functions but only for the same time period ("t")
                 for variable in cycle:
                     calls_t[variable] = get_calls(variable, cycle, argument_t_only=True)
 
@@ -209,14 +214,8 @@ def resolve_calculation_order(variables, output_columns):
     # [5] Sort variables for calculation order
     variables = sorted(variables, key=lambda x: (x.calc_order, x.cycle_order, x.name))
 
-    # [6] Set calc_direction of calculation ('calc_direction')
-    max_calc_order = variables[-1].calc_order
-    for calc_order in range(1, max_calc_order + 1):
-        # Multiple variables can have the same calc_order if they are part of the cycle
-        calc_order_variables = [v for v in variables if v.calc_order == calc_order]
-        calc_direction = get_calc_direction(calc_order_variables)
-        for variable in calc_order_variables:
-            variable.calc_direction = calc_direction
+    # [6] Set calculation direction of calculation ('calc_direction' attribute)
+    variables = set_calc_direction(variables)
 
     return variables
 

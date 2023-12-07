@@ -14,34 +14,55 @@ def get_variable_type(v):
         return "constant"
     elif isinstance(v, ArrayVariable):
         return "array"
+    elif isinstance(v, StochasticVariable):
+        return "stochastic"
     else:
         return "default"
+
+
+def check_arguments(func, array):
+    """Check if variable definition has correct argument(s): def my_var(...)"""
+    # Variable has maximally 2 parameters ("t" and "stoch")
+    if func.__code__.co_argcount > 2:
+        msg = f"Error in '{func.__name__}': The model variable should have at most two parameters ('t' and 'stoch')."
+        raise CashflowModelError(msg)
+
+    # First parameter must be named "t" and second "stoch"
+    if func.__code__.co_argcount == 2:
+        if not func.__code__.co_varnames[0] == 't':
+            msg = f"Error in '{func.__name__}': The first parameter should be named 't'."
+            raise CashflowModelError(msg)
+
+        if not func.__code__.co_varnames[1] == 'stoch':
+            msg = f"Error in '{func.__name__}': The second parameter should be named 'stoch'."
+            raise CashflowModelError(msg)
+
+    # Only parameter must be named "t"
+    if func.__code__.co_argcount == 1:
+        if not func.__code__.co_varnames[0] == 't':
+            msg = f"Error in '{func.__name__}': The parameter should be named 't'."
+            raise CashflowModelError(msg)
+
+    # Array variables don't have parameters
+    if array and not func.__code__.co_argcount == 0:
+        msg = f"Error in '{func.__name__}': Array variables cannot have parameters."
+        raise CashflowModelError(msg)
+
+    return None
 
 
 def variable(array=False, aggregation_type="sum"):
     """Transform a function with decorator into an object of class Variable"""
     def wrapper(func):
-        # Variable has maximally 1 parameter
-        if func.__code__.co_argcount > 1:
-            msg = f"Error in '{func.__name__}': The model variable should have at most one parameter."
-            raise CashflowModelError(msg)
-
-        # Parameter must be named "t"
-        if func.__code__.co_argcount == 1:
-            if not func.__code__.co_varnames[0] == 't':
-                msg = f"Error in '{func.__name__}': The parameter should be named 't'."
-                raise CashflowModelError(msg)
-
-        # Array variables don't have parameters
-        if array and not func.__code__.co_argcount == 0:
-            msg = f"Error in '{func.__name__}': Array variables cannot have parameters."
-            raise CashflowModelError(msg)
+        check_arguments(func, array)
 
         # Create a variable
         if array:
             v = ArrayVariable(func, aggregation_type)
         elif func.__code__.co_argcount == 0:
             v = ConstantVariable(func, aggregation_type)
+        elif func.__code__.co_argcount == 2:
+            v = StochasticVariable(func, aggregation_type)
         else:
             v = Variable(func, aggregation_type)
 
@@ -50,11 +71,16 @@ def variable(array=False, aggregation_type="sum"):
 
 
 class Variable:
+    """Default variable type.
+
+    @variable()
+    def my_var(t):
+        ...
+    """
     def __init__(self, func, aggregation_type):
         self.func = func
         self.aggregation_type = aggregation_type
         self.name = None
-        self._t_max = None
         self.calc_direction = None
         self.calc_order = None
         self.cycle = False
@@ -77,40 +103,38 @@ class Variable:
         try:
             return self.result[t]
         except IndexError as e:
-            if t > self.t_max:
+            if t > len(self.result):
                 msg = (f"\n\nVariable '{self.name}' has been called for period '{t}' "
                        f"which is outside of the calculation range.")
                 raise CashflowModelError(msg)
             else:
                 print(str(e))
 
-    @property
-    def t_max(self):
-        return self._t_max
-
-    @t_max.setter
-    def t_max(self, new_t_max):
-        self._t_max = new_t_max
-        self.result = np.empty(self.t_max + 1)
-
     def calculate_t(self, t):
+        """For cycle calculations"""
         self.result[t] = self.func(t)
 
     def calculate(self):
+        t_max = len(self.result)
         if self.calc_direction == 0:
-            self.result = np.array([*map(self.func, range(self.t_max + 1))], dtype=np.float64)
+            self.result = np.array([*map(self.func, range(t_max))], dtype=np.float64)
         elif self.calc_direction == 1:
-            for t in range(self.t_max + 1):
+            for t in range(t_max):
                 self.result[t] = self.func(t)
         elif self.calc_direction == -1:
-            for t in range(self.t_max, -1, -1):
+            for t in range(t_max-1, -1, -1):
                 self.result[t] = self.func(t)
         else:
-            raise CashflowModelError(f"Incorrect calculation direction {self.calc_direction}")
+            raise CashflowModelError(f"\n\nIncorrect calculation direction '{self.calc_direction}'.")
 
 
 class ConstantVariable(Variable):
-    """Variable that is constant in time."""
+    """Variable that is constant in time.
+
+    @variable()
+    def my_var():
+        ...
+    """
     def __init__(self, func, aggregation_type):
         Variable.__init__(self, func, aggregation_type)
 
@@ -121,15 +145,21 @@ class ConstantVariable(Variable):
         return self.result[0]
 
     def calculate_t(self, t):
+        """For cycle calculations"""
         self.result[t] = self.func()
 
     def calculate(self):
         value = self.func()
-        self.result = np.array([value for _ in range(0, self.t_max + 1)], dtype=np.float64)
+        self.result.fill(value)
 
 
 class ArrayVariable(Variable):
-    """Variable that returns an array."""
+    """Variable that returns an array (for runtime improvements).
+
+    @variable(array=True)
+    def my_var():
+        ...
+    """
     def __init__(self, func, aggregation_type):
         Variable.__init__(self, func, aggregation_type)
 
@@ -138,6 +168,49 @@ class ArrayVariable(Variable):
 
     def calculate(self):
         self.result = np.array(self.func(), dtype=np.float64)
+
+
+class StochasticVariable(Variable):
+    """Stochastic variable.
+
+    @variable()
+    def my_var(t, stoch):
+        ...
+    """
+    def __init__(self, func, aggregation_type):
+        Variable.__init__(self, func, aggregation_type)
+        self.result_stoch = None
+
+    def __repr__(self):
+        return f"SV: {self.func.__name__}"
+
+    def __call__(self, t, stoch):
+        return self.result_stoch[stoch-1, t]
+
+    def calculate_t(self, t):
+        """For cycle calculations"""
+        stoch_scenarios_count = self.result_stoch.shape[0]
+        for stoch in range(1, stoch_scenarios_count+1):
+            self.result_stoch[stoch-1, t] = self.func(t, stoch)
+
+    def calculate(self):
+        stoch_scenarios_count, t_max = self.result_stoch.shape
+
+        for stoch in range(1, stoch_scenarios_count+1):
+            if self.calc_direction == 0:
+                func_with_stoch = functools.partial(self.func, stoch=stoch)
+                self.result_stoch[stoch-1, :] = np.array([*map(func_with_stoch, range(t_max))], dtype=np.float64)
+            elif self.calc_direction == 1:
+                for t in range(t_max):
+                    self.result_stoch[stoch-1, t] = self.func(t, stoch)
+            elif self.calc_direction == -1:
+                for t in range(t_max-1, -1, -1):
+                    self.result_stoch[stoch-1, t] = self.func(t, stoch)
+            else:
+                raise CashflowModelError(f"\n\nIncorrect calculation direction '{self.calc_direction}'.")
+
+    def average_result_stoch(self):
+        self.result = np.mean(self.result_stoch, axis=0)
 
 
 class Runplan:
@@ -454,7 +527,8 @@ class Model:
         for calc_order in range(1, max_calc_order + 1):
             # Either a single variable or a cycle
             variables = [v for v in self.variables if v.calc_order == calc_order]
-            # Single
+
+            # Single variable
             if len(variables) == 1:
                 v = variables[0]
                 start = time.time()
@@ -477,6 +551,11 @@ class Model:
                 avg_runtime = (end-start)/len(variables)
                 for v in variables:
                     v.runtime += avg_runtime
+
+        # Average stochastic results
+        for v in self.variables:
+            if isinstance(v, StochasticVariable):
+                v.average_result_stoch()
 
         # Get results and trim for T_MAX_OUTPUT,results may contain subset of columns
         if len(self.settings["OUTPUT_COLUMNS"]) > 0:

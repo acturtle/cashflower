@@ -43,18 +43,20 @@ ensuring that they do not clutter the version control system.
 | 17 | True  | None  | id | False  | []   | True  | True  | 13       | 13      | 2    | 8   |
 | 18 | True  | None  | id | True   | []   | True  | True  | 13       | 13      | 2    | 8   |
 | 19 | True  | None  | id | True   | []   | True  | True  | 13       | 13      | 2    | 8   |
+| 20 | True  | None  | id | False  | []   | True  | True  | 720      | 720     | 3    | 1   |
+| 21 | False | None  | id | False  | []   | True  | True  | 12       | 12      | 5    | 3   |
 
 ### Description
 
-* `01` - basic model created with `create_model()` and default settings
-* `02` - basic model with `MULTIPROCESSING = True`
-* `03` - basic model with 100 model points
-* `04` - basic model with 100 model points and `MULTIPROCESSING = True`
-* `05` - basic model with 10 model points and individual results (`AGGREGATE = False`)
-* `06` - basic model with 10 model points and id column set to `mp`
+* `01` - model created with `create_model()` and default settings
+* `02` - model with `MULTIPROCESSING = True`
+* `03` - model with 100 model points
+* `04` - model with 100 model points and `MULTIPROCESSING = True`
+* `05` - model with 10 model points and individual results (`AGGREGATE = False`)
+* `06` - model with 10 model points and id column set to `mp`
 * `07` - model with `OUTPUT_COLUMNS = ["f"]`
-* `08` - basic model with `SAVE_DIAGNOSTIC = False`
-* `09` - basic model with `SAVE_OUTPUT = False`
+* `08` - model with `SAVE_DIAGNOSTIC = False`
+* `09` - model with `SAVE_OUTPUT = False`
 * `10` - model with variable that is calculated backward
 * `11` - model with variables forming a cycle (real estate mortgage)
 * `12` - model in which runplan is used
@@ -65,4 +67,6 @@ ensuring that they do not clutter the version control system.
 * `17` - model with `variable(aggregation_type="first")` and `GROUP_BY_COLUMN`
 * `18` - model with `variable(aggregation_type="first")` and `MULTIPROCESSING`
 * `19` - model with `variable(aggregation_type="first")` and `GROUP_BY_COLUMN` and `MULTIPROCESSING`
+* `20` - model with stochastic variables
+* `21` - model with stochastic variables that form a cycle
 * `99` - "special" model for testing memory limits
