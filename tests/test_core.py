@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -83,7 +84,7 @@ class TestVariable(TestCase):
             return t
 
         foo.name = "foo"
-        foo.t_max = 720
+        foo.result = np.empty(720)
 
         foo.calculate_t(10)
 
