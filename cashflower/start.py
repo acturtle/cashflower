@@ -13,7 +13,7 @@ import shutil
 
 from .core import ArrayVariable, Model, ModelPointSet, Runplan, StochasticVariable, Variable
 from .error import CashflowModelError
-from .graph import create_directed_graph, filter_variables_and_graph, get_calc_direction, get_calls, get_predecessors, set_calc_direction
+from .graph import create_directed_graph, filter_variables_and_graph, get_calls, get_predecessors, set_calc_direction
 from .utils import get_git_commit_info, get_object_by_name, print_log, save_log_to_file
 
 
@@ -30,6 +30,7 @@ def load_settings(settings=None):
         "GROUP_BY_COLUMN": None,
         "ID_COLUMN": "id",
         "MULTIPROCESSING": False,
+        "NUM_STOCHASTIC_SCENARIOS": None,
         "OUTPUT_COLUMNS": [],
         "SAVE_DIAGNOSTIC": True,
         "SAVE_LOG": True,
@@ -110,7 +111,12 @@ def get_variables(model_members, settings):
         # Initiate empty results
         variable.result = np.empty(settings["T_MAX_CALCULATION"]+1)
         if isinstance(variable, StochasticVariable):
-            variable.result_stoch = np.empty((settings["STOCH_SCENARIOS_COUNT"], settings["T_MAX_CALCULATION"]+1))
+            if settings["NUM_STOCHASTIC_SCENARIOS"] is None:
+                msg = (f"\n\nThe model contains stochastic variable ('{name}')."
+                       f"\nPlease set the number of stochastic scenarios ('NUM_STOCHASTIC_SCENARIOS' in 'settings.py').")
+                raise CashflowModelError(msg)
+
+            variable.result_stoch = np.empty((settings["NUM_STOCHASTIC_SCENARIOS"], settings["T_MAX_CALCULATION"]+1))
 
         variables.append(variable)
     return variables

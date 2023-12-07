@@ -14,6 +14,8 @@ def get_variable_type(v):
         return "constant"
     elif isinstance(v, ArrayVariable):
         return "array"
+    elif isinstance(v, StochasticVariable):
+        return "stochastic"
     else:
         return "default"
 
@@ -189,7 +191,7 @@ class StochasticVariable(Variable):
         """For cycle calculations"""
         stoch_scenarios_count = self.result_stoch.shape[0]
         for stoch in range(1, stoch_scenarios_count+1):
-            self.result_stoch[stoch, t] = self.func(t, stoch)
+            self.result_stoch[stoch-1, t] = self.func(t, stoch)
 
     def calculate(self):
         stoch_scenarios_count, t_max = self.result_stoch.shape

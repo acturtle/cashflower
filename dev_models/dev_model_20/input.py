@@ -4,8 +4,8 @@ from cashflower import Runplan, ModelPointSet
 runplan = Runplan(data=pd.DataFrame({"version": [1]}))
 
 main = ModelPointSet(data=pd.DataFrame({
-    "id": [1],
-    "premium": [1_000],
+    "id": [1, 2],
+    "premium": [1_000, 2_000],
 }))
 
 assumption = {
