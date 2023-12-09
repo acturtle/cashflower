@@ -7,4 +7,5 @@ Advanced
 
    variable_types
    array_variables
+   stochastic_variables
    discount_function

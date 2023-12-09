@@ -76,7 +76,7 @@ Cashflower includes various types of variables. Here's an overview:
 
 Description:
 
-1. Regular
+**1. Regular**
 
 * This is the default variable type with values that depend on :code:`t` (time).
 * The function requires a parameter :code:`t` and should return a numeric value.
@@ -86,7 +86,7 @@ Description:
 
 |
 
-2. Constant
+**2. Constant**
 
 * Constant variable holds the same value for all periods.
 * The function doesn't require any parameters and should return a numeric value.
@@ -96,7 +96,7 @@ Description:
 
 |
 
-3. Array
+**3. Array**
 
 * Array variables significantly enhance runtime performance compared to regular ones.
 * The variable's decorator should include an :code:`array` argument set to :code:`True` (:code:`@variable(array=True)`).
@@ -107,7 +107,7 @@ Description:
 
 |
 
-4. Stochastic
+**4. Stochastic**
 
 * Stochastic variables are for models involving multiple stochastic runs.
 * The function requires two parameters: :code:`t` and :code:`stoch`, returning a numeric value.
