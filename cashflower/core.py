@@ -6,7 +6,7 @@ import pandas as pd
 import psutil
 
 from .error import CashflowModelError
-from .utils import get_first_indexes, get_object_by_name, print_log, split_to_ranges, updt
+from .utils import get_first_indexes, get_object_by_name, log_message, split_to_ranges, updt
 
 
 def get_variable_type(v):
@@ -359,7 +359,7 @@ class Model:
             range_start, range_end = main_ranges[part]
 
         # Perform calculations
-        print_log("Starting calculations...", show_time=True, visible=one_core)
+        log_message("Starting calculations...", show_time=True, print_and_log=one_core)
         if self.settings["AGGREGATE"]:
             output = self.compute_aggregated_results(range_start, range_end, one_core)
         else:
@@ -421,7 +421,7 @@ class Model:
                 batch_end = min(batch_end+batch_size, range_end)
 
             # Prepare the 'output' data frame
-            print_log("Preparing output...", show_time=True, visible=one_core)
+            log_message("Preparing output...", show_time=True, print_and_log=one_core)
             results = np.transpose(results)
             output = pd.DataFrame(data=results, columns=output_columns)
 
@@ -456,7 +456,7 @@ class Model:
                 batch_end = min(batch_end+batch_size, range_end)
 
             # Prepare the 'output' data frame
-            print_log("Preparing output...", show_time=True, visible=one_core)
+            log_message("Preparing output...", show_time=True, print_and_log=one_core)
             lst_dfs = []
             for group, data in group_sums.items():
                 group_df = pd.DataFrame(data=np.transpose(data), columns=output_columns)
@@ -502,7 +502,7 @@ class Model:
             output_columns = self.settings["OUTPUT_COLUMNS"]
 
         # Prepare the 'output' data frame
-        print_log("Preparing output...", show_time=True, visible=one_core)
+        log_message("Preparing output...", show_time=True, print_and_log=one_core)
         total_data = [pd.DataFrame(np.transpose(arr)) for arr in results]
         output = pd.concat(total_data)
         output.columns = output_columns

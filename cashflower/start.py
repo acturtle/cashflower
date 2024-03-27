@@ -14,7 +14,7 @@ import shutil
 from .core import ArrayVariable, Model, ModelPointSet, Runplan, StochasticVariable, Variable
 from .error import CashflowModelError
 from .graph import create_directed_graph, filter_variables_and_graph, get_calls, get_predecessors, set_calc_direction
-from .utils import get_git_commit_info, get_object_by_name, print_log, save_log_to_file
+from .utils import get_git_commit_info, get_object_by_name, log_message, save_log_to_file
 
 
 def create_model(model):
@@ -52,7 +52,7 @@ def load_settings(settings=None):
         cal = initial_settings["T_MAX_CALCULATION"]
         msg = (f"T_MAX_OUTPUT ('{out}') exceeds T_MAX_CALCULATION ('{cal}'); "
                f"T_MAX_OUTPUT adjusted to match T_MAX_CALCULATION.")
-        print_log(msg)
+        log_message(msg)
         initial_settings["T_MAX_OUTPUT"] = initial_settings["T_MAX_CALCULATION"]
 
     return initial_settings
@@ -223,16 +223,16 @@ def resolve_calculation_order(variables, output_columns):
 def start_single_core(settings, args):
     """Create and run a cash flow model."""
     # Prepare model components
-    print_log("Reading model components...", show_time=True)
+    log_message("Reading model components...", show_time=True)
     runplan, model_point_sets, variables = prepare_model_input(settings, args)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
     # Log runplan version and number of model points
     if runplan is not None:
-        print_log(f"Runplan version: {runplan.version}")
+        log_message(f"Runplan version: {runplan.version}")
     main = get_object_by_name(model_point_sets, "main")
-    print_log(f"Number of model points: {len(main)}")
+    log_message(f"Number of model points: {len(main)}")
 
     # Run model on single core
     model = Model(variables, model_point_sets, settings)
@@ -246,18 +246,18 @@ def start_multiprocessing(part, settings, args):
     one_core = part == 0
 
     # Prepare model components
-    print_log("Reading model components...", show_time=True, visible=one_core)
+    log_message("Reading model components...", show_time=True, print_and_log=one_core)
     runplan, model_point_sets, variables = prepare_model_input(settings, args)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
     # Log runplan version and number of model points
     if runplan is not None:
-        print_log(f"Runplan version: {runplan.version}", visible=one_core)
+        log_message(f"Runplan version: {runplan.version}", print_and_log=one_core)
     main = get_object_by_name(model_point_sets, "main")
-    print_log(f"Number of model points: {len(main)}", visible=one_core)
-    print_log(f"Multiprocessing on {cpu_count} cores", visible=one_core)
-    print_log(f"Calculation of ca. {len(main) // cpu_count} model points per core", visible=one_core)
+    log_message(f"Number of model points: {len(main)}", print_and_log=one_core)
+    log_message(f"Multiprocessing on {cpu_count} cores", print_and_log=one_core)
+    log_message(f"Calculation of ca. {len(main) // cpu_count} model points per core", print_and_log=one_core)
 
     # Run model on multiple cores
     model = Model(variables, model_point_sets, settings)
@@ -309,30 +309,30 @@ def run(settings=None, path=None):
 
     # Start log
     if path is not None:
-        print_log(f"Model: '{os.path.basename(path)}'", show_time=True)
-        print_log(f"Path: {path}")
+        log_message(f"Model: '{os.path.basename(path)}'", show_time=True)
+        log_message(f"Path: {path}")
     else:
-        print_log("Model", show_time=True)
-    print_log(f"Timestamp: {timestamp}")
-    print_log(f"User: '{getpass.getuser()}'")
+        log_message("Model", show_time=True)
+    log_message(f"Timestamp: {timestamp}")
+    log_message(f"User: '{getpass.getuser()}'")
     commit = get_git_commit_info()
     if commit is not None:
-        print_log(f"Git commit: {commit}")
-    print_log("")
+        log_message(f"Git commit: {commit}")
+    log_message("")
 
     has_arguments = any(arg_value is not None for arg_value in vars(args).values())
     if has_arguments:
-        print_log("Arguments:")
+        log_message("Arguments:")
         for arg_name, arg_value in vars(args).items():
             if arg_value is not None:
-                print_log(f'- {arg_name}: {arg_value}')
-        print_log("")
+                log_message(f'- {arg_name}: {arg_value}')
+        log_message("")
 
-    print_log("Settings:")
+    log_message("Settings:")
     for key, value in settings.items():
         msg = f"- {key}: {value}"
-        print_log(msg)
-    print_log("")
+        log_message(msg)
+    log_message("")
 
     # Run on single core
     if not settings["MULTIPROCESSING"]:
@@ -357,8 +357,8 @@ def run(settings=None, path=None):
     # Add time column
     values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output.shape[0] / (settings["T_MAX_OUTPUT"]+1))
     output.insert(0, "t", values)
-    print_log("Finished!", show_time=True)
-    print_log("")
+    log_message("Finished!", show_time=True)
+    log_message("")
 
     # Save to csv files
     if settings["SAVE_OUTPUT"] or settings["SAVE_DIAGNOSTIC"] or settings["SAVE_LOG"]:
@@ -367,17 +367,17 @@ def run(settings=None, path=None):
 
         if settings["SAVE_OUTPUT"]:
             filepath = f"output/{timestamp}_output.csv"
-            print_log(f"Saving output file: {filepath}", show_time=True)
+            log_message(f"Saving output file: {filepath}", show_time=True)
             output.to_csv(filepath, index=False)
 
         if settings["SAVE_DIAGNOSTIC"]:
             filepath = f"output/{timestamp}_diagnostic.csv"
-            print_log(f"Saving diagnostic file: {filepath}", show_time=True)
+            log_message(f"Saving diagnostic file: {filepath}", show_time=True)
             diagnostic.to_csv(filepath, index=False)
 
         if settings["SAVE_LOG"]:
             filepath = f"output/{timestamp}_log.txt"
-            print_log(f"Saving log file: {filepath}", show_time=True)
+            log_message(f"Saving log file: {filepath}", show_time=True)
             save_log_to_file(timestamp)
 
     print(f"{'-' * 72}\n")

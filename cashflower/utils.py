@@ -7,16 +7,26 @@ from datetime import datetime
 log_messages = []
 
 
-def print_log(msg, show_time=False, visible=True):
-    """Print a log message with the timestamp and add to global messages to be saved later on."""
-    if visible:
+def log_message(msg, show_time=False, print_and_log=True):
+    """
+    Log a message with the timestamp and add to global log messages to be saved later on.
+
+    Parameters:
+        msg (str): The message to be logged.
+        show_time (bool): Whether to show the time in the log message. Default is False.
+        print_and_log (bool): Whether to print the log message to the console and log it. Default is True.
+
+    Returns:
+        None
+    """
+    if print_and_log:
         if show_time:
             log_msg = datetime.now().strftime("%H:%M:%S") + " | " + msg
         else:
             log_msg = f"{' ' * 10} {msg}"
         print(log_msg)
         log_messages.append(log_msg)
-
+    return None
 
 def save_log_to_file(timestamp):
     with open(f"output/{timestamp}_log.txt", "w") as file:
