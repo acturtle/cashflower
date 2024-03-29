@@ -359,7 +359,7 @@ class Model:
             range_start, range_end = main_ranges[part]
 
         # Perform calculations
-        log_message("Starting calculations...", show_time=True, print_and_log=one_core)
+        log_message("Starting calculations...", show_time=True, print_and_save=one_core)
         if self.settings["AGGREGATE"]:
             output = self.compute_aggregated_results(range_start, range_end, one_core)
         else:
@@ -421,7 +421,7 @@ class Model:
                 batch_end = min(batch_end+batch_size, range_end)
 
             # Prepare the 'output' data frame
-            log_message("Preparing output...", show_time=True, print_and_log=one_core)
+            log_message("Preparing output...", show_time=True, print_and_save=one_core)
             results = np.transpose(results)
             output = pd.DataFrame(data=results, columns=output_columns)
 
@@ -456,7 +456,7 @@ class Model:
                 batch_end = min(batch_end+batch_size, range_end)
 
             # Prepare the 'output' data frame
-            log_message("Preparing output...", show_time=True, print_and_log=one_core)
+            log_message("Preparing output...", show_time=True, print_and_save=one_core)
             lst_dfs = []
             for group, data in group_sums.items():
                 group_df = pd.DataFrame(data=np.transpose(data), columns=output_columns)
@@ -502,7 +502,7 @@ class Model:
             output_columns = self.settings["OUTPUT_COLUMNS"]
 
         # Prepare the 'output' data frame
-        log_message("Preparing output...", show_time=True, print_and_log=one_core)
+        log_message("Preparing output...", show_time=True, print_and_save=one_core)
         total_data = [pd.DataFrame(np.transpose(arr)) for arr in results]
         output = pd.concat(total_data)
         output.columns = output_columns

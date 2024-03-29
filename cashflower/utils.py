@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 
@@ -7,19 +8,19 @@ from datetime import datetime
 log_messages = []
 
 
-def log_message(msg, show_time=False, print_and_log=True):
+def log_message(msg, show_time=False, print_and_save=True):
     """
     Log a message with the timestamp and add to global log messages to be saved later on.
 
     Parameters:
         msg (str): The message to be logged.
         show_time (bool): Whether to show the time in the log message. Default is False.
-        print_and_log (bool): Whether to print the log message to the console and log it. Default is True.
+        print_and_save (bool): Whether to print the log message to the console and log it. Default is True.
 
     Returns:
         None
     """
-    if print_and_log:
+    if print_and_save:
         if show_time:
             log_msg = datetime.now().strftime("%H:%M:%S") + " | " + msg
         else:
@@ -28,10 +29,25 @@ def log_message(msg, show_time=False, print_and_log=True):
         log_messages.append(log_msg)
     return None
 
+
 def save_log_to_file(timestamp):
-    with open(f"output/{timestamp}_log.txt", "w") as file:
-        for message in log_messages:
-            file.write(message + '\n')
+    """
+    Save the log messages to a file and then clear the log.
+
+    The file is created in the "output" directory and its name is the timestamp followed by "_log.txt".
+
+    Parameters:
+    timestamp (str): The timestamp to use in the filename.
+
+    Returns:
+    None
+    """
+    try:
+        filename = f"{timestamp}_log.txt"
+        filepath = os.path.join("output", filename)
+        with open(filepath, "w") as file:
+            file.write('\n'.join(log_messages))
+    finally:
         log_messages.clear()
 
 

@@ -246,18 +246,18 @@ def start_multiprocessing(part, settings, args):
     one_core = part == 0
 
     # Prepare model components
-    log_message("Reading model components...", show_time=True, print_and_log=one_core)
+    log_message("Reading model components...", show_time=True, print_and_save=one_core)
     runplan, model_point_sets, variables = prepare_model_input(settings, args)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
     # Log runplan version and number of model points
     if runplan is not None:
-        log_message(f"Runplan version: {runplan.version}", print_and_log=one_core)
+        log_message(f"Runplan version: {runplan.version}", print_and_save=one_core)
     main = get_object_by_name(model_point_sets, "main")
-    log_message(f"Number of model points: {len(main)}", print_and_log=one_core)
-    log_message(f"Multiprocessing on {cpu_count} cores", print_and_log=one_core)
-    log_message(f"Calculation of ca. {len(main) // cpu_count} model points per core", print_and_log=one_core)
+    log_message(f"Number of model points: {len(main)}", print_and_save=one_core)
+    log_message(f"Multiprocessing on {cpu_count} cores", print_and_save=one_core)
+    log_message(f"Calculation of ca. {len(main) // cpu_count} model points per core", print_and_save=one_core)
 
     # Run model on multiple cores
     model = Model(variables, model_point_sets, settings)
