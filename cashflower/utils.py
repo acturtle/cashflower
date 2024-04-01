@@ -64,7 +64,7 @@ def split_to_ranges(n, num_ranges):
         list: A list of tuples, where each tuple represents a range.
 
     Example:
-        >>> split_to_ranges(20, 3)
+        # >>> split_to_ranges(20, 3)
         [(0, 6), (6, 12), (12, 20)]
     """
     if n < num_ranges:
@@ -122,24 +122,28 @@ def updt(total, progress):
 
 
 def get_git_commit_info():
+    """
+    Retrieves the current Git commit hash and checks if there are any local changes.
+
+    Returns:
+        str: The current Git commit hash, or the commit hash followed by " (with local changes)"
+        if there are any uncommitted changes. Returns None if the current directory is not a Git repository.
+    """
     try:
-        # Check if the current directory is a Git repository
-        subprocess.check_output("git rev-parse --is-inside-work-tree", shell=True, stderr=subprocess.STDOUT, text=True)
-
-        # Get the Git commit hash
-        commit_hash = subprocess.check_output("git rev-parse HEAD", shell=True).decode("utf-8").strip()
-
-        # Check if there are local changes
-        status_output = subprocess.check_output("git status --porcelain", shell=True).decode("utf-8").strip()
-
-        if status_output:
-            return f"{commit_hash} (with local changes)"
-        else:
-            return f"{commit_hash}"
+        subprocess.check_output(["git", "rev-parse", "--is-inside-work-tree"], stderr=subprocess.STDOUT, text=True)
+        commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        status_output = subprocess.check_output(["git", "status", "--porcelain"], text=True).strip()
     except subprocess.CalledProcessError:
-        # Not a Git repository
+        # Not a git repository
         return None
 
+    if status_output:
+        return f"{commit_hash} (with local changes)"
+    else:
+        return f"{commit_hash}"
+
+
+print(get_git_commit_info())
 
 def get_first_indexes(items):
     """Get the list of indexes for the first occurrence of the given item in the list.
