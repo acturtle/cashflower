@@ -80,10 +80,21 @@ def split_to_ranges(n, num_ranges):
         output.append((start, end))
     return output
 
+
 def get_object_by_name(objects, name):
-    for _object in objects:
-        if _object.name == name:
-            return _object
+    """
+    Returns the first object in the list that has the given name.
+
+    Args:
+        objects (list): A list of objects.
+        name (str): The name to search for.
+
+    Returns:
+        object: The first object in the list that has the given name. If no object is found, returns None.
+    """
+    for obj in objects:
+        if obj.name == name:
+            return obj
     return None
 
 
