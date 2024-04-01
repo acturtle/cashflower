@@ -22,10 +22,11 @@ pip install cashflower
 ## Create model
 
 *python console*
-```python
-from cashflower import create_model
 
-create_model("my_model")
+```python
+from cashflower import create_model_folder_structure
+
+create_model_folder_structure("my_model")
 ```
 
 Creates:

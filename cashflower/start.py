@@ -17,10 +17,21 @@ from .graph import create_directed_graph, filter_variables_and_graph, get_calls,
 from .utils import get_git_commit_info, get_object_by_name, log_message, save_log_to_file
 
 
-def create_model(model):
-    """Create a folder structure for a model."""
+def create_model_folder_structure(model):
+    """Create a folder structure for a model.
+
+    Args:
+        model (str): The path where the folder structure should be created.
+
+    Returns:
+        None
+    """
     template_path = os.path.join(os.path.dirname(__file__), "model_tpl")
-    shutil.copytree(template_path, model)
+
+    try:
+        shutil.copytree(template_path, model)
+    except OSError as e:
+        print(f"Error: {e.filename} - {e.strerror}.")
 
 
 def load_settings(settings=None):
