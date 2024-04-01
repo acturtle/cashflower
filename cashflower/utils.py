@@ -144,12 +144,13 @@ def get_git_commit_info():
 
 
 def get_first_indexes(items):
-    """Get the list of indexes for the first occurrence of the given item in the list.
-    ["A", "A", "B", "A", "C", "D"] --> [0, 2, 4, 5]"""
+    """Get the list of indexes for the first occurrence of each item in the list.
+
+    Example:
+    ["A", "A", "B", "A", "C", "D"] --> [0, 2, 4, 5]
+    """
     first_indexes = {}
     for index, item in enumerate(items):
         if item not in first_indexes:
             first_indexes[item] = index
-
-    result = list(first_indexes.values())
-    return result
+    return list(first_indexes.values())
