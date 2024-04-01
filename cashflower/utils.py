@@ -52,23 +52,33 @@ def save_log_to_file(timestamp):
 
 
 def split_to_ranges(n, num_ranges):
-    """n = 20, num_ranges = 3 --> (0, 6), (6, 12), (12, 20)"""
+    """
+    Split a number into a specified number of ranges. The ranges are of equal size, except for the last one
+    which may be larger if n is not evenly divisible by num_ranges. The remaining elements are added to the last range.
+
+    Args:
+        n (int): The number to split.
+        num_ranges (int): The number of ranges to split into.
+
+    Returns:
+        list: A list of tuples, where each tuple represents a range.
+
+    Example:
+        >>> split_to_ranges(20, 3)
+        [(0, 6), (6, 12), (12, 20)]
+    """
     if n < num_ranges:
         return [(0, n)]
 
     range_size = n // num_ranges
-    # remaining items are added to the last range
     remainder = n - num_ranges * range_size
 
-    output = [None] * num_ranges
-    add_items = 0
+    output = []
     for i in range(num_ranges):
-        if i == num_ranges-1:
-            add_items = remainder
-        range_tuple = (range_size * i, range_size * (i + 1) + add_items)
-        output[i] = range_tuple
+        start = range_size * i
+        end = range_size * (i + 1) + (remainder if i == num_ranges - 1 else 0)
+        output.append((start, end))
     return output
-
 
 def get_object_by_name(objects, name):
     for _object in objects:
