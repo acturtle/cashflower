@@ -143,8 +143,6 @@ def get_git_commit_info():
         return f"{commit_hash}"
 
 
-print(get_git_commit_info())
-
 def get_first_indexes(items):
     """Get the list of indexes for the first occurrence of the given item in the list.
     ["A", "A", "B", "A", "C", "D"] --> [0, 2, 4, 5]"""
