@@ -99,8 +99,16 @@ def get_object_by_name(objects, name):
 
 
 def updt(total, progress):
-    """Display or update a console progress bar.
-    Original source: https://stackoverflow.com/a/15860757/1391441"""
+    """
+    Displays or updates a console progress bar.
+
+    Args:
+        total (int): The total number of steps in the process.
+        progress (int): The current step in the process.
+
+    Returns:
+        None
+    """
     bar_length, status = 20, ""
     progress = float(progress) / float(total)
     if progress >= 1.:
