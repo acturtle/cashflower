@@ -196,8 +196,51 @@ def prepare_model_input(settings, args):
     return runplan, model_point_sets, variables
 
 
+def check_for_array_variables_in_cycle(cycle):
+    for variable in cycle:
+        if isinstance(variable, ArrayVariable):
+            msg = (f"Variable '{variable.name}' is part of a cycle so it can't be modelled as an array variable."
+                   f"\nCycle: {cycle}"
+                   f"\nPlease remove 'array=True' from the decorator and recode the variable.")
+            raise CashflowModelError(msg)
+
+
+def set_cycle_order(dg_cycle):
+    cycle_order = 0
+    while dg_cycle.nodes:
+        cycle_nodes_without_predecessors = [cn for cn in dg_cycle.nodes if len(list(dg_cycle.predecessors(cn))) == 0]
+        if len(cycle_nodes_without_predecessors) > 0:
+            for node in cycle_nodes_without_predecessors:
+                cycle_order += 1
+                node.cycle_order = cycle_order
+            dg_cycle.remove_nodes_from(cycle_nodes_without_predecessors)
+        else:
+            cycle_variable_nodes = [node.name for node in dg_cycle.nodes]
+            msg = (f"Circular relationship without time step difference is not allowed. "
+                   f"Please review variables: {cycle_variable_nodes}."
+                   f"\nIf circular relationship without time step difference is necessary in your project, "
+                   f"please raise it on: github.com/acturtle/cashflower")
+            raise CashflowModelError(msg)
+
+
 def resolve_calculation_order(variables, output_columns):
-    """Determines a safe execution order for variables to avoid recursion errors."""
+    """
+    Determines a safe execution order for variables to avoid recursion errors.
+
+    This function takes a list of variables and an optional list of output columns as input.
+    It first creates a dictionary of called functions for each variable, then creates a directed graph representing
+    the relationships between variables. If output columns are specified, it filters the variables and graph
+    to only include the necessary variables. It then sets the calculation order of the variables,
+    handling both acyclic and cyclic relationships.
+    Finally, it sorts the variables by calculation order and sets the calculation direction.
+
+    Parameters:
+    variables (list): A list of variable objects.
+    output_columns (list, optional): A list of output column names. If specified, only variables that are needed for these columns will be included in the calculation order.
+
+    Returns:
+    list: A list of variable objects, sorted by calculation order and with their calculation direction set.
+    """
     # [1] Dictionary of called functions (key = variable; value = other variables called by it)
     calls = {}
     for variable in variables:
@@ -206,7 +249,7 @@ def resolve_calculation_order(variables, output_columns):
     # [2] Create directed graph for all variables
     dg = create_directed_graph(variables, calls)
 
-    # [3] User has chosen output so remove unneeded variables
+    # [3] User has chosen output columns so remove unneeded variables
     if output_columns is not None:
         variables, dg = filter_variables_and_graph(output_columns, variables, dg)
 
@@ -215,53 +258,30 @@ def resolve_calculation_order(variables, output_columns):
     while dg.nodes:
         nodes_without_predecessors = [n for n in dg.nodes if len(list(dg.predecessors(n))) == 0]
 
-        # [4a] There are variables without any predecessors
+        # [4a] Acyclic - there are variables without any predecessors
         if len(nodes_without_predecessors) > 0:
             for node in nodes_without_predecessors:
                 calc_order += 1
                 node.calc_order = calc_order
             dg.remove_nodes_from(nodes_without_predecessors)
 
-        # [4b] There is a cyclic relationship between variables
+        # [4b] Cyclic - there is a cyclic relationship between variables
         else:
             cycles = list(nx.simple_cycles(dg))
             cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], dg)) == len(c)]
 
             for cycle in cycles_without_predecessors:
-                # [4b_1] Ensure that there are no ArrayVariables in cycles
-                for variable in cycle:
-                    if isinstance(variable, ArrayVariable):
-                        msg = (f"Variable '{variable.name}' is part of a cycle so it can't be modelled as an array variable."
-                               f"\nCycle: {cycle}"
-                               f"\nPlease remove 'array=True' from the decorator and recode the variable.")
-                        raise CashflowModelError(msg)
+                # Ensure that there are no ArrayVariables in cycles
+                check_for_array_variables_in_cycle(cycle)
 
-                # [4b_2] Set the calculation order within the cycle
+                # Set the calculation order within the cycle ('cycle_order')
                 calls_t = {}  # dictionary of called functions but only for the same time period ("t")
                 for variable in cycle:
                     calls_t[variable] = get_calls(variable, cycle, argument_t_only=True)
-
-                # Create directed graph for cycle variables
                 dg_cycle = create_directed_graph(cycle, calls_t)
+                set_cycle_order(dg_cycle)
 
-                # Set 'cycle_order'
-                cycle_order = 0
-                while dg_cycle.nodes:
-                    cycle_nodes_without_predecessors = [cn for cn in dg_cycle.nodes if len(list(dg_cycle.predecessors(cn))) == 0]
-                    if len(cycle_nodes_without_predecessors) > 0:
-                        for node in cycle_nodes_without_predecessors:
-                            cycle_order += 1
-                            node.cycle_order = cycle_order
-                        dg_cycle.remove_nodes_from(cycle_nodes_without_predecessors)
-                    else:
-                        cycle_variable_nodes = [node.name for node in dg_cycle.nodes]
-                        msg = (f"Circular relationship without time step difference is not allowed. "
-                               f"Please review variables: {cycle_variable_nodes}."
-                               f"\nIf circular relationship without time step difference is necessary in your project, "
-                               f"please raise it on: github.com/acturtle/cashflower")
-                        raise CashflowModelError(msg)
-
-                # [4b_3] All the variables from a cycle have the same 'calc_order' value
+                # All the variables from a cycle have the same 'calc_order' value
                 calc_order += 1
                 for node in cycle:
                     node.calc_order = calc_order
