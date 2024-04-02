@@ -35,7 +35,18 @@ def create_model_folder_structure(model):
 
 
 def load_settings(settings=None):
-    """Add missing settings."""
+    """
+    Load settings for the model.
+
+    If T_MAX_OUTPUT exceeds T_MAX_CALCULATION, T_MAX_OUTPUT is adjusted to match T_MAX_CALCULATION
+    and a log message is generated.
+
+    Args:
+        settings (dict, optional): A dictionary of user's settings. Defaults to None.
+
+    Returns:
+        dict: A dictionary of settings.
+    """
     initial_settings = {
         "AGGREGATE": True,
         "GROUP_BY_COLUMN": None,
@@ -54,17 +65,17 @@ def load_settings(settings=None):
         return initial_settings
 
     # Update with the user settings
-    for key, value in settings.items():
-        initial_settings[key] = value
+    initial_settings.update(settings)
 
     # Maximal output t can't exceed maximal calculation t
-    if initial_settings["T_MAX_CALCULATION"] < initial_settings["T_MAX_OUTPUT"]:
-        out = initial_settings["T_MAX_OUTPUT"]
-        cal = initial_settings["T_MAX_CALCULATION"]
+    out = initial_settings["T_MAX_OUTPUT"]
+    cal = initial_settings["T_MAX_CALCULATION"]
+
+    if cal < out:
         msg = (f"T_MAX_OUTPUT ('{out}') exceeds T_MAX_CALCULATION ('{cal}'); "
                f"T_MAX_OUTPUT adjusted to match T_MAX_CALCULATION.")
         log_message(msg)
-        initial_settings["T_MAX_OUTPUT"] = initial_settings["T_MAX_CALCULATION"]
+        initial_settings["T_MAX_OUTPUT"] = cal
 
     return initial_settings
 
