@@ -380,9 +380,18 @@ def start_multiprocessing(part, settings, args):
 
 
 def merge_part_outputs(part_outputs, settings):
-    """Merge outputs from multiprocessing and save to files."""
+    """
+    Merge outputs from multiprocessing.
+
+    Args:
+        part_outputs (list): A list of outputs from multiprocessing.
+        settings (dict): A dictionary of settings.
+
+    Returns:
+        pandas.DataFrame: The merged output.
+    """
     # Nones are returned, when number of policies < number of cpus
-    part_outputs = [po for po in part_outputs if po is not None]
+    part_outputs = [part_output for part_output in part_outputs if part_output is not None]
 
     # Merge or concatenate outputs into one
     if settings["AGGREGATE"]:
