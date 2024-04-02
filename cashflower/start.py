@@ -81,7 +81,16 @@ def load_settings(settings=None):
 
 
 def get_runplan(input_members, args):
-    """Get runplan object from input.py script. Assign version if provided in the CLI command."""
+    """
+    Get runplan object from input.py script. Assign version if provided in the CLI command.
+
+    Args:
+        input_members (list): A list of tuples containing the name and instance of each input member.
+        args (obj): An object containing the CLI command arguments.
+
+    Returns:
+        obj: The first Runplan object found in the input_members list, or None if no Runplan object is found.
+    """
     runplan = None
     for name, item in input_members:
         if isinstance(item, Runplan):
