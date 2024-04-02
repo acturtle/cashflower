@@ -167,7 +167,20 @@ def get_variables(model_members, settings):
 
 
 def prepare_model_input(settings, args):
-    """Get input for the cash flow model."""
+    """
+    Prepare the input for the cash flow model.
+
+    Args:
+        settings (dict): A dictionary of settings for the model.
+        args (dict): A dictionary of arguments for the model.
+
+    Returns:
+        tuple: A tuple containing the runplan, model point sets, and variables for the cash flow model.
+
+    Notes:
+        This function imports the input and model modules, gets the members of these modules,
+        and then uses these members to get the runplan, model point sets, and variables for the cash flow model.
+    """
     input_module = importlib.import_module("input")
     model_module = importlib.import_module("model")
 
