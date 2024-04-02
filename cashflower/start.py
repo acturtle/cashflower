@@ -104,7 +104,20 @@ def get_runplan(input_members, args):
 
 
 def get_model_point_sets(input_members, settings, args):
-    """Get model point set objects from input.py script."""
+    """
+    Get model point set objects from the input.py script.
+
+    Args:
+        input_members (list): List of tuples containing member names and their corresponding values.
+        settings (object): Settings object containing configuration for the model point sets.
+        args (object): Arguments object containing command line arguments.
+
+    Returns:
+        list: A list of initialized ModelPointSet objects.
+
+    Raises:
+        CashflowModelError: If a model point set named 'main' is not found in the input_members.
+    """
     model_point_set_members = [member for member in input_members if isinstance(member[1], ModelPointSet)]
 
     main = None
@@ -298,7 +311,16 @@ def resolve_calculation_order(variables, output_columns):
 
 
 def start_single_core(settings, args):
-    """Create and run a cash flow model."""
+    """
+    Create and run a cash flow model on a single core.
+
+    Args:
+        settings (dict): Model settings.
+        args (dict): Additional arguments.
+
+    Returns:
+        tuple: A tuple containing the model output and runtime.
+    """
     # Prepare model components
     log_message("Reading model components...", show_time=True)
     runplan, model_point_sets, variables = prepare_model_input(settings, args)
