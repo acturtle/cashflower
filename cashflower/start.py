@@ -105,7 +105,7 @@ def get_runplan(input_members, args):
 
 def get_model_point_sets(input_members, settings, args):
     """Get model point set objects from input.py script."""
-    model_point_set_members = [m for m in input_members if isinstance(m[1], ModelPointSet)]
+    model_point_set_members = [member for member in input_members if isinstance(member[1], ModelPointSet)]
 
     main = None
     model_point_sets = []
@@ -118,7 +118,8 @@ def get_model_point_sets(input_members, settings, args):
             main = model_point_set
 
     if main is None:
-        raise CashflowModelError("\nA model must have a model point set named 'main'.")
+        raise CashflowModelError("\nA model must have a model point set named 'main'. "
+                                 "Please check your input.py script.")
 
     if args.id is not None:
         chosen_id = str(args.id)
@@ -128,7 +129,19 @@ def get_model_point_sets(input_members, settings, args):
 
 
 def get_variables(model_members, settings):
-    """Get model variables from model.py script."""
+    """
+   Get model variables from model.py script.
+
+   Args:
+       model_members (list): A list of tuples containing the names and values of the model members.
+       settings (dict): A dictionary of settings for the model.
+
+   Returns:
+       list: A list of Variable objects.
+
+   Raises:
+       CashflowModelError: If a variable is named 't' or if a stochastic variable is used without setting the number of stochastic scenarios.
+   """
     variable_members = [m for m in model_members if isinstance(m[1], Variable)]
     variables = []
 
