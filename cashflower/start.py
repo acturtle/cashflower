@@ -340,7 +340,17 @@ def start_single_core(settings, args):
 
 
 def start_multiprocessing(part, settings, args):
-    """Run subset of the model points using multiprocessing."""
+    """
+    Run subset of the model points using multiprocessing.
+
+    Args:
+        part (int): The part of the model points to run.
+        settings (dict): The model settings.
+        args (object): The command line arguments.
+
+    Returns:
+        tuple: A tuple containing the output and runtime of the model run.
+    """
     cpu_count = multiprocessing.cpu_count()
     one_core = part == 0
 
