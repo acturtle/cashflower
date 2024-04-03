@@ -535,6 +535,16 @@ def log_run_info(timestamp, path, args, settings):
 
 
 def run(settings=None, path=None):
+    """
+    Run the model with given settings and path.
+
+    Args:
+        settings (dict, optional): Dictionary containing the settings. Defaults to None.
+        path (str, optional): Path where the model results will be saved. Defaults to None.
+
+    Returns:
+        pandas.DataFrame: The output of the modl.
+    """
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     settings = load_settings(settings)
     args = parse_arguments()
