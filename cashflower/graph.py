@@ -57,32 +57,41 @@ def filter_variables_and_graph(output_columns, variables, dg):
 
 
 def get_calls(variable, variables, argument_t_only=False):
-    """List variables called by the given variable.
+    """
+    Returns a list of variables that are called by the given variable.
 
-    If argument_t_only is set to True, then filter only variables called with "t" (used for cycles).
-    For example:
-    - return my_variable(t) --> is added
-    - return my_variable(t-1) --> is omitted
+    Parameters:
+        variable (Variable): The variable to check for calls.
+        variables (list): A list of all variables.
+        argument_t_only (bool): If True, only variables called with "t" will be returned. Defaults to False.
 
-    Debug: print("\n", ast.dump(node, indent=2))
+    Returns:
+        list: A list of variables that are called by the given variable.
+
+    Notes:
+        - If argument_t_only is True, only variables called with "t" will be returned. For example, if a variable is called with "t-1", it will not be included in the list.
+        - This function uses the ast module to parse the source code of the given variable and find the calls.
+        - The function also checks for incorrect arguments and raises an error if found.
+
+    Debug: print("\n", ast.dump(ast_tree, indent=2))
     """
     call_names = []
     variable_names = [variable.name for variable in variables]
-    node = ast.parse(inspect.getsource(variable.func))
+    ast_tree = ast.parse(inspect.getsource(variable.func))
 
-    for subnode in ast.walk(node):
+    for node in ast.walk(ast_tree):
         # Variable calls other variable directly (e.g. projection_year(t))
-        if isinstance(subnode, ast.Call):
-            if isinstance(subnode.func, ast.Name):
-                if subnode.func.id in variable_names:
-                    raise_error_if_incorrect_argument(subnode, variable)
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name):
+                if node.func.id in variable_names:
+                    raise_error_if_incorrect_argument(node, variable)
                     # Add variable regardless of its argument
                     if argument_t_only is False:
-                        call_names.append(subnode.func.id)
+                        call_names.append(node.func.id)
                     # Add variable only if it calls "t"
                     else:
-                        if isinstance(subnode.args[0], ast.Name):
-                            call_names.append(subnode.func.id)
+                        if isinstance(node.args[0], ast.Name):
+                            call_names.append(node.func.id)
 
     calls = [get_object_by_name(variables, call_name) for call_name in call_names if call_name != variable.name]
     return calls
