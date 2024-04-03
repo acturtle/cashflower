@@ -492,6 +492,19 @@ def save_results(timestamp, output, diagnostic, settings):
 
 
 def log_run_info(timestamp, path, args, settings):
+    """
+    Logs information about the current run.
+
+    Args:
+        timestamp (str): The timestamp of the run.
+        path (str): The path to the model.
+        args (argparse.Namespace): The command line arguments.
+        settings (dict): The settings for the run.
+
+    Returns:
+        None
+    """
+    # Log model info
     if path is not None:
         log_message(f"Model: '{os.path.basename(path)}'", show_time=True)
         log_message(f"Path: {path}")
@@ -504,6 +517,7 @@ def log_run_info(timestamp, path, args, settings):
         log_message(f"Git commit: {commit}")
     log_message("")
 
+    # Log command line arguments
     has_arguments = any(arg_value is not None for arg_value in vars(args).values())
     if has_arguments:
         log_message("Arguments:")
@@ -512,6 +526,7 @@ def log_run_info(timestamp, path, args, settings):
                 log_message(f'- {arg_name}: {arg_value}')
         log_message("")
 
+    # Log settings
     log_message("Settings:")
     for key, value in settings.items():
         msg = f"- {key}: {value}"
