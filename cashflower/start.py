@@ -415,9 +415,17 @@ def merge_part_diagnostic(part_diagnostic):
 
 
 def parse_arguments():
+    """
+    Parse command line arguments.
+
+    Returns:
+        args: The parsed arguments.
+    """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--id", "-i")
-    parser.add_argument("--version", "-v")
+
+    parser.add_argument("--id", "-i", help="Run a specific model point.")
+    parser.add_argument("--version", "-v", help="Run a specific version.")
+
     return parser.parse_args()
 
 
