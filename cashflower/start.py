@@ -414,18 +414,54 @@ def merge_part_diagnostic(part_diagnostic):
     return diagnostic
 
 
-def run(settings=None, path=None):
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    settings = load_settings(settings)
-    output, diagnostic = None, None
-
-    # Parse arguments
+def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--id", "-i")
     parser.add_argument("--version", "-v")
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    # Start log
+
+def run_multi_core(settings, args):
+    p = functools.partial(start_multiprocessing, settings=settings, args=args)
+    cpu_count = multiprocessing.cpu_count()
+    with multiprocessing.Pool(cpu_count) as pool:
+        parts = pool.map(p, range(cpu_count))
+
+    # Merge model outputs
+    part_outputs = [p[0] for p in parts]
+    output = merge_part_outputs(part_outputs, settings)
+
+    # Merge runtimes
+    diagnostic = None
+    if settings["SAVE_DIAGNOSTIC"]:
+        part_diagnostic = [p[1] for p in parts]
+        diagnostic = merge_part_diagnostic(part_diagnostic)
+
+    return output, diagnostic
+
+
+def save_results(timestamp, output, diagnostic, settings):
+    if settings["SAVE_OUTPUT"] or settings["SAVE_DIAGNOSTIC"] or settings["SAVE_LOG"]:
+        if not os.path.exists("output"):
+            os.makedirs("output")
+
+        if settings["SAVE_OUTPUT"]:
+            filepath = f"output/{timestamp}_output.csv"
+            log_message(f"Saving output file: {filepath}", show_time=True)
+            output.to_csv(filepath, index=False)
+
+        if settings["SAVE_DIAGNOSTIC"]:
+            filepath = f"output/{timestamp}_diagnostic.csv"
+            log_message(f"Saving diagnostic file: {filepath}", show_time=True)
+            diagnostic.to_csv(filepath, index=False)
+
+        if settings["SAVE_LOG"]:
+            filepath = f"output/{timestamp}_log.txt"
+            log_message(f"Saving log file: {filepath}", show_time=True)
+            save_log_to_file(timestamp)
+
+
+def log_run_info(timestamp, path, args, settings):
     if path is not None:
         log_message(f"Model: '{os.path.basename(path)}'", show_time=True)
         log_message(f"Path: {path}")
@@ -452,51 +488,28 @@ def run(settings=None, path=None):
         log_message(msg)
     log_message("")
 
-    # Run on single core
+
+def run(settings=None, path=None):
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    settings = load_settings(settings)
+    args = parse_arguments()
+    log_run_info(timestamp, path, args, settings)
+
+    # Run on single or multiple cores
     if not settings["MULTIPROCESSING"]:
         output, diagnostic = start_single_core(settings, args=args)
-
-    # Run on multiple cores
-    if settings["MULTIPROCESSING"]:
-        p = functools.partial(start_multiprocessing, settings=settings, args=args)
-        cpu_count = multiprocessing.cpu_count()
-        with multiprocessing.Pool(cpu_count) as pool:
-            parts = pool.map(p, range(cpu_count))
-
-        # Merge model outputs
-        part_outputs = [p[0] for p in parts]
-        output = merge_part_outputs(part_outputs, settings)
-
-        # Merge runtimes
-        if settings["SAVE_DIAGNOSTIC"]:
-            part_diagnostic = [p[1] for p in parts]
-            diagnostic = merge_part_diagnostic(part_diagnostic)
+    else:
+        output, diagnostic = run_multi_core(settings, args)
 
     # Add time column
     values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output.shape[0] / (settings["T_MAX_OUTPUT"]+1))
     output.insert(0, "t", values)
+
     log_message("Finished!", show_time=True)
     log_message("")
 
     # Save to csv files
-    if settings["SAVE_OUTPUT"] or settings["SAVE_DIAGNOSTIC"] or settings["SAVE_LOG"]:
-        if not os.path.exists("output"):
-            os.makedirs("output")
-
-        if settings["SAVE_OUTPUT"]:
-            filepath = f"output/{timestamp}_output.csv"
-            log_message(f"Saving output file: {filepath}", show_time=True)
-            output.to_csv(filepath, index=False)
-
-        if settings["SAVE_DIAGNOSTIC"]:
-            filepath = f"output/{timestamp}_diagnostic.csv"
-            log_message(f"Saving diagnostic file: {filepath}", show_time=True)
-            diagnostic.to_csv(filepath, index=False)
-
-        if settings["SAVE_LOG"]:
-            filepath = f"output/{timestamp}_log.txt"
-            log_message(f"Saving log file: {filepath}", show_time=True)
-            save_log_to_file(timestamp)
+    save_results(timestamp, output, diagnostic, settings)
 
     print(f"{'-' * 72}\n")
     return output
