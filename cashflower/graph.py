@@ -28,7 +28,21 @@ def create_directed_graph(variables, calls):
 
 
 def filter_variables_and_graph(output_columns, variables, dg):
-    """Select only variables and nodes that are required by the user."""
+    """
+    Select only variables and nodes that are required by the user.
+
+    This function takes a list of output column names, a list of variables, and a directed graph.
+    It filters out the variables and nodes in the graph that are not necessary for the calculation of the output columns.
+
+    Parameters:
+        output_columns (list): A list of names of the output columns.
+        variables (list): A list of all available variables.
+        dg (nx.DiGraph): A directed graph representing the relationships between the variables.
+
+    Returns:
+        list: A list of variables that are necessary for the calculation of the output columns.
+        nx.DiGraph: A filtered directed graph containing only the necessary nodes and edges.
+    """
     needed_variables = set()
     output_variables = [get_object_by_name(variables, name) for name in output_columns]
 
