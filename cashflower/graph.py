@@ -9,7 +9,16 @@ from .utils import get_object_by_name
 
 
 def create_directed_graph(variables, calls):
-    """Create a directed graph based on a list of variables and a dictionary of calls."""
+    """
+    Create a directed graph based on a list of variables and a dictionary of calls.
+
+    Parameters:
+        variables (list): A list of variables to be used as nodes in the graph.
+        calls (dict): A dictionary where the keys are variables and the values are lists of variables that the key variable calls.
+
+    Returns:
+        nx.DiGraph: A directed graph representing the calls between variables.
+    """
     dg = nx.DiGraph()
     for variable in variables:
         dg.add_node(variable)
