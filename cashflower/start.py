@@ -460,24 +460,35 @@ def run_multi_core(settings, args):
 
 
 def save_results(timestamp, output, diagnostic, settings):
-    if settings["SAVE_OUTPUT"] or settings["SAVE_DIAGNOSTIC"] or settings["SAVE_LOG"]:
-        if not os.path.exists("output"):
-            os.makedirs("output")
+    """
+    Save the output, diagnostic, and log files based on the settings.
 
-        if settings["SAVE_OUTPUT"]:
-            filepath = f"output/{timestamp}_output.csv"
-            log_message(f"Saving output file: {filepath}", show_time=True)
-            output.to_csv(filepath, index=False)
+    Args:
+        timestamp (str): The timestamp to use in the filenames.
+        output (pandas.DataFrame): The output data to save.
+        diagnostic (pandas.DataFrame): The diagnostic data to save.
+        settings (dict): A dictionary containing the settings.
+    """
+    if not (settings["SAVE_OUTPUT"] or settings["SAVE_DIAGNOSTIC"] or settings["SAVE_LOG"]):
+        return None
 
-        if settings["SAVE_DIAGNOSTIC"]:
-            filepath = f"output/{timestamp}_diagnostic.csv"
-            log_message(f"Saving diagnostic file: {filepath}", show_time=True)
-            diagnostic.to_csv(filepath, index=False)
+    if not os.path.exists("output"):
+        os.makedirs("output")
 
-        if settings["SAVE_LOG"]:
-            filepath = f"output/{timestamp}_log.txt"
-            log_message(f"Saving log file: {filepath}", show_time=True)
-            save_log_to_file(timestamp)
+    if settings["SAVE_OUTPUT"]:
+        filepath = f"output/{timestamp}_output.csv"
+        log_message(f"Saving output file: {filepath}", show_time=True)
+        output.to_csv(filepath, index=False)
+
+    if settings["SAVE_DIAGNOSTIC"]:
+        filepath = f"output/{timestamp}_diagnostic.csv"
+        log_message(f"Saving diagnostic file: {filepath}", show_time=True)
+        diagnostic.to_csv(filepath, index=False)
+
+    if settings["SAVE_LOG"]:
+        filepath = f"output/{timestamp}_log.txt"
+        log_message(f"Saving log file: {filepath}", show_time=True)
+        save_log_to_file(timestamp)
 
 
 def log_run_info(timestamp, path, args, settings):
