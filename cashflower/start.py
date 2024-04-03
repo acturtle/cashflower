@@ -430,20 +430,31 @@ def parse_arguments():
 
 
 def run_multi_core(settings, args):
-    p = functools.partial(start_multiprocessing, settings=settings, args=args)
+    """
+    Run the model on multiple cores.
+
+    Args:
+        settings (dict): A dictionary containing the settings for the model.
+        args (argparse.Namespace): The arguments passed to the script.
+
+    Returns:
+        tuple: A tuple containing the output and diagnostic results.
+    """
+    process_func = functools.partial(start_multiprocessing, settings=settings, args=args)
     cpu_count = multiprocessing.cpu_count()
     with multiprocessing.Pool(cpu_count) as pool:
-        parts = pool.map(p, range(cpu_count))
+        parts = pool.map(process_func, range(cpu_count))
 
     # Merge model outputs
-    part_outputs = [p[0] for p in parts]
+    part_outputs = [part[0] for part in parts]
     output = merge_part_outputs(part_outputs, settings)
 
     # Merge runtimes
-    diagnostic = None
     if settings["SAVE_DIAGNOSTIC"]:
-        part_diagnostic = [p[1] for p in parts]
+        part_diagnostic = [part[1] for part in parts]
         diagnostic = merge_part_diagnostic(part_diagnostic)
+    else:
+        diagnostic = None
 
     return output, diagnostic
 
