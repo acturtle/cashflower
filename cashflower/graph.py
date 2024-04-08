@@ -193,14 +193,23 @@ def get_predecessors(node, dg):
 
 
 def raise_error_if_incorrect_argument(subnode, variable):
-    """Model variables call other variables.
-    Called variables can have maximally two arguments (for time and stochastic scenario).
+    """
+    Raises an error if the argument of a model variable is incorrect.
 
-    The first argument should be:
-    - t               | my_variable(t, ...)
-    - t+...           | my_variable(t+1, ...)
-    - t-...           | my_variable(t-1, ...)
-    - constant value  | my_variable(0, ...)
+    Args:
+        subnode (ast.AST): The AST node representing the model variable call.
+        variable (Variable): The name of the variable being called.
+
+    Raises:
+        CashflowModelError: If the argument of the model variable is incorrect.
+
+    Notes:
+        Model variables can have maximally two arguments (for time and stochastic scenario).
+        The first argument should be:
+        - t               | my_variable(t, ...)
+        - t+...           | my_variable(t+1, ...)
+        - t-...           | my_variable(t-1, ...)
+        - constant value  | my_variable(0, ...)
     """
     # More than 2 arguments
     if len(subnode.args) > 2:
@@ -216,27 +225,27 @@ def raise_error_if_incorrect_argument(subnode, variable):
               f"- t plus/minus integer (e.g. t+1 or t-12),\n" \
               f"- a non-negative integer (e.g. 0 or 12)."
 
-        # The model variable calls a variable
+        # The model variable calls a variable [my_variable(t)]
         if isinstance(arg, ast.Name):
             if not arg.id == "t":
                 raise CashflowModelError(msg)
 
-        # The model variable calls an operation
+        # The model variable calls an operation [my_variable(t+1)]
         if isinstance(arg, ast.BinOp):
-            check1 = isinstance(arg.left, ast.Name) and arg.left.id == "t"
-            check2 = isinstance(arg.op, ast.Add) or isinstance(arg.op, ast.Sub)
-            check3 = isinstance(arg.right, ast.Constant) and isinstance(arg.right.value, int)
-            if not (check1 and check2 and check3):
+            is_valid_name = isinstance(arg.left, ast.Name) and arg.left.id == "t"
+            is_valid_operation = isinstance(arg.op, ast.Add) or isinstance(arg.op, ast.Sub)
+            is_valid_constant = isinstance(arg.right, ast.Constant) and isinstance(arg.right.value, int)
+            if not (is_valid_name and is_valid_operation and is_valid_constant):
+                raise CashflowModelError(msg)
+
+        # The model variable calls a constant [my_variable(12)]
+        if isinstance(arg, ast.Constant):
+            if not isinstance(arg.value, int):
                 raise CashflowModelError(msg)
 
         # The model variable calls something else
         if not (isinstance(arg, ast.Name) or isinstance(arg, ast.Constant) or isinstance(arg, ast.BinOp)):
             raise CashflowModelError(msg)
-
-        # The model variable calls a constant
-        if isinstance(arg, ast.Constant):
-            if not isinstance(arg.value, int):
-                raise CashflowModelError(msg)
 
 
 def set_calc_direction(variables):
