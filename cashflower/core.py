@@ -10,6 +10,15 @@ from .utils import get_first_indexes, get_object_by_name, log_message, split_to_
 
 
 def get_variable_type(v):
+    """
+    Returns the type of the given variable.
+
+    Args:
+        v (object): The variable to check.
+
+    Returns:
+        str: The type of the variable. Possible values are "constant", "array", "stochastic", and "default".
+    """
     if isinstance(v, ConstantVariable):
         return "constant"
     elif isinstance(v, ArrayVariable):
