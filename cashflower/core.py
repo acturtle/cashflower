@@ -30,13 +30,27 @@ def get_variable_type(v):
 
 
 def check_arguments(func, array):
-    """Check if variable definition has correct argument(s): def my_var(...)"""
-    # Variable has maximally 2 parameters ("t" and "stoch")
+    """
+    Check if the input function has the correct arguments.
+
+    The function should have at most two parameters, 't' and 'stoch'. If the function has two parameters,
+    the first one should be named 't' and the second one should be named 'stoch'.
+    If the function has only one parameter, it should be named 't'. Additionally, if the input 'array' is True,
+    the function should not have any parameters.
+
+    Parameters:
+        func (function): The function to check.
+        array (bool): Whether the function is an array variable.
+
+    Raises:
+        CashflowModelError: If the function does not meet the required criteria.
+    """
+    # Variable has at most 2 parameters ("t" and "stoch")
     if func.__code__.co_argcount > 2:
         msg = f"Error in '{func.__name__}': The model variable should have at most two parameters ('t' and 'stoch')."
         raise CashflowModelError(msg)
 
-    # First parameter must be named "t" and second "stoch"
+    # The first parameter must be named "t" and second "stoch"
     if func.__code__.co_argcount == 2:
         if not func.__code__.co_varnames[0] == 't':
             msg = f"Error in '{func.__name__}': The first parameter should be named 't'."
@@ -46,13 +60,13 @@ def check_arguments(func, array):
             msg = f"Error in '{func.__name__}': The second parameter should be named 'stoch'."
             raise CashflowModelError(msg)
 
-    # Only parameter must be named "t"
+    # The only parameter must be named "t"
     if func.__code__.co_argcount == 1:
         if not func.__code__.co_varnames[0] == 't':
             msg = f"Error in '{func.__name__}': The parameter should be named 't'."
             raise CashflowModelError(msg)
 
-    # Array variables don't have parameters
+    # Array variables should not have any parameters
     if array and not func.__code__.co_argcount == 0:
         msg = f"Error in '{func.__name__}': Array variables cannot have parameters."
         raise CashflowModelError(msg)
