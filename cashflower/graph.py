@@ -147,6 +147,10 @@ def get_calc_direction(variables):
 
     Returns:
         An integer representing the calculation direction.
+
+    Notes:
+        "'variables' typically contains a single variable, but in the case of a cycle,
+        it may contain multiple variables."
     """
     variable_names = [variable.name for variable in variables]
     calc_directions = set()
@@ -249,6 +253,15 @@ def raise_error_if_incorrect_argument(subnode, variable):
 
 
 def set_calc_direction(variables):
+    """
+    Sets the calculation direction for each variable in the given list.
+
+    Args:
+        variables (list): A list of variables for which to set the calculation direction.
+
+    Returns:
+        list: The same list of variables with their calculation direction set.
+    """
     max_calc_order = variables[-1].calc_order
     for calc_order in range(1, max_calc_order + 1):
         # Multiple variables can have the same calc_order if they are part of the cycle
