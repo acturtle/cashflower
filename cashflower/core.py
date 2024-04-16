@@ -75,7 +75,7 @@ def check_arguments(func, array):
 
 
 def variable(array=False, aggregation_type="sum"):
-    """Transform a function with decorator into an object of class Variable"""
+    """A decorator that transforms a function into an object of class Variable."""
     def wrapper(func):
         check_arguments(func, array)
 
@@ -94,11 +94,23 @@ def variable(array=False, aggregation_type="sum"):
 
 
 class Variable:
-    """Default variable type.
+    """
+    Represents a variable in a cashflow model.
 
     @variable()
     def my_var(t):
         ...
+
+    Attributes:
+        func (function): The function that calculates the variable's value.
+        aggregation_type (str): The type of aggregation to apply to the variable's values.
+        name (str): The name of the variable.
+        calc_direction (int): The direction of calculation (0: normal, 1: forward, -1: backward).
+        calc_order (int): The order in which the variable is calculated.
+        cycle (bool): Whether the variable is part of a cycle.
+        cycle_order (int): The order of the variable in its cycle.
+        result (list): The calculated values of the variable.
+        runtime (float): The time it took to calculate the variable's values.
     """
     def __init__(self, func, aggregation_type):
         self.func = func
@@ -118,11 +130,14 @@ class Variable:
         if t is None:
             return self.result
 
+        # Python allows negative indexing, which would wrap around to the end of the list.
+        # To prevent this and ensure t is within the valid range, we explicitly check for t < 0.
         if t < 0:
             msg = (f"\n\nVariable '{self.name}' has been called for period '{t}' "
                    f"which is outside of the calculation range.")
             raise CashflowModelError(msg)
 
+        # Easier to ask forgiveness
         try:
             return self.result[t]
         except IndexError as e:
@@ -140,7 +155,7 @@ class Variable:
     def calculate(self):
         t_max = len(self.result)
         if self.calc_direction == 0:
-            self.result = np.array([*map(self.func, range(t_max))], dtype=np.float64)
+            self.result = np.array([self.func(t) for t in range(t_max)], dtype=np.float64)
         elif self.calc_direction == 1:
             for t in range(t_max):
                 self.result[t] = self.func(t)
@@ -213,24 +228,24 @@ class StochasticVariable(Variable):
     def calculate_t(self, t):
         """For cycle calculations"""
         stoch_scenarios_count = self.result_stoch.shape[0]
-        for stoch in range(1, stoch_scenarios_count+1):
-            self.result_stoch[stoch-1, t] = self.func(t, stoch)
+        stoch_range = np.arange(1, stoch_scenarios_count + 1)
+        self.result_stoch[:, t] = self.func(t, stoch_range)
 
     def calculate(self):
         stoch_scenarios_count, t_max = self.result_stoch.shape
 
-        for stoch in range(1, stoch_scenarios_count+1):
-            if self.calc_direction == 0:
+        if self.calc_direction == 0:
+            for stoch in range(1, stoch_scenarios_count + 1):
                 func_with_stoch = functools.partial(self.func, stoch=stoch)
-                self.result_stoch[stoch-1, :] = np.array([*map(func_with_stoch, range(t_max))], dtype=np.float64)
-            elif self.calc_direction == 1:
-                for t in range(t_max):
-                    self.result_stoch[stoch-1, t] = self.func(t, stoch)
-            elif self.calc_direction == -1:
-                for t in range(t_max-1, -1, -1):
-                    self.result_stoch[stoch-1, t] = self.func(t, stoch)
-            else:
-                raise CashflowModelError(f"\n\nIncorrect calculation direction '{self.calc_direction}'.")
+                self.result_stoch[stoch-1, :] = np.array([func_with_stoch(t) for t in range(t_max)], dtype=np.float64)
+        elif self.calc_direction == 1:
+            for t in range(t_max):
+                self.result_stoch[:, t] = [self.func(t, stoch) for stoch in range(1, stoch_scenarios_count + 1)]
+        elif self.calc_direction == -1:
+            for t in range(t_max-1, -1, -1):
+                self.result_stoch[:, t] = [self.func(t, stoch) for stoch in range(1, stoch_scenarios_count + 1)]
+        else:
+            raise CashflowModelError(f"\n\nIncorrect calculation direction '{self.calc_direction}'.")
 
     def average_result_stoch(self):
         self.result = np.mean(self.result_stoch, axis=0)
