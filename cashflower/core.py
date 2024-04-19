@@ -320,9 +320,17 @@ class ModelPointSet:
     def __len__(self):
         return self.data.shape[0]
 
+    def initialize(self):
+        """Additional initialization (beyond __init__) is required
+        since 'name' and 'settings' are not available during object creation."""
+        self.perform_checks()
+        self.set_index()
+        self.id = self.data.iloc[0][self.settings["ID_COLUMN"]]
+
     @functools.lru_cache()
     def get(self, attribute, record_num=0):
-        # Model point sets other than main may not have rows for all IDs
+        # Note: Only the 'main' model point set is guaranteed to have all IDs;
+        # other model point sets may not have rows for every ID
         if self.id is None:
             return None
 
@@ -330,12 +338,12 @@ class ModelPointSet:
 
     @property
     def id(self):
-        """Current model point's id."""
+        """Get the current model point's ID."""
         return self._id
 
     @id.setter
     def id(self, new_id):
-        """Set model point's id and corresponding attributes."""
+        """Set the model point's ID and update corresponding attributes."""
         new_id = str(new_id)
         if new_id in self.data.index:
             self._id = new_id
@@ -344,29 +352,22 @@ class ModelPointSet:
             self._id = None
         self.get.cache_clear()
 
-    def initialize(self):
-        """Name and settings are not present while creating object, so additional initialization is needed."""
-        self.perform_checks()
-        self.set_index()
-        self.id = self.data.iloc[0][self.settings["ID_COLUMN"]]
-
     def perform_checks(self):
-        # Model point set must have id_column
-        id_column = self.settings["ID_COLUMN"]
-        if id_column not in self.data.columns:
-            raise CashflowModelError(f"\nThere is no column '{id_column}' in model_point_set '{self.name}'.")
+        id_column_name = self.settings["ID_COLUMN"]
+
+        # Model point set must have ID_COLUMN
+        if id_column_name not in self.data.columns:
+            raise CashflowModelError(f"\nModel point set '{self.name}' is missing the required column '{id_column_name}'.")
 
         # ID must be unique in the 'main' model point set
-        id_column = self.settings["ID_COLUMN"]
         if self.name == "main":
-            if not self.data[id_column].is_unique:
-                msg = f"\nThe 'main' model point set must have unique values in '{id_column}' column."
-                raise CashflowModelError(msg)
+            if not self.data[id_column_name].is_unique:
+                raise CashflowModelError(f"\nThe 'main' model point set must have unique values in '{id_column_name}' column.")
 
     def set_index(self):
         """Convert ID column to string and use it as index, while preserving the original ID column."""
-        id_column = self.settings["ID_COLUMN"]
-        self.data = self.data.set_index(self.data[id_column].astype(str))
+        id_column_name = self.settings["ID_COLUMN"]
+        self.data = self.data.set_index(self.data[id_column_name].astype(str))
 
 
 class Model:
