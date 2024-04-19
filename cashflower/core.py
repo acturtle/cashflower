@@ -293,15 +293,14 @@ class Runplan:
             raise CashflowModelError(msg)
 
     def set_index(self, version):
-        """Version in original form stays as a column, version as a string becomes an index."""
-        self.data["version_duplicate"] = self.data["version"]
-        self.data["version"] = self.data["version"].astype(str)
-        self.data = self.data.set_index("version")
-        self.data["version"] = self.data["version_duplicate"]
-        self.data = self.data.drop(columns=["version_duplicate"])
-        if version is None:  # user has not specified version
+        # Converts the 'version' column to string and sets it as the index,
+        # while keeping the original 'version' column intact.
+        self.data = self.data.set_index(self.data["version"].astype(str))
+
+        # Set version (first one if not chosen by the user)
+        if version is None:
             self.version = str(self.data["version"].iloc[0])
-        else:  # user has specified version
+        else:
             self.version = str(version)
 
 
@@ -365,13 +364,9 @@ class ModelPointSet:
                 raise CashflowModelError(msg)
 
     def set_index(self):
-        """ID column in original form stays as a column, ID column as a string becomes an index."""
+        """Convert ID column to string and use it as index, while preserving the original ID column."""
         id_column = self.settings["ID_COLUMN"]
-        self.data[id_column + "_duplicate"] = self.data[id_column]
-        self.data[id_column] = self.data[id_column].astype(str)
-        self.data = self.data.set_index(id_column)
-        self.data[id_column] = self.data[id_column + "_duplicate"]
-        self.data = self.data.drop(columns=[id_column + "_duplicate"])
+        self.data = self.data.set_index(self.data[id_column].astype(str))
 
 
 class Model:
