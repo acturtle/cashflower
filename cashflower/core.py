@@ -380,19 +380,14 @@ class Model:
 
     def run(self, part=None):
         """Orchestrate all steps of the cash flow model run."""
-        one_core = part == 0 or part is None  # single or first part
-        main = get_object_by_name(self.model_point_sets, "main")
-
-        # Set calculation ranges
-        range_start, range_end = 0, len(main)
-        if self.settings["MULTIPROCESSING"]:
-            main_ranges = split_to_ranges(len(main), multiprocessing.cpu_count())
-            # Number of model points is lower than the number of CPUs, only calculate on the 1st core
-            if part >= len(main_ranges):
-                return None
-            range_start, range_end = main_ranges[part]
+        # Get the start and end indices of the model points to be calculated
+        calculation_range = self.get_calculation_range(part)
+        if calculation_range is None:
+            return None
+        range_start, range_end = calculation_range
 
         # Perform calculations
+        one_core = part == 0 or part is None  # single core or first part of multiprocessing calculation
         log_message("Starting calculations...", show_time=True, print_and_save=one_core)
         if self.settings["AGGREGATE"]:
             output = self.compute_aggregated_results(range_start, range_end, one_core)
@@ -400,7 +395,22 @@ class Model:
             output = self.compute_individual_results(range_start, range_end, one_core)
 
         # Create a diagnostic file
-        diagnostic = None
+        diagnostic = self.create_diagnostic_data()
+
+        return output, diagnostic
+
+    def get_calculation_range(self, part):
+        main = get_object_by_name(self.model_point_sets, "main")
+        range_start, range_end = 0, len(main)
+        if self.settings["MULTIPROCESSING"]:
+            main_ranges = split_to_ranges(len(main), multiprocessing.cpu_count())
+            # Number of model points is lower than the number of CPUs, only calculate on the 1st core
+            if part >= len(main_ranges):
+                return None
+            range_start, range_end = main_ranges[part]
+        return range_start, range_end
+
+    def create_diagnostic_data(self):
         if self.settings["SAVE_DIAGNOSTIC"]:
             diagnostic = pd.DataFrame({
                 "variable": [v.name for v in self.variables],
@@ -412,8 +422,9 @@ class Model:
                 "aggregation_type": [v.aggregation_type for v in self.variables],
                 "runtime": [v.runtime for v in self.variables]
             })
-
-        return output, diagnostic
+        else:
+            diagnostic = None
+        return diagnostic
 
     def compute_aggregated_results(self, range_start, range_end, one_core):
         p = functools.partial(self.calculate_model_point, one_core=one_core, progressbar_max=range_end)
