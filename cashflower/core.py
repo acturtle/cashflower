@@ -429,86 +429,111 @@ class Model:
     def compute_aggregated_results(self, range_start, range_end, one_core):
         p = functools.partial(self.calculate_model_point, one_core=one_core, progressbar_max=range_end)
 
-        # Multiplier that takes into account aggregation type
+        # Output columns
+        output_columns = self.prepare_output_columns()
+        v = len(output_columns)
+
+        # Initial calculation batch (to avoid memory errors)
+        batch_size = self.calculate_batch_size(output_columns)
+        batch_start, batch_end = range_start, min(range_start + batch_size, range_end)
+
+        # Create a multiplier array to apply to results based on aggregation type
         multiplier = np.array([1 if v.aggregation_type == "sum" else 0 for v in self.variables])
 
-        # Prepare output columns
+        # Aggregate all model points (without grouping)
+        if self.settings["GROUP_BY_COLUMN"] is None:
+            results = self.calculate_without_grouping(p, batch_start, batch_end, batch_size, range_end, multiplier)
+            output = self.prepare_output_without_grouping(results, output_columns)
+        # Aggregate by groups
+        else:
+            group_sums = self.calculate_with_grouping(p, batch_start, batch_end, batch_size, range_end, multiplier, v)
+            output = self.prepare_output_with_grouping(group_sums, output_columns, one_core)
+        return output
+
+    def prepare_output_columns(self):
         if len(self.settings["OUTPUT_COLUMNS"]) == 0:
             output_columns = [v.name for v in self.variables]
         else:
             output_columns = self.settings["OUTPUT_COLUMNS"]
 
-        # Calculate batch_size based on available memory
+        return output_columns
+
+    def calculate_batch_size(self, output_columns):
         t = self.settings["T_MAX_OUTPUT"] + 1
         v = len(output_columns)
         float_size = np.dtype(np.float64).itemsize
         num_cores = 1 if not self.settings["MULTIPROCESSING"] else multiprocessing.cpu_count()
         batch_size = int((psutil.virtual_memory().available * 0.95) // ((t * v) * float_size) // num_cores)
+        return batch_size
 
-        # Initial calculation batch
-        batch_start, batch_end = range_start, min(range_start + batch_size, range_end)
-
-        # Aggregate all model points (without grouping)
-        if self.settings["GROUP_BY_COLUMN"] is None:
-            # Initiate with results of the first model point
-            if batch_start == 0:
-                results = p(0)
-                batch_start += 1
-            else:
-                results = 0
-
-            # Calculate batches iteratively
-            while batch_start < range_end:
-                lst = [*map(p, range(batch_start, batch_end))]  # list of mp_results (arrays of arrays)
-                batch_results = functools.reduce(lambda a, b: a + b, lst)
-                results += batch_results * multiplier[:, None]
-                batch_start = batch_end
-                batch_end = min(batch_end+batch_size, range_end)
-
-            # Prepare the 'output' data frame
-            log_message("Preparing output...", show_time=True, print_and_save=one_core)
-            results = np.transpose(results)
-            output = pd.DataFrame(data=results, columns=output_columns)
-
-        # Aggregate by groups
+    def calculate_without_grouping(self, p, batch_start, batch_end, batch_size, range_end, multiplier):
+        # Initiate with results of the first model point
+        if batch_start == 0:
+            results = p(0)
+            batch_start += 1
         else:
-            main = get_object_by_name(self.model_point_sets, "main")
-            group_by_column = self.settings["GROUP_BY_COLUMN"]
-            if group_by_column not in main.data.columns:
-                msg = (f"There is no column '{group_by_column}' in the 'main' model point set. "
-                       f"Please review the 'GROUP_BY_COLUMN' setting.")
-                raise CashflowModelError(msg)
-            unique_groups = main.data[group_by_column].unique()
+            results = 0
 
-            # Indexes of the first element from each group
-            first_indexes = get_first_indexes(main.data[group_by_column])
+        # Calculate batches iteratively
+        while batch_start < range_end:
+            lst = [*map(p, range(batch_start, batch_end))]  # list of mp_results (arrays of arrays)
+            batch_results = functools.reduce(lambda a, b: a + b, lst)
+            results += batch_results * multiplier[:, None]
+            batch_start = batch_end
+            batch_end = min(batch_end + batch_size, range_end)
 
-            # Initiate empty results
-            group_sums = {group: np.array([np.zeros(t) for _ in range(v)]) for group in unique_groups}
+        return results
 
-            # Calculate batches iteratively
-            while batch_start < range_end:
-                lst = [*map(p, range(batch_start, batch_end))]  # list of mp_results
-                groups = main.data.iloc[batch_start:batch_end][group_by_column].tolist()
-                if_firsts = [i in first_indexes for i in range(batch_start, batch_end)]
+    def prepare_output_without_grouping(self, results, output_columns):
+        # Prepare the 'output' data frame
+        log_message("Preparing output...", show_time=True, print_and_save=True)
+        results = np.transpose(results)
+        output = pd.DataFrame(data=results, columns=output_columns)
+        return output
 
-                for mp_result, group, if_first in zip(lst, groups, if_firsts):
-                    if if_first:
-                        group_sums[group] += mp_result
-                    else:
-                        group_sums[group] += mp_result * multiplier[:, None]
-                batch_start = batch_end
-                batch_end = min(batch_end+batch_size, range_end)
+    def calculate_with_grouping(self, p, batch_start, batch_end, batch_size, range_end, multiplier, v):
+        t = self.settings["T_MAX_OUTPUT"] + 1
 
-            # Prepare the 'output' data frame
-            log_message("Preparing output...", show_time=True, print_and_save=one_core)
-            lst_dfs = []
-            for group, data in group_sums.items():
-                group_df = pd.DataFrame(data=np.transpose(data), columns=output_columns)
-                group_df.insert(0, group_by_column, group)
-                lst_dfs.append(group_df)
-            output = pd.concat(lst_dfs, ignore_index=True)
+        main = get_object_by_name(self.model_point_sets, "main")
+        group_by_column = self.settings["GROUP_BY_COLUMN"]
+        if group_by_column not in main.data.columns:
+            msg = (f"There is no column '{group_by_column}' in the 'main' model point set. "
+                   f"Please review the 'GROUP_BY_COLUMN' setting.")
+            raise CashflowModelError(msg)
+        unique_groups = main.data[group_by_column].unique()
 
+        # Indexes of the first element from each group
+        first_indexes = get_first_indexes(main.data[group_by_column])
+
+        # Initiate empty results
+        group_sums = {group: np.array([np.zeros(t) for _ in range(v)]) for group in unique_groups}
+
+        # Calculate batches iteratively
+        while batch_start < range_end:
+            lst = [*map(p, range(batch_start, batch_end))]  # list of mp_results
+            groups = main.data.iloc[batch_start:batch_end][group_by_column].tolist()
+            if_firsts = [i in first_indexes for i in range(batch_start, batch_end)]
+
+            for mp_result, group, if_first in zip(lst, groups, if_firsts):
+                if if_first:
+                    group_sums[group] += mp_result
+                else:
+                    group_sums[group] += mp_result * multiplier[:, None]
+            batch_start = batch_end
+            batch_end = min(batch_end + batch_size, range_end)
+
+        return group_sums
+
+    def prepare_output_with_grouping(self, group_sums, output_columns, one_core):
+        group_by_column = self.settings["GROUP_BY_COLUMN"]
+
+        log_message("Preparing output...", show_time=True, print_and_save=one_core)
+        lst_dfs = []
+        for group, data in group_sums.items():
+            group_df = pd.DataFrame(data=np.transpose(data), columns=output_columns)
+            group_df.insert(0, group_by_column, group)
+            lst_dfs.append(group_df)
+        output = pd.concat(lst_dfs, ignore_index=True)
         return output
 
     def compute_individual_results(self, range_start, range_end, one_core):
