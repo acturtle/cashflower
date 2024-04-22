@@ -427,26 +427,32 @@ class Model:
         return diagnostic
 
     def compute_aggregated_results(self, range_start, range_end, one_core):
-        p = functools.partial(self.calculate_model_point, one_core=one_core, progressbar_max=range_end)
-
-        # Output columns
+        calculate_model_point_partial = functools.partial(
+            self.calculate_model_point, one_core=one_core, progressbar_max=range_end
+        )
         output_columns = self.prepare_output_columns()
-        v = len(output_columns)
+        num_output_columns = len(output_columns)
 
-        # Initial calculation batch (to avoid memory errors)
-        batch_size = self.calculate_batch_size(output_columns)
+        # Define the initial batch size to process, to prevent excessive memory usage
+        batch_size = self.calculate_batch_size(num_output_columns)
         batch_start, batch_end = range_start, min(range_start + batch_size, range_end)
 
-        # Create a multiplier array to apply to results based on aggregation type
+        # Create an array of multipliers based on the aggregation type of each variable
         multiplier = np.array([1 if v.aggregation_type == "sum" else 0 for v in self.variables])
 
-        # Aggregate all model points (without grouping)
+        # Calculate aggregated results for all model points without grouping
         if self.settings["GROUP_BY_COLUMN"] is None:
-            results = self.calculate_without_grouping(p, batch_start, batch_end, batch_size, range_end, multiplier)
+            results = self.calculate_without_grouping(
+                calculate_model_point_partial, batch_start, batch_end, batch_size, range_end, multiplier
+            )
             output = self.prepare_output_without_grouping(results, output_columns)
-        # Aggregate by groups
+
+        # Calculate aggregated results for all model points, grouped by the specified column
         else:
-            group_sums = self.calculate_with_grouping(p, batch_start, batch_end, batch_size, range_end, multiplier, v)
+            group_sums = self.calculate_with_grouping(
+                calculate_model_point_partial, batch_start, batch_end, batch_size, range_end, multiplier,
+                num_output_columns
+            )
             output = self.prepare_output_with_grouping(group_sums, output_columns, one_core)
         return output
 
@@ -458,12 +464,27 @@ class Model:
 
         return output_columns
 
-    def calculate_batch_size(self, output_columns):
+    def calculate_batch_size(self, num_output_columns):
+        """
+        Calculate the batch size based on available memory.
+
+        The batch size is calculated to avoid memory errors when processing model points.
+        Each model point outputs a numpy array with "t" rows and "num_output_columns" columns.
+        The calculation takes into account whether the processing is done on one core or multiple cores (multiprocessing).
+
+        Args:
+            num_output_columns (int): The number of output columns.
+
+        Returns:
+            int: The batch size.
+        """
         t = self.settings["T_MAX_OUTPUT"] + 1
-        v = len(output_columns)
         float_size = np.dtype(np.float64).itemsize
         num_cores = 1 if not self.settings["MULTIPROCESSING"] else multiprocessing.cpu_count()
-        batch_size = int((psutil.virtual_memory().available * 0.95) // ((t * v) * float_size) // num_cores)
+        available_memory = psutil.virtual_memory().available * 0.95
+        memory_per_model_point = (t * num_output_columns) * float_size
+        batch_size = int(available_memory // (memory_per_model_point // num_cores))
+        batch_size = max(batch_size, 1)
         return batch_size
 
     def calculate_without_grouping(self, p, batch_start, batch_end, batch_size, range_end, multiplier):
