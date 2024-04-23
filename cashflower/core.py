@@ -442,9 +442,8 @@ class Model:
 
         # Calculate aggregated results for all model points without grouping
         if self.settings["GROUP_BY_COLUMN"] is None:
-            results = self.calculate_without_grouping(
-                calculate_model_point_partial, batch_start, batch_end, batch_size, range_end, multiplier
-            )
+            results = self.calculate_without_grouping(calculate_model_point_partial, batch_start, batch_end, batch_size,
+                                                      range_end, multiplier)
             output = self.prepare_output_without_grouping(results, output_columns)
 
         # Calculate aggregated results for all model points, grouped by the specified column
@@ -487,18 +486,20 @@ class Model:
         batch_size = max(batch_size, 1)
         return batch_size
 
-    def calculate_without_grouping(self, p, batch_start, batch_end, batch_size, range_end, multiplier):
-        # Initiate with results of the first model point
+    def calculate_without_grouping(self, calculate_model_point_partial, batch_start, batch_end, batch_size, range_end,
+                                   multiplier):
+        # Initialize the results with the output of the first model point calculation
         if batch_start == 0:
-            results = p(0)
+            results = calculate_model_point_partial(0)
             batch_start += 1
         else:
             results = 0
 
-        # Calculate batches iteratively
+        # Calculate the results for each batch of model points iteratively, aggregating the results
         while batch_start < range_end:
-            lst = [*map(p, range(batch_start, batch_end))]  # list of mp_results (arrays of arrays)
-            batch_results = functools.reduce(lambda a, b: a + b, lst)
+            # batch_results_list is a list of model point results (each result is a 2D array)
+            batch_results_list = [*map(calculate_model_point_partial, range(batch_start, batch_end))]
+            batch_results = sum(batch_results_list)
             results += batch_results * multiplier[:, None]
             batch_start = batch_end
             batch_end = min(batch_end + batch_size, range_end)
