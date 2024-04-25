@@ -448,10 +448,8 @@ class Model:
 
         # Calculate aggregated results for all model points, grouped by the specified column
         else:
-            group_sums = self.calculate_with_grouping(
-                calculate_model_point_partial, batch_start, batch_end, batch_size, range_end, multiplier,
-                num_output_columns
-            )
+            group_sums = self.calculate_with_grouping(calculate_model_point_partial, batch_start, batch_end, batch_size,
+                                                      range_end, multiplier, num_output_columns)
             output = self.prepare_output_with_grouping(group_sums, output_columns, one_core)
         return output
 
@@ -513,34 +511,38 @@ class Model:
         output = pd.DataFrame(data=results, columns=output_columns)
         return output
 
-    def calculate_with_grouping(self, p, batch_start, batch_end, batch_size, range_end, multiplier, v):
-        t = self.settings["T_MAX_OUTPUT"] + 1
-
-        main = get_object_by_name(self.model_point_sets, "main")
+    def calculate_with_grouping(self, calculate_model_point_partial, batch_start, batch_end, batch_size, range_end,
+                                multiplier, num_output_columns):
+        max_output = self.settings["T_MAX_OUTPUT"] + 1
         group_by_column = self.settings["GROUP_BY_COLUMN"]
+        main = get_object_by_name(self.model_point_sets, "main")
+
+        # Check that the grouping column exists in the main model point set
         if group_by_column not in main.data.columns:
             msg = (f"There is no column '{group_by_column}' in the 'main' model point set. "
                    f"Please review the 'GROUP_BY_COLUMN' setting.")
             raise CashflowModelError(msg)
-        unique_groups = main.data[group_by_column].unique()
 
-        # Indexes of the first element from each group
+        # Get the indices of the first element from each group
+        unique_groups = main.data[group_by_column].unique()
         first_indexes = get_first_indexes(main.data[group_by_column])
 
-        # Initiate empty results
-        group_sums = {group: np.array([np.zeros(t) for _ in range(v)]) for group in unique_groups}
+        # Initialize empty results for each group
+        group_sums = {group: np.zeros((num_output_columns, max_output)) for group in unique_groups}
 
-        # Calculate batches iteratively
+        # Process batches iteratively to calculate the results
         while batch_start < range_end:
-            lst = [*map(p, range(batch_start, batch_end))]  # list of mp_results
+            # batch_results_list is a list of model point results (each result is a 2D array)
+            batch_results_list = [calculate_model_point_partial(i) for i in range(batch_start, batch_end)]
             groups = main.data.iloc[batch_start:batch_end][group_by_column].tolist()
-            if_firsts = [i in first_indexes for i in range(batch_start, batch_end)]
+            if_firsts = np.isin(range(batch_start, batch_end), first_indexes)
 
-            for mp_result, group, if_first in zip(lst, groups, if_firsts):
+            for mp_result, group, if_first in zip(batch_results_list, groups, if_firsts):
                 if if_first:
                     group_sums[group] += mp_result
                 else:
                     group_sums[group] += mp_result * multiplier[:, None]
+
             batch_start = batch_end
             batch_end = min(batch_end + batch_size, range_end)
 
