@@ -430,11 +430,11 @@ class Model:
         calculate_model_point_partial = functools.partial(
             self.calculate_model_point, one_core=one_core, progressbar_max=range_end
         )
-        output_columns = self.prepare_output_columns()
+        output_columns = self.agg_prepare_output_columns()
         num_output_columns = len(output_columns)
 
         # Define the initial batch size to process, to prevent excessive memory usage
-        batch_size = self.calculate_batch_size(num_output_columns)
+        batch_size = self.agg_calculate_batch_size(num_output_columns)
         batch_start, batch_end = range_start, min(range_start + batch_size, range_end)
 
         # Create an array of multipliers based on the aggregation type of each variable
@@ -442,18 +442,18 @@ class Model:
 
         # Calculate aggregated results for all model points without grouping
         if self.settings["GROUP_BY_COLUMN"] is None:
-            results = self.calculate_without_grouping(calculate_model_point_partial, batch_start, batch_end, batch_size,
-                                                      range_end, multiplier)
-            output = self.prepare_output_without_grouping(results, output_columns)
+            results = self.agg_calculate_without_grouping(calculate_model_point_partial, batch_start, batch_end,
+                                                          batch_size, range_end, multiplier)
+            output = self.agg_prepare_output_without_grouping(results, output_columns)
 
         # Calculate aggregated results for all model points, grouped by the specified column
         else:
-            group_sums = self.calculate_with_grouping(calculate_model_point_partial, batch_start, batch_end, batch_size,
-                                                      range_end, multiplier, num_output_columns)
-            output = self.prepare_output_with_grouping(group_sums, output_columns, one_core)
+            group_sums = self.agg_calculate_with_grouping(calculate_model_point_partial, batch_start, batch_end,
+                                                          batch_size, range_end, multiplier, num_output_columns)
+            output = self.agg_prepare_output_with_grouping(group_sums, output_columns, one_core)
         return output
 
-    def prepare_output_columns(self):
+    def agg_prepare_output_columns(self):
         if len(self.settings["OUTPUT_COLUMNS"]) == 0:
             output_columns = [v.name for v in self.variables]
         else:
@@ -461,7 +461,7 @@ class Model:
 
         return output_columns
 
-    def calculate_batch_size(self, num_output_columns):
+    def agg_calculate_batch_size(self, num_output_columns):
         """
         Calculate the batch size based on available memory.
 
@@ -484,7 +484,7 @@ class Model:
         batch_size = max(batch_size, 1)
         return batch_size
 
-    def calculate_without_grouping(self, calculate_model_point_partial, batch_start, batch_end, batch_size, range_end,
+    def agg_calculate_without_grouping(self, calculate_model_point_partial, batch_start, batch_end, batch_size, range_end,
                                    multiplier):
         # Initialize the results with the output of the first model point calculation
         if batch_start == 0:
@@ -504,14 +504,14 @@ class Model:
 
         return results
 
-    def prepare_output_without_grouping(self, results, output_columns):
+    def agg_prepare_output_without_grouping(self, results, output_columns):
         # Prepare the 'output' data frame
         log_message("Preparing output...", show_time=True, print_and_save=True)
         results = np.transpose(results)
         output = pd.DataFrame(data=results, columns=output_columns)
         return output
 
-    def calculate_with_grouping(self, calculate_model_point_partial, batch_start, batch_end, batch_size, range_end,
+    def agg_calculate_with_grouping(self, calculate_model_point_partial, batch_start, batch_end, batch_size, range_end,
                                 multiplier, num_output_columns):
         max_output = self.settings["T_MAX_OUTPUT"] + 1
         group_by_column = self.settings["GROUP_BY_COLUMN"]
@@ -548,25 +548,46 @@ class Model:
 
         return group_sums
 
-    def prepare_output_with_grouping(self, group_sums, output_columns, one_core):
+    def agg_prepare_output_with_grouping(self, group_sums, output_columns, one_core):
         group_by_column = self.settings["GROUP_BY_COLUMN"]
 
         log_message("Preparing output...", show_time=True, print_and_save=one_core)
+
         lst_dfs = []
         for group, data in group_sums.items():
             group_df = pd.DataFrame(data=np.transpose(data), columns=output_columns)
             group_df.insert(0, group_by_column, group)
             lst_dfs.append(group_df)
+
         output = pd.concat(lst_dfs, ignore_index=True)
         return output
 
     def compute_individual_results(self, range_start, range_end, one_core):
-        p = functools.partial(self.calculate_model_point, one_core=one_core, progressbar_max=range_end)
+        calculate_model_point_partial = functools.partial(self.calculate_model_point, one_core=one_core, progressbar_max=range_end)
 
+        mp = range_end - range_start
+        results = self.ind_allocate_memory_for_results(mp)
+        results = [*map(calculate_model_point_partial, range(range_start, range_end))]
+
+        # Prepare output columns
+        if len(self.settings["OUTPUT_COLUMNS"]) == 0:
+            output_columns = [v.name for v in self.variables]
+        else:
+            output_columns = self.settings["OUTPUT_COLUMNS"]
+
+        # Prepare the 'output' data frame
+        log_message("Preparing output...", show_time=True, print_and_save=one_core)
+        total_data = [pd.DataFrame(np.transpose(arr)) for arr in results]
+        output = pd.concat(total_data)
+        output.columns = output_columns
+
+        return output
+
+    def ind_allocate_memory_for_results(self, mp):
         # Allocate memory for results
         t = self.settings["T_MAX_OUTPUT"] + 1
         v = len(self.variables) if len(self.settings["OUTPUT_COLUMNS"]) == 0 else len(self.settings["OUTPUT_COLUMNS"])
-        mp = range_end - range_start
+
         float_size = np.dtype(np.float64).itemsize
         results_size = t * v * mp * float_size
         results_size_mb = results_size / (1024 ** 2)
@@ -586,22 +607,8 @@ class Model:
             results = [np.empty((v, t), dtype=float) for _ in range(mp)]
         except MemoryError:
             raise CashflowModelError(msg)
-        else:
-            results = [*map(p, range(range_start, range_end))]
 
-        # Prepare output columns
-        if len(self.settings["OUTPUT_COLUMNS"]) == 0:
-            output_columns = [v.name for v in self.variables]
-        else:
-            output_columns = self.settings["OUTPUT_COLUMNS"]
-
-        # Prepare the 'output' data frame
-        log_message("Preparing output...", show_time=True, print_and_save=one_core)
-        total_data = [pd.DataFrame(np.transpose(arr)) for arr in results]
-        output = pd.concat(total_data)
-        output.columns = output_columns
-
-        return output
+        return results
 
     def calculate_model_point(self, row, one_core, progressbar_max):
         """Returns array of arrays:
