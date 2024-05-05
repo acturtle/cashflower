@@ -37,6 +37,326 @@ You're just a few commands away from running your first cash flow model with cas
 ..  code-block::
     :caption: terminal
 
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
+        $ pip install cashflower
+        $ python
+        >>> from cashflower import create_model_folder_structure
+        >>> create_model_folder_structure("mymodel")
+        >>> quit()
+        $ cd mymodel
+        $ python run.py
+
+    Congratulations, you're all set!
+
     $ pip install cashflower
     $ python
     >>> from cashflower import create_model

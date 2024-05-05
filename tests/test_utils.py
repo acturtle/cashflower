@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from cashflower.utils import get_first_indexes, get_object_by_name, print_log, split_to_ranges, updt
+from cashflower.utils import get_first_indexes, get_object_by_name, log_message, split_to_ranges, update_progressbar
 
 
 class TestSplitToRanges(TestCase):
@@ -25,9 +25,9 @@ class TestGetObjectByName(TestCase):
 
 class TestPrintFunctions(TestCase):
     def test_print_functions(self):
-        assert updt(100, 20) is None
-        assert updt(100, 110) is None
-        assert print_log("my message") is None
+        assert update_progressbar(100, 20) is None
+        assert update_progressbar(100, 110) is None
+        assert log_message("my message") is None
 
 
 class TestGetFirstIndexes(TestCase):
