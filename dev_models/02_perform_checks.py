@@ -3,7 +3,7 @@ import pandas as pd
 import shutil
 import subprocess
 
-from cashflower import create_model
+from cashflower import create_model_folder_structure
 
 
 def basic_check(model_name):
@@ -41,7 +41,7 @@ def basic_check(model_name):
 def check_dev_model_00():
     """Check creating a new model from scratch."""
     model_name = "dev_model_delete_me"
-    create_model(model_name)
+    create_model_folder_structure(model_name)
     os.chdir(model_name)
 
     # Run model

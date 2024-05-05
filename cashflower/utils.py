@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 
@@ -7,53 +8,107 @@ from datetime import datetime
 log_messages = []
 
 
-def print_log(msg, show_time=False, visible=True):
-    """Print a log message with the timestamp and add to global messages to be saved later on."""
-    if visible:
+def log_message(msg, show_time=False, print_and_save=True):
+    """
+    Log a message with the timestamp and add to global log messages to be saved later on.
+
+    Parameters:
+        msg (str): The message to be logged.
+        show_time (bool): Whether to show the time in the log message. Default is False.
+        print_and_save (bool): Whether to print the log message to the console and log it. Default is True.
+
+    Returns:
+        None
+    """
+    if print_and_save:
         if show_time:
             log_msg = datetime.now().strftime("%H:%M:%S") + " | " + msg
         else:
             log_msg = f"{' ' * 10} {msg}"
         print(log_msg)
         log_messages.append(log_msg)
+    return None
 
 
 def save_log_to_file(timestamp):
-    with open(f"output/{timestamp}_log.txt", "w") as file:
-        for message in log_messages:
-            file.write(message + '\n')
+    """
+    Save the log messages to a file and then clear the log.
+
+    The file is created in the "output" directory and its name is the timestamp followed by "_log.txt".
+
+    Parameters:
+    timestamp (str): The timestamp to use in the filename.
+
+    Returns:
+    None
+    """
+    try:
+        filename = f"{timestamp}_log.txt"
+        filepath = os.path.join("output", filename)
+        with open(filepath, "w") as file:
+            file.write('\n'.join(log_messages))
+    finally:
         log_messages.clear()
 
 
 def split_to_ranges(n, num_ranges):
-    """n = 20, num_ranges = 3 --> (0, 6), (6, 12), (12, 20)"""
+    """
+    Split a number into a specified number of ranges. The ranges are of equal size, except for the last one
+    which may be larger if n is not evenly divisible by num_ranges. The remaining elements are added to the last range.
+
+    Args:
+        n (int): The number to split.
+        num_ranges (int): The number of ranges to split into.
+
+    Returns:
+        list: A list of tuples, where each tuple represents a range.
+
+    Example:
+        # >>> split_to_ranges(20, 3)
+        [(0, 6), (6, 12), (12, 20)]
+    """
     if n < num_ranges:
         return [(0, n)]
 
     range_size = n // num_ranges
-    # remaining items are added to the last range
     remainder = n - num_ranges * range_size
 
-    output = [None] * num_ranges
-    add_items = 0
+    output = []
     for i in range(num_ranges):
-        if i == num_ranges-1:
-            add_items = remainder
-        range_tuple = (range_size * i, range_size * (i + 1) + add_items)
-        output[i] = range_tuple
+        start = range_size * i
+        end = range_size * (i + 1) + (remainder if i == num_ranges - 1 else 0)
+        output.append((start, end))
     return output
 
 
 def get_object_by_name(objects, name):
-    for _object in objects:
-        if _object.name == name:
-            return _object
+    """
+    Returns the first object in the list that has the given name.
+
+    Args:
+        objects (list): A list of objects.
+        name (str): The name to search for.
+
+    Returns:
+        object: The first object in the list that has the given name. If no object is found, returns None.
+    """
+    for obj in objects:
+        if obj.name == name:
+            return obj
     return None
 
 
-def updt(total, progress):
-    """Display or update a console progress bar.
-    Original source: https://stackoverflow.com/a/15860757/1391441"""
+def update_progressbar(total, progress):
+    """
+    Displays or updates a console progress bar.
+
+    Args:
+        total (int): The total number of steps in the process.
+        progress (int): The current step in the process.
+
+    Returns:
+        None
+    """
     bar_length, status = 20, ""
     progress = float(progress) / float(total)
     if progress >= 1.:
@@ -67,32 +122,35 @@ def updt(total, progress):
 
 
 def get_git_commit_info():
+    """
+    Retrieves the current Git commit hash and checks if there are any local changes.
+
+    Returns:
+        str: The current Git commit hash, or the commit hash followed by " (with local changes)"
+        if there are any uncommitted changes. Returns None if the current directory is not a Git repository.
+    """
     try:
-        # Check if the current directory is a Git repository
-        subprocess.check_output("git rev-parse --is-inside-work-tree", shell=True, stderr=subprocess.STDOUT, text=True)
-
-        # Get the Git commit hash
-        commit_hash = subprocess.check_output("git rev-parse HEAD", shell=True).decode("utf-8").strip()
-
-        # Check if there are local changes
-        status_output = subprocess.check_output("git status --porcelain", shell=True).decode("utf-8").strip()
-
-        if status_output:
-            return f"{commit_hash} (with local changes)"
-        else:
-            return f"{commit_hash}"
+        subprocess.check_output(["git", "rev-parse", "--is-inside-work-tree"], stderr=subprocess.STDOUT, text=True)
+        commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        status_output = subprocess.check_output(["git", "status", "--porcelain"], text=True).strip()
     except subprocess.CalledProcessError:
-        # Not a Git repository
+        # Not a git repository
         return None
+
+    if status_output:
+        return f"{commit_hash} (with local changes)"
+    else:
+        return f"{commit_hash}"
 
 
 def get_first_indexes(items):
-    """Get the list of indexes for the first occurrence of the given item in the list.
-    ["A", "A", "B", "A", "C", "D"] --> [0, 2, 4, 5]"""
+    """Get the list of indexes for the first occurrence of each item in the list.
+
+    Example:
+    ["A", "A", "B", "A", "C", "D"] --> [0, 2, 4, 5]
+    """
     first_indexes = {}
     for index, item in enumerate(items):
         if item not in first_indexes:
             first_indexes[item] = index
-
-    result = list(first_indexes.values())
-    return result
+    return list(first_indexes.values())

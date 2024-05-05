@@ -14,17 +14,39 @@ import shutil
 from .core import ArrayVariable, Model, ModelPointSet, Runplan, StochasticVariable, Variable
 from .error import CashflowModelError
 from .graph import create_directed_graph, filter_variables_and_graph, get_calls, get_predecessors, set_calc_direction
-from .utils import get_git_commit_info, get_object_by_name, print_log, save_log_to_file
+from .utils import get_git_commit_info, get_object_by_name, log_message, save_log_to_file
 
 
-def create_model(model):
-    """Create a folder structure for a model."""
+def create_model_folder_structure(model):
+    """Create a folder structure for a model.
+
+    Args:
+        model (str): The path where the folder structure should be created.
+
+    Returns:
+        None
+    """
     template_path = os.path.join(os.path.dirname(__file__), "model_tpl")
-    shutil.copytree(template_path, model)
+
+    try:
+        shutil.copytree(template_path, model)
+    except OSError as e:
+        print(f"Error: {e.filename} - {e.strerror}.")
 
 
 def load_settings(settings=None):
-    """Add missing settings."""
+    """
+    Load settings for the model.
+
+    If T_MAX_OUTPUT exceeds T_MAX_CALCULATION, T_MAX_OUTPUT is adjusted to match T_MAX_CALCULATION
+    and a log message is generated.
+
+    Args:
+        settings (dict, optional): A dictionary of user's settings. Defaults to None.
+
+    Returns:
+        dict: A dictionary of settings.
+    """
     initial_settings = {
         "AGGREGATE": True,
         "GROUP_BY_COLUMN": None,
@@ -43,23 +65,32 @@ def load_settings(settings=None):
         return initial_settings
 
     # Update with the user settings
-    for key, value in settings.items():
-        initial_settings[key] = value
+    initial_settings.update(settings)
 
     # Maximal output t can't exceed maximal calculation t
-    if initial_settings["T_MAX_CALCULATION"] < initial_settings["T_MAX_OUTPUT"]:
-        out = initial_settings["T_MAX_OUTPUT"]
-        cal = initial_settings["T_MAX_CALCULATION"]
+    out = initial_settings["T_MAX_OUTPUT"]
+    cal = initial_settings["T_MAX_CALCULATION"]
+
+    if cal < out:
         msg = (f"T_MAX_OUTPUT ('{out}') exceeds T_MAX_CALCULATION ('{cal}'); "
                f"T_MAX_OUTPUT adjusted to match T_MAX_CALCULATION.")
-        print_log(msg)
-        initial_settings["T_MAX_OUTPUT"] = initial_settings["T_MAX_CALCULATION"]
+        log_message(msg)
+        initial_settings["T_MAX_OUTPUT"] = cal
 
     return initial_settings
 
 
 def get_runplan(input_members, args):
-    """Get runplan object from input.py script. Assign version if provided in the CLI command."""
+    """
+    Get runplan object from input.py script. Assign version if provided in the CLI command.
+
+    Args:
+        input_members (list): A list of tuples containing the name and instance of each input member.
+        args (obj): An object containing the CLI command arguments.
+
+    Returns:
+        obj: The first Runplan object found in the input_members list, or None if no Runplan object is found.
+    """
     runplan = None
     for name, item in input_members:
         if isinstance(item, Runplan):
@@ -73,8 +104,21 @@ def get_runplan(input_members, args):
 
 
 def get_model_point_sets(input_members, settings, args):
-    """Get model point set objects from input.py script."""
-    model_point_set_members = [m for m in input_members if isinstance(m[1], ModelPointSet)]
+    """
+    Get model point set objects from the input.py script.
+
+    Args:
+        input_members (list): List of tuples containing member names and their corresponding values.
+        settings (object): Settings object containing configuration for the model point sets.
+        args (object): Arguments object containing command line arguments.
+
+    Returns:
+        list: A list of initialized ModelPointSet objects.
+
+    Raises:
+        CashflowModelError: If a model point set named 'main' is not found in the input_members.
+    """
+    model_point_set_members = [member for member in input_members if isinstance(member[1], ModelPointSet)]
 
     main = None
     model_point_sets = []
@@ -87,7 +131,8 @@ def get_model_point_sets(input_members, settings, args):
             main = model_point_set
 
     if main is None:
-        raise CashflowModelError("\nA model must have a model point set named 'main'.")
+        raise CashflowModelError("\nA model must have a model point set named 'main'. "
+                                 "Please check your input.py script.")
 
     if args.id is not None:
         chosen_id = str(args.id)
@@ -97,7 +142,19 @@ def get_model_point_sets(input_members, settings, args):
 
 
 def get_variables(model_members, settings):
-    """Get model variables from model.py script."""
+    """
+   Get model variables from model.py script.
+
+   Args:
+       model_members (list): A list of tuples containing the names and values of the model members.
+       settings (dict): A dictionary of settings for the model.
+
+   Returns:
+       list: A list of Variable objects.
+
+   Raises:
+       CashflowModelError: If a variable is named 't' or if a stochastic variable is used without setting the number of stochastic scenarios.
+   """
     variable_members = [m for m in model_members if isinstance(m[1], Variable)]
     variables = []
 
@@ -123,7 +180,20 @@ def get_variables(model_members, settings):
 
 
 def prepare_model_input(settings, args):
-    """Get input for the cash flow model."""
+    """
+    Prepare the input for the cash flow model.
+
+    Args:
+        settings (dict): A dictionary of settings for the model.
+        args (dict): A dictionary of arguments for the model.
+
+    Returns:
+        tuple: A tuple containing the runplan, model point sets, and variables for the cash flow model.
+
+    Notes:
+        This function imports the input and model modules, gets the members of these modules,
+        and then uses these members to get the runplan, model point sets, and variables for the cash flow model.
+    """
     input_module = importlib.import_module("input")
     model_module = importlib.import_module("model")
 
@@ -139,8 +209,52 @@ def prepare_model_input(settings, args):
     return runplan, model_point_sets, variables
 
 
+def check_for_array_variables_in_cycle(cycle):
+    for variable in cycle:
+        if isinstance(variable, ArrayVariable):
+            msg = (f"Variable '{variable.name}' is part of a cycle so it can't be modelled as an array variable."
+                   f"\nCycle: {cycle}"
+                   f"\nPlease remove 'array=True' from the decorator and recode the variable.")
+            raise CashflowModelError(msg)
+
+
+def set_cycle_order(dg_cycle):
+    cycle_order = 0
+    while dg_cycle.nodes:
+        cycle_nodes_without_predecessors = [cn for cn in dg_cycle.nodes if len(list(dg_cycle.predecessors(cn))) == 0]
+        if len(cycle_nodes_without_predecessors) > 0:
+            for node in cycle_nodes_without_predecessors:
+                cycle_order += 1
+                node.cycle_order = cycle_order
+            dg_cycle.remove_nodes_from(cycle_nodes_without_predecessors)
+        else:
+            cycle_variable_nodes = [node.name for node in dg_cycle.nodes]
+            msg = (f"Circular relationship without time step difference is not allowed. "
+                   f"Please review variables: {cycle_variable_nodes}."
+                   f"\nIf circular relationship without time step difference is necessary in your project, "
+                   f"please raise it on: github.com/acturtle/cashflower")
+            raise CashflowModelError(msg)
+
+
 def resolve_calculation_order(variables, output_columns):
-    """Determines a safe execution order for variables to avoid recursion errors."""
+    """
+    Determines a safe execution order for variables to avoid recursion errors.
+
+    This function takes a list of variables and an optional list of output columns as input.
+    It first creates a dictionary of called functions for each variable, then creates a directed graph representing
+    the relationships between variables. If output columns are specified, it filters the variables and graph
+    to only include the necessary variables. It then sets the calculation order of the variables,
+    handling both acyclic and cyclic relationships.
+    Finally, it sorts the variables by calculation order and sets the calculation direction.
+
+    Parameters:
+    variables (list): A list of variable objects.
+    output_columns (list, optional): A list of output column names. If specified, only variables that are needed for
+        these columns will be included in the calculation order.
+
+    Returns:
+    list: A list of variable objects, sorted by calculation order and with their calculation direction set.
+    """
     # [1] Dictionary of called functions (key = variable; value = other variables called by it)
     calls = {}
     for variable in variables:
@@ -149,7 +263,7 @@ def resolve_calculation_order(variables, output_columns):
     # [2] Create directed graph for all variables
     dg = create_directed_graph(variables, calls)
 
-    # [3] User has chosen output so remove unneeded variables
+    # [3] User has chosen output columns so remove unneeded variables
     if output_columns is not None:
         variables, dg = filter_variables_and_graph(output_columns, variables, dg)
 
@@ -158,53 +272,30 @@ def resolve_calculation_order(variables, output_columns):
     while dg.nodes:
         nodes_without_predecessors = [n for n in dg.nodes if len(list(dg.predecessors(n))) == 0]
 
-        # [4a] There are variables without any predecessors
+        # [4a] Acyclic - there are variables without any predecessors
         if len(nodes_without_predecessors) > 0:
             for node in nodes_without_predecessors:
                 calc_order += 1
                 node.calc_order = calc_order
             dg.remove_nodes_from(nodes_without_predecessors)
 
-        # [4b] There is a cyclic relationship between variables
+        # [4b] Cyclic - there is a cyclic relationship between variables
         else:
             cycles = list(nx.simple_cycles(dg))
             cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], dg)) == len(c)]
 
             for cycle in cycles_without_predecessors:
-                # [4b_1] Ensure that there are no ArrayVariables in cycles
-                for variable in cycle:
-                    if isinstance(variable, ArrayVariable):
-                        msg = (f"Variable '{variable.name}' is part of a cycle so it can't be modelled as an array variable."
-                               f"\nCycle: {cycle}"
-                               f"\nPlease remove 'array=True' from the decorator and recode the variable.")
-                        raise CashflowModelError(msg)
+                # Ensure that there are no ArrayVariables in cycles
+                check_for_array_variables_in_cycle(cycle)
 
-                # [4b_2] Set the calculation order within the cycle
+                # Set the calculation order within the cycle ('cycle_order')
                 calls_t = {}  # dictionary of called functions but only for the same time period ("t")
                 for variable in cycle:
                     calls_t[variable] = get_calls(variable, cycle, argument_t_only=True)
-
-                # Create directed graph for cycle variables
                 dg_cycle = create_directed_graph(cycle, calls_t)
+                set_cycle_order(dg_cycle)
 
-                # Set 'cycle_order'
-                cycle_order = 0
-                while dg_cycle.nodes:
-                    cycle_nodes_without_predecessors = [cn for cn in dg_cycle.nodes if len(list(dg_cycle.predecessors(cn))) == 0]
-                    if len(cycle_nodes_without_predecessors) > 0:
-                        for node in cycle_nodes_without_predecessors:
-                            cycle_order += 1
-                            node.cycle_order = cycle_order
-                        dg_cycle.remove_nodes_from(cycle_nodes_without_predecessors)
-                    else:
-                        cycle_variable_nodes = [node.name for node in dg_cycle.nodes]
-                        msg = (f"Circular relationship without time step difference is not allowed. "
-                               f"Please review variables: {cycle_variable_nodes}."
-                               f"\nIf circular relationship without time step difference is necessary in your project, "
-                               f"please raise it on: github.com/acturtle/cashflower")
-                        raise CashflowModelError(msg)
-
-                # [4b_3] All the variables from a cycle have the same 'calc_order' value
+                # All the variables from a cycle have the same 'calc_order' value
                 calc_order += 1
                 for node in cycle:
                     node.calc_order = calc_order
@@ -221,18 +312,27 @@ def resolve_calculation_order(variables, output_columns):
 
 
 def start_single_core(settings, args):
-    """Create and run a cash flow model."""
+    """
+    Create and run a cash flow model on a single core.
+
+    Args:
+        settings (dict): Model settings.
+        args (dict): Additional arguments.
+
+    Returns:
+        tuple: A tuple containing the model output and runtime.
+    """
     # Prepare model components
-    print_log("Reading model components...", show_time=True)
+    log_message("Reading model components...", show_time=True)
     runplan, model_point_sets, variables = prepare_model_input(settings, args)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
     # Log runplan version and number of model points
     if runplan is not None:
-        print_log(f"Runplan version: {runplan.version}")
+        log_message(f"Runplan version: {runplan.version}")
     main = get_object_by_name(model_point_sets, "main")
-    print_log(f"Number of model points: {len(main)}")
+    log_message(f"Number of model points: {len(main)}")
 
     # Run model on single core
     model = Model(variables, model_point_sets, settings)
@@ -241,23 +341,33 @@ def start_single_core(settings, args):
 
 
 def start_multiprocessing(part, settings, args):
-    """Run subset of the model points using multiprocessing."""
+    """
+    Run subset of the model points using multiprocessing.
+
+    Args:
+        part (int): The part of the model points to run.
+        settings (dict): The model settings.
+        args (object): The command line arguments.
+
+    Returns:
+        tuple: A tuple containing the output and runtime of the model run.
+    """
     cpu_count = multiprocessing.cpu_count()
     one_core = part == 0
 
     # Prepare model components
-    print_log("Reading model components...", show_time=True, visible=one_core)
+    log_message("Reading model components...", show_time=True, print_and_save=one_core)
     runplan, model_point_sets, variables = prepare_model_input(settings, args)
     output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
     variables = resolve_calculation_order(variables, output_columns)
 
     # Log runplan version and number of model points
     if runplan is not None:
-        print_log(f"Runplan version: {runplan.version}", visible=one_core)
+        log_message(f"Runplan version: {runplan.version}", print_and_save=one_core)
     main = get_object_by_name(model_point_sets, "main")
-    print_log(f"Number of model points: {len(main)}", visible=one_core)
-    print_log(f"Multiprocessing on {cpu_count} cores", visible=one_core)
-    print_log(f"Calculation of ca. {len(main) // cpu_count} model points per core", visible=one_core)
+    log_message(f"Number of model points: {len(main)}", print_and_save=one_core)
+    log_message(f"Multiprocessing on {cpu_count} cores", print_and_save=one_core)
+    log_message(f"Calculation of ca. {len(main) // cpu_count} model points per core", print_and_save=one_core)
 
     # Run model on multiple cores
     model = Model(variables, model_point_sets, settings)
@@ -271,9 +381,18 @@ def start_multiprocessing(part, settings, args):
 
 
 def merge_part_outputs(part_outputs, settings):
-    """Merge outputs from multiprocessing and save to files."""
+    """
+    Merge outputs from multiprocessing.
+
+    Args:
+        part_outputs (list): A list of outputs from multiprocessing.
+        settings (dict): A dictionary of settings.
+
+    Returns:
+        pandas.DataFrame: The merged output.
+    """
     # Nones are returned, when number of policies < number of cpus
-    part_outputs = [po for po in part_outputs if po is not None]
+    part_outputs = [part_output for part_output in part_outputs if part_output is not None]
 
     # Merge or concatenate outputs into one
     if settings["AGGREGATE"]:
@@ -296,89 +415,157 @@ def merge_part_diagnostic(part_diagnostic):
     return diagnostic
 
 
-def run(settings=None, path=None):
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    settings = load_settings(settings)
-    output, diagnostic = None, None
+def parse_arguments():
+    """
+    Parse command line arguments.
 
-    # Parse arguments
+    Returns:
+        args: The parsed arguments.
+    """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--id", "-i")
-    parser.add_argument("--version", "-v")
-    args = parser.parse_args()
 
-    # Start log
-    if path is not None:
-        print_log(f"Model: '{os.path.basename(path)}'", show_time=True)
-        print_log(f"Path: {path}")
+    parser.add_argument("--id", "-i", help="Run a specific model point.")
+    parser.add_argument("--version", "-v", help="Run a specific version.")
+
+    return parser.parse_args()
+
+
+def run_multi_core(settings, args):
+    """
+    Run the model on multiple cores.
+
+    Args:
+        settings (dict): A dictionary containing the settings for the model.
+        args (argparse.Namespace): The arguments passed to the script.
+
+    Returns:
+        tuple: A tuple containing the output and diagnostic results.
+    """
+    process_func = functools.partial(start_multiprocessing, settings=settings, args=args)
+    cpu_count = multiprocessing.cpu_count()
+    with multiprocessing.Pool(cpu_count) as pool:
+        parts = pool.map(process_func, range(cpu_count))
+
+    # Merge model outputs
+    part_outputs = [part[0] for part in parts]
+    output = merge_part_outputs(part_outputs, settings)
+
+    # Merge runtimes
+    if settings["SAVE_DIAGNOSTIC"]:
+        part_diagnostic = [part[1] for part in parts]
+        diagnostic = merge_part_diagnostic(part_diagnostic)
     else:
-        print_log("Model", show_time=True)
-    print_log(f"Timestamp: {timestamp}")
-    print_log(f"User: '{getpass.getuser()}'")
+        diagnostic = None
+
+    return output, diagnostic
+
+
+def save_results(timestamp, output, diagnostic, settings):
+    """
+    Save the output, diagnostic, and log files based on the settings.
+
+    Args:
+        timestamp (str): The timestamp to use in the filenames.
+        output (pandas.DataFrame): The output data to save.
+        diagnostic (pandas.DataFrame): The diagnostic data to save.
+        settings (dict): A dictionary containing the settings.
+    """
+    if not (settings["SAVE_OUTPUT"] or settings["SAVE_DIAGNOSTIC"] or settings["SAVE_LOG"]):
+        return None
+
+    if not os.path.exists("output"):
+        os.makedirs("output")
+
+    if settings["SAVE_OUTPUT"]:
+        filepath = f"output/{timestamp}_output.csv"
+        log_message(f"Saving output file: {filepath}", show_time=True)
+        output.to_csv(filepath, index=False)
+
+    if settings["SAVE_DIAGNOSTIC"]:
+        filepath = f"output/{timestamp}_diagnostic.csv"
+        log_message(f"Saving diagnostic file: {filepath}", show_time=True)
+        diagnostic.to_csv(filepath, index=False)
+
+    if settings["SAVE_LOG"]:
+        filepath = f"output/{timestamp}_log.txt"
+        log_message(f"Saving log file: {filepath}", show_time=True)
+        save_log_to_file(timestamp)
+
+
+def log_run_info(timestamp, path, args, settings):
+    """
+    Logs information about the current run.
+
+    Args:
+        timestamp (str): The timestamp of the run.
+        path (str): The path to the model.
+        args (argparse.Namespace): The command line arguments.
+        settings (dict): The settings for the run.
+
+    Returns:
+        None
+    """
+    # Log model info
+    if path is not None:
+        log_message(f"Model: '{os.path.basename(path)}'", show_time=True)
+        log_message(f"Path: {path}")
+    else:
+        log_message("Model", show_time=True)
+    log_message(f"Timestamp: {timestamp}")
+    log_message(f"User: '{getpass.getuser()}'")
     commit = get_git_commit_info()
     if commit is not None:
-        print_log(f"Git commit: {commit}")
-    print_log("")
+        log_message(f"Git commit: {commit}")
+    log_message("")
 
+    # Log command line arguments
     has_arguments = any(arg_value is not None for arg_value in vars(args).values())
     if has_arguments:
-        print_log("Arguments:")
+        log_message("Arguments:")
         for arg_name, arg_value in vars(args).items():
             if arg_value is not None:
-                print_log(f'- {arg_name}: {arg_value}')
-        print_log("")
+                log_message(f'- {arg_name}: {arg_value}')
+        log_message("")
 
-    print_log("Settings:")
+    # Log settings
+    log_message("Settings:")
     for key, value in settings.items():
         msg = f"- {key}: {value}"
-        print_log(msg)
-    print_log("")
+        log_message(msg)
+    log_message("")
 
-    # Run on single core
+
+def run(settings=None, path=None):
+    """
+    Run the model with given settings and path.
+
+    Args:
+        settings (dict, optional): Dictionary containing the settings. Defaults to None.
+        path (str, optional): Path where the model results will be saved. Defaults to None.
+
+    Returns:
+        pandas.DataFrame: The output of the modl.
+    """
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    settings = load_settings(settings)
+    args = parse_arguments()
+    log_run_info(timestamp, path, args, settings)
+
+    # Run on single or multiple cores
     if not settings["MULTIPROCESSING"]:
         output, diagnostic = start_single_core(settings, args=args)
-
-    # Run on multiple cores
-    if settings["MULTIPROCESSING"]:
-        p = functools.partial(start_multiprocessing, settings=settings, args=args)
-        cpu_count = multiprocessing.cpu_count()
-        with multiprocessing.Pool(cpu_count) as pool:
-            parts = pool.map(p, range(cpu_count))
-
-        # Merge model outputs
-        part_outputs = [p[0] for p in parts]
-        output = merge_part_outputs(part_outputs, settings)
-
-        # Merge runtimes
-        if settings["SAVE_DIAGNOSTIC"]:
-            part_diagnostic = [p[1] for p in parts]
-            diagnostic = merge_part_diagnostic(part_diagnostic)
+    else:
+        output, diagnostic = run_multi_core(settings, args)
 
     # Add time column
     values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output.shape[0] / (settings["T_MAX_OUTPUT"]+1))
     output.insert(0, "t", values)
-    print_log("Finished!", show_time=True)
-    print_log("")
+
+    log_message("Finished!", show_time=True)
+    log_message("")
 
     # Save to csv files
-    if settings["SAVE_OUTPUT"] or settings["SAVE_DIAGNOSTIC"] or settings["SAVE_LOG"]:
-        if not os.path.exists("output"):
-            os.makedirs("output")
-
-        if settings["SAVE_OUTPUT"]:
-            filepath = f"output/{timestamp}_output.csv"
-            print_log(f"Saving output file: {filepath}", show_time=True)
-            output.to_csv(filepath, index=False)
-
-        if settings["SAVE_DIAGNOSTIC"]:
-            filepath = f"output/{timestamp}_diagnostic.csv"
-            print_log(f"Saving diagnostic file: {filepath}", show_time=True)
-            diagnostic.to_csv(filepath, index=False)
-
-        if settings["SAVE_LOG"]:
-            filepath = f"output/{timestamp}_log.txt"
-            print_log(f"Saving log file: {filepath}", show_time=True)
-            save_log_to_file(timestamp)
+    save_results(timestamp, output, diagnostic, settings)
 
     print(f"{'-' * 72}\n")
     return output
