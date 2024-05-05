@@ -6,7 +6,7 @@ import pandas as pd
 import psutil
 
 from .error import CashflowModelError
-from .utils import get_first_indexes, get_object_by_name, log_message, split_to_ranges, updt
+from .utils import get_first_indexes, get_object_by_name, log_message, split_to_ranges, update_progressbar
 
 
 def get_variable_type(v):
@@ -352,6 +352,9 @@ class ModelPointSet:
             self._id = None
         self.get.cache_clear()
 
+    def set_id(self, new_id):
+        self.id = new_id
+
     def perform_checks(self):
         id_column_name = self.settings["ID_COLUMN"]
 
@@ -430,7 +433,7 @@ class Model:
         calculate_model_point_partial = functools.partial(
             self.calculate_model_point, one_core=one_core, progressbar_max=range_end
         )
-        output_columns = self.agg_prepare_output_columns()
+        output_columns = self.prepare_output_columns()
         num_output_columns = len(output_columns)
 
         # Define the initial batch size to process, to prevent excessive memory usage
@@ -444,7 +447,7 @@ class Model:
         if self.settings["GROUP_BY_COLUMN"] is None:
             results = self.agg_calculate_without_grouping(calculate_model_point_partial, batch_start, batch_end,
                                                           batch_size, range_end, multiplier)
-            output = self.agg_prepare_output_without_grouping(results, output_columns)
+            output = self.agg_prepare_output_without_grouping(results, output_columns, one_core)
 
         # Calculate aggregated results for all model points, grouped by the specified column
         else:
@@ -453,7 +456,7 @@ class Model:
             output = self.agg_prepare_output_with_grouping(group_sums, output_columns, one_core)
         return output
 
-    def agg_prepare_output_columns(self):
+    def prepare_output_columns(self):
         if len(self.settings["OUTPUT_COLUMNS"]) == 0:
             output_columns = [v.name for v in self.variables]
         else:
@@ -504,9 +507,9 @@ class Model:
 
         return results
 
-    def agg_prepare_output_without_grouping(self, results, output_columns):
+    def agg_prepare_output_without_grouping(self, results, output_columns, one_core):
         # Prepare the 'output' data frame
-        log_message("Preparing output...", show_time=True, print_and_save=True)
+        log_message("Preparing output...", show_time=True, print_and_save=one_core)
         results = np.transpose(results)
         output = pd.DataFrame(data=results, columns=output_columns)
         return output
@@ -563,23 +566,16 @@ class Model:
         return output
 
     def compute_individual_results(self, range_start, range_end, one_core):
-        calculate_model_point_partial = functools.partial(self.calculate_model_point, one_core=one_core, progressbar_max=range_end)
+        calculate_model_point_partial = functools.partial(
+            self.calculate_model_point, one_core=one_core, progressbar_max=range_end
+        )
 
         mp = range_end - range_start
         results = self.ind_allocate_memory_for_results(mp)
         results = [*map(calculate_model_point_partial, range(range_start, range_end))]
 
-        # Prepare output columns
-        if len(self.settings["OUTPUT_COLUMNS"]) == 0:
-            output_columns = [v.name for v in self.variables]
-        else:
-            output_columns = self.settings["OUTPUT_COLUMNS"]
-
-        # Prepare the 'output' data frame
-        log_message("Preparing output...", show_time=True, print_and_save=one_core)
-        total_data = [pd.DataFrame(np.transpose(arr)) for arr in results]
-        output = pd.concat(total_data)
-        output.columns = output_columns
+        output_columns = self.prepare_output_columns()
+        output = self.ind_prepare_output(results, output_columns, one_core)
 
         return output
 
@@ -610,6 +606,14 @@ class Model:
 
         return results
 
+    def ind_prepare_output(self, results, output_columns, one_core):
+        # Prepare the 'output' data frame
+        log_message("Preparing output...", show_time=True, print_and_save=one_core)
+        total_data = [pd.DataFrame(np.transpose(arr)) for arr in results]
+        output = pd.concat(total_data)
+        output.columns = output_columns
+        return output
+
     def calculate_model_point(self, row, one_core, progressbar_max):
         """Returns array of arrays:
         [[v1_t0, v1_t1, v1_t2, ... v1_tm],
@@ -621,7 +625,7 @@ class Model:
         # Set model point's id
         model_point_id = main.data.index[row]
         for model_point_set in self.model_point_sets:
-            model_point_set.id = model_point_id
+            model_point_set.set_id(model_point_id)
 
         # Perform calculations
         max_calc_order = self.variables[-1].calc_order
@@ -637,21 +641,7 @@ class Model:
                 v.runtime += time.time() - start
             # Cycle
             else:
-                start = time.time()
-                first_variable = variables[0]
-                calc_direction = first_variable.calc_direction
-                if calc_direction in (0, 1):
-                    for t in range(self.settings["T_MAX_CALCULATION"] + 1):
-                        for v in variables:
-                            v.calculate_t(t)
-                else:
-                    for t in range(self.settings["T_MAX_CALCULATION"], -1, -1):
-                        for v in variables:
-                            v.calculate_t(t)
-                end = time.time()
-                avg_runtime = (end-start)/len(variables)
-                for v in variables:
-                    v.runtime += avg_runtime
+                self.calculate_cycle(variables)
 
         # Average stochastic results
         for v in self.variables:
@@ -666,6 +656,26 @@ class Model:
 
         # Update progressbar
         if one_core:
-            updt(progressbar_max, row + 1)
+            update_progressbar(progressbar_max, row + 1)
 
         return mp_results
+
+    def calculate_cycle(self, variables):
+        start = time.time()
+        first_variable = variables[0]
+        calc_direction = first_variable.calc_direction
+        t_max_calculation = self.settings["T_MAX_CALCULATION"]
+
+        if calc_direction in (0, 1):
+            for t in range(t_max_calculation + 1):
+                for v in variables:
+                    v.calculate_t(t)
+        else:
+            for t in range(t_max_calculation, -1, -1):
+                for v in variables:
+                    v.calculate_t(t)
+
+        end = time.time()
+        avg_runtime = (end-start)/len(variables)
+        for v in variables:
+            v.runtime += avg_runtime

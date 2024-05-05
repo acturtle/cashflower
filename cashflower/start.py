@@ -249,7 +249,8 @@ def resolve_calculation_order(variables, output_columns):
 
     Parameters:
     variables (list): A list of variable objects.
-    output_columns (list, optional): A list of output column names. If specified, only variables that are needed for these columns will be included in the calculation order.
+    output_columns (list, optional): A list of output column names. If specified, only variables that are needed for
+        these columns will be included in the calculation order.
 
     Returns:
     list: A list of variable objects, sorted by calculation order and with their calculation direction set.

@@ -98,7 +98,7 @@ def get_object_by_name(objects, name):
     return None
 
 
-def updt(total, progress):
+def update_progressbar(total, progress):
     """
     Displays or updates a console progress bar.
 

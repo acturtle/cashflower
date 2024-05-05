@@ -69,7 +69,8 @@ def get_calls(variable, variables, argument_t_only=False):
         list: A list of variables that are called by the given variable.
 
     Notes:
-        - If argument_t_only is True, only variables called with "t" will be returned. For example, if a variable is called with "t-1", it will not be included in the list.
+        - If argument_t_only is True, only variables called with "t" will be returned.
+          For example, if a variable is called with "t-1", it will not be included in the list.
         - This function uses the ast module to parse the source code of the given variable and find the calls.
         - The function also checks for incorrect arguments and raises an error if found.
 
