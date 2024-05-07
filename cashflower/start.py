@@ -17,7 +17,7 @@ from .graph import create_directed_graph, filter_variables_and_graph, get_calls,
 from .utils import get_git_commit_info, get_object_by_name, log_message, save_log_to_file
 
 
-def create_model_folder_structure(model):
+def create_model(model):
     """Create a folder structure for a model.
 
     Args:
