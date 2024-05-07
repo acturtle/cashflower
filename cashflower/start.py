@@ -264,9 +264,9 @@ def resolve_calculation_order(variables, output_columns):
     dg = create_directed_graph(variables, calls)
 
     # Debug
-    import matplotlib.pyplot as plt
-    nx.draw(dg, with_labels=True)
-    plt.show()
+    # import matplotlib.pyplot as plt
+    # nx.draw(dg, with_labels=True)
+    # plt.show()
 
     # [3] User has chosen output columns so remove unneeded variables
     if output_columns is not None:
@@ -276,6 +276,11 @@ def resolve_calculation_order(variables, output_columns):
     calc_order = 0
     while dg.nodes:
         nodes_without_predecessors = [n for n in dg.nodes if len(list(dg.predecessors(n))) == 0]
+
+        print("\nnodes_without_predecessors:")
+        print(nodes_without_predecessors)
+        if len(nodes_without_predecessors) == 0:
+            raise CashflowModelError("Error")
 
         # [4a] Acyclic - there are variables without any predecessors
         if len(nodes_without_predecessors) > 0:
