@@ -277,11 +277,6 @@ def resolve_calculation_order(variables, output_columns):
     while dg.nodes:
         nodes_without_predecessors = [n for n in dg.nodes if len(list(dg.predecessors(n))) == 0]
 
-        print("\nnodes_without_predecessors:")
-        print(nodes_without_predecessors)
-        if len(nodes_without_predecessors) == 0:
-            raise CashflowModelError("Error")
-
         # [4a] Acyclic - there are variables without any predecessors
         if len(nodes_without_predecessors) > 0:
             for node in nodes_without_predecessors:
@@ -292,6 +287,8 @@ def resolve_calculation_order(variables, output_columns):
         # [4b] Cyclic - there is a cyclic relationship between variables
         else:
             cycles = list(nx.simple_cycles(dg))
+            print("cycles")
+            print(cycles)
             cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], dg)) == len(c)]
 
             for cycle in cycles_without_predecessors:
