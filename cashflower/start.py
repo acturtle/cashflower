@@ -264,9 +264,9 @@ def resolve_calculation_order(variables, output_columns):
     dg = create_directed_graph(variables, calls)
 
     # Debug
-    # import matplotlib.pyplot as plt
-    # nx.draw(dg, with_labels=True)
-    # plt.show()
+    import matplotlib.pyplot as plt
+    nx.draw(dg, with_labels=True)
+    plt.show()
 
     # [3] User has chosen output columns so remove unneeded variables
     if output_columns is not None:
