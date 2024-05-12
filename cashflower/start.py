@@ -264,9 +264,9 @@ def resolve_calculation_order(variables, output_columns):
     dg = create_directed_graph(variables, calls)
 
     # Debug
-    import matplotlib.pyplot as plt
-    nx.draw(dg, with_labels=True)
-    plt.show()
+    # import matplotlib.pyplot as plt
+    # nx.draw(dg, with_labels=True)
+    # plt.show()
 
     # [3] User has chosen output columns so remove unneeded variables
     if output_columns is not None:
@@ -287,9 +287,27 @@ def resolve_calculation_order(variables, output_columns):
         # [4b] Cyclic - there is a cyclic relationship between variables
         else:
             cycles = list(nx.simple_cycles(dg))
-            print("cycles")
-            print(cycles)
+
             cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], dg)) == len(c)]
+
+            # Graph contains strongly connected components (SCC)
+            if len(cycles_without_predecessors) == 0:
+                # Find strongly connected components
+                sccs = list(nx.strongly_connected_components(dg))
+
+                # Find source SCC
+                for scc in sccs:
+                    has_incoming_edge = False
+                    for node in scc:
+                        for edge in dg.in_edges(node):
+                            if edge[0] not in scc:
+                                has_incoming_edge = True
+                                break
+                        if has_incoming_edge:
+                            break
+                    if not has_incoming_edge:
+                        scc = sorted(list(scc))
+                        cycles_without_predecessors = [scc]
 
             for cycle in cycles_without_predecessors:
                 # Ensure that there are no ArrayVariables in cycles
