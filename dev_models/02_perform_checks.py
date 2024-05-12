@@ -31,6 +31,7 @@ def basic_check(model_name):
     print("Check 2: Output did not change.", end=" ")
     first_output = pd.read_csv(f"output/{first_output_file}")
     last_output = pd.read_csv(f"output/{last_output_file}")
+
     assert first_output.equals(last_output)
     print("OK")
 
@@ -246,6 +247,10 @@ def check_dev_model_21():
     basic_check("dev_model_21")
 
 
+def check_dev_model_22():
+    basic_check("dev_model_22")
+
+
 if __name__ == "__main__":
     check_dev_model_00()
     check_dev_model_01()
@@ -269,4 +274,5 @@ if __name__ == "__main__":
     check_dev_model_19()
     check_dev_model_20()
     check_dev_model_21()
+    check_dev_model_22()
     print("\nFinished! All checks completed successfully.")
