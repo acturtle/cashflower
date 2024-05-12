@@ -126,6 +126,9 @@ class Variable:
     def __repr__(self):
         return f"V: {self.func.__name__}"
 
+    def __lt__(self, other):
+        return self.name < other.name
+
     def __call__(self, t=None):
         if t is None:
             return self.result

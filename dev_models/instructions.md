@@ -45,6 +45,7 @@ ensuring that they do not clutter the version control system.
 | 19 | True  | None  | id | True   | []   | True  | True  | 13       | 13      | 2    | 8   |
 | 20 | True  | None  | id | False  | []   | True  | True  | 720      | 720     | 3    | 1   |
 | 21 | False | None  | id | False  | []   | True  | True  | 12       | 12      | 5    | 3   |
+| 22 | False | None  | id | False  | []   | True  | True  | 720      | 720     | 7    | 1   |
 
 ### Description
 
@@ -69,4 +70,5 @@ ensuring that they do not clutter the version control system.
 * `19` - model with `variable(aggregation_type="first")` and `GROUP_BY_COLUMN` and `MULTIPROCESSING`
 * `20` - model with stochastic variables
 * `21` - model with stochastic variables that form a cycle
+* `22` - model with strongly connected components ("interconnected" cycles)
 * `99` - "special" model for testing memory limits
