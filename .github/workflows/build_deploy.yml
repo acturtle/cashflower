@@ -78,6 +78,7 @@ jobs:
         with:
           platform: ${{ matrix.platform }}
           build-selector: false
+          cache: false
 
       - uses: actions/upload-artifact@v3
         with:
