@@ -11,8 +11,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          clean: true
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -57,14 +55,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-20.04, windows-2019, macos-11]
-        platform: [linux, windows, macos]
-        include:
-          - os: ubuntu-20.04
-            platform: linux
-          - os: windows-2019
-            platform: windows
-          - os: macos-11
-            platform: macos
 
     steps:
       - uses: actions/checkout@v4
@@ -76,12 +66,7 @@ jobs:
           python -m pip install numpy
 
       - name: Build wheels
-        uses: pypa/cibuildwheel
-        with:
-          version: v2.18.0
-          platform: ${{ matrix.platform }}
-          build-selector: false
-          cache: false
+        uses: pypa/cibuildwheel@v2.16.0
 
       - uses: actions/upload-artifact@v3
         with:
