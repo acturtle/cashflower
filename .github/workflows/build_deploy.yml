@@ -74,10 +74,9 @@ jobs:
           python -m pip install numpy
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.0
+        uses: pypa/cibuildwheel@v2.18.0
         with:
           platform: ${{ matrix.platform }}
-          only: null
 
       - uses: actions/upload-artifact@v3
         with:
