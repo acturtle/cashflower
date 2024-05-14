@@ -76,8 +76,9 @@ jobs:
           python -m pip install numpy
 
       - name: Build wheels
-        uses: cibuildwheel/cibuildwheel@v2.18.0@
+        uses: pypa/cibuildwheel
         with:
+          version: v2.18.0
           platform: ${{ matrix.platform }}
           build-selector: false
           cache: false
