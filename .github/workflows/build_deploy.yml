@@ -68,7 +68,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.16.0
         with:
-          build-flags: ""
+          platforms: "auto"
 
       - uses: actions/upload-artifact@v3
         with:
