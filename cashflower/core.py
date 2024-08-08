@@ -504,7 +504,7 @@ class Model:
             # batch_results_list is a list of model point results (each result is a 2D array)
             batch_results_list = [*map(calculate_model_point_partial, range(batch_start, batch_end))]
             batch_results = sum(batch_results_list)
-            results += batch_results * multiplier[:, None]
+            results += batch_results * multiplier[None, :]
             batch_start = batch_end
             batch_end = min(batch_end + batch_size, range_end)
 
@@ -513,7 +513,6 @@ class Model:
     def agg_prepare_output_without_grouping(self, results, output_columns, one_core):
         # Prepare the 'output' data frame
         log_message("Preparing output...", show_time=True, print_and_save=one_core)
-        results = np.transpose(results)
         output = pd.DataFrame(data=results, columns=output_columns)
         return output
 
@@ -534,7 +533,7 @@ class Model:
         first_indexes = get_first_indexes(main.data[group_by_column])
 
         # Initialize empty results for each group
-        group_sums = {group: np.zeros((num_output_columns, max_output)) for group in unique_groups}
+        group_sums = {group: np.zeros((max_output, num_output_columns)) for group in unique_groups}
 
         # Process batches iteratively to calculate the results
         while batch_start < range_end:
@@ -547,7 +546,7 @@ class Model:
                 if if_first:
                     group_sums[group] += mp_result
                 else:
-                    group_sums[group] += mp_result * multiplier[:, None]
+                    group_sums[group] += mp_result * multiplier[None, :]
 
             batch_start = batch_end
             batch_end = min(batch_end + batch_size, range_end)
@@ -561,7 +560,7 @@ class Model:
 
         lst_dfs = []
         for group, data in group_sums.items():
-            group_df = pd.DataFrame(data=np.transpose(data), columns=output_columns)
+            group_df = pd.DataFrame(data=data, columns=output_columns)
             group_df.insert(0, group_by_column, group)
             lst_dfs.append(group_df)
 
@@ -612,8 +611,7 @@ class Model:
     def ind_prepare_output(self, results, output_columns, one_core):
         # Prepare the 'output' data frame
         log_message("Preparing output...", show_time=True, print_and_save=one_core)
-        total_data = [pd.DataFrame(np.transpose(arr)) for arr in results]
-        output = pd.concat(total_data)
+        output = pd.DataFrame(np.concatenate(results))
         output.columns = output_columns
         return output
 
@@ -651,11 +649,14 @@ class Model:
             if isinstance(v, StochasticVariable):
                 v.average_result_stoch()
 
-        # Get results and trim for T_MAX_OUTPUT,results may contain subset of columns
+        # Get results and trim for T_MAX_OUTPUT (results may contain subset of columns)
         if len(self.settings["OUTPUT_COLUMNS"]) > 0:
             mp_results = np.array([v.result[:self.settings["T_MAX_OUTPUT"]+1] for v in self.variables if v.name in self.settings["OUTPUT_COLUMNS"]])
         else:
             mp_results = np.array([v.result[:self.settings["T_MAX_OUTPUT"]+1] for v in self.variables])
+
+        # Transpose the matrix
+        mp_results = mp_results.T
 
         # Update progressbar
         if one_core:
