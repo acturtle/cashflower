@@ -45,7 +45,7 @@ You're just a few commands away from running your first cash flow model with cas
         $ cd mymodel
         $ python run.py
 
-    Congratulations, you're all set!
+Congratulations, you're all set!
 
 Getting Started
 ^^^^^^^^^^^^^^^
