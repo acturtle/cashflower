@@ -6,6 +6,7 @@ Developer guide
    :caption: Contents:
 
    package_overview
+   release_process
    branching_policy
    testing
    algorithm
