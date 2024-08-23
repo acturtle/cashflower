@@ -52,3 +52,14 @@ Build the documentation
 ..  code-block::
 
     docs/_build/html/index.html
+
+|
+
+Upload to PyPI
+--------------
+
+1. Pull request to main
+
+* :code:`feature/branch_name` --> :code:`develop`
+* :code:`develop` --> :code:`main`
+
