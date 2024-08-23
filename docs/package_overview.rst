@@ -8,12 +8,12 @@ The repository of the :code:`cashflower` package follows this structure:
     .
     ├── .github/
     │   └── workflows/
-    │       ├── deploy.yml
+    │       ├── build_deploy.yml
     │       └── pytest.yml
     ├── cashflower/
     │   ├── model_tpl/           # Template for the cash flow model's structure (for users)
     │   ├── __init__.py
-    │   ├── cashflow.py          # Main logic for cash flow models
+    │   ├── core.py              # Main logic for cash flow models
     │   ├── error.py             # Custom error definitions
     │   ├── graph.py             # Dependency graph creation
     │   ├── reader.py            # CSV file reader class
@@ -58,8 +58,9 @@ Supporting files are categorized into testing, documentation, and configuration:
 
 **Testing:**
 
-- :code:`tests` - contains unit tests,
-- :code:`dev_models` - fully-functioning models for development checks.
+- :code:`dev_models` - fully-functioning models for development checks,
+- :code:`tests` - contains unit tests.
+
 
 **Documentation:**
 
@@ -68,12 +69,12 @@ Supporting files are categorized into testing, documentation, and configuration:
 
 **Configuration:**
 
-- :code:`setup.py` - the primary setup file for building the package,
-- :code:`pyproject.toml` - configuration settings for build systems and tools,
 - :code:`.github/workflows` - contains GitHub workflows that are automatically triggered,
 - :code:`.gitignore` - lists files to be ignored by version control,
-- :code:`.readthedocs.yaml` - configuration for the ReadTheDocs platform.
-- :code:`requirements.txt` - lists Python packages required for developers of the package.
-- :code:`MANIFEST.in` - specifies non-Python files to include in the package that might be ignored by packaging tools.
+- :code:`.readthedocs.yaml` - configuration for the ReadTheDocs platform,
+- :code:`MANIFEST.in` - specifies non-Python files to include in the package that might be ignored by packaging tools,
+- :code:`pyproject.toml` - configuration settings for build systems and tools,
+- :code:`requirements.txt` - lists Python packages required for developers of the package,
+- :code:`setup.py` - the primary setup file for building the package.
 
 |
