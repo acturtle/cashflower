@@ -29,6 +29,10 @@ The table below summarizes available settings.
      - :code:`True` / :code:`False`
      - :code:`False`
      - Flag indicating whether multiple CPUs should be used for calculations.
+   * - NUM_STOCHASTIC_SCENARIOS
+     - :code:`integer`
+     - :code:`None`
+     - Specifies the number of stochastic scenarios to be simulated in the model.
    * - OUTPUT_COLUMNS
      - empty list or list of strings
      - :code:`[]`
@@ -225,6 +229,17 @@ Thanks to that, the runtime will be decreased. The more cores, the faster calcul
 
 It is recommended to use :code:`MULTIPROCESSING`  when the model is stable because the log message are more vague.
 For the development phase, it is recommended to use single core.
+
+|
+
+NUM_STOCHASTIC_SCENARIOS
+------------------------
+
+The :code:`NUM_STOCHASTIC_SCENARIOS` setting defines the number of stochastic scenarios the model will compute.
+
+By default, :code:`NUM_STOCHASTIC_SCENARIOS` is set to :code:`None`,meaning the model will perform a single deterministic calculation. If you specify a positive integer, the model will simulate that many scenarios and average the results.
+
+For example, if :code:`NUM_STOCHASTIC_SCENARIOS` is set to :code:`5`, the model will generate five different scenarios for each stochastic variable and calculate the average of these scenarios as the final result. This setting allows for capturing the variability in future outcomes by considering multiple plausible scenarios.
 
 |
 
