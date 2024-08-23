@@ -13,7 +13,7 @@ The repository of the :code:`cashflower` package follows this structure:
     ├── cashflower/
     │   ├── model_tpl/           # Template for the cash flow model's structure (for users)
     │   ├── __init__.py
-    │   ├── core.py          # Main logic for cash flow models
+    │   ├── core.py              # Main logic for cash flow models
     │   ├── error.py             # Custom error definitions
     │   ├── graph.py             # Dependency graph creation
     │   ├── reader.py            # CSV file reader class
@@ -76,6 +76,5 @@ Supporting files are categorized into testing, documentation, and configuration:
 - :code:`pyproject.toml` - configuration settings for build systems and tools,
 - :code:`requirements.txt` - lists Python packages required for developers of the package,
 - :code:`setup.py` - the primary setup file for building the package.
-
 
 |
