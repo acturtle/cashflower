@@ -149,7 +149,7 @@ The main components of an actuarial model are:
 
 .. image:: https://acturtle.com/static/img/17/cash-flow-model-overview.webp
 
-**Run plan** - run plan is a list of runs that we want to perform with the model.
+**Runplan** - runplan is a list of runs that we want to perform with the model.
 
 **Model point sets** - points of data for which the model is calculated.
 For example, a model point can contain policyholder's attributes such as age, sex, premiums, coverage, etc.
@@ -158,7 +158,7 @@ For example, there might be separate files for fund and coverage data.
 
 **Assumptions** - actuarial models are calculated based on assumptions.
 Examples of underwriting assumptions include mortality, lapses or expenses.
-Market assumptions are, for example, interest rates curves.
+Market assumptions are, for example, interest rate curves.
 Assumptions are also product's parameters, such as fees or levels of guarantees.
 
 **Model** - actuarial model reminds a spider's web. There are many variables which dependent on each other.
@@ -184,7 +184,7 @@ Timeline
 Timeline starts at zero (:code:`t=0`) which is the valuation period.
 If the reporting period is the end of year 2021, then :code:`t=0` is 2021-12-31.
 
-The :code:`t` variable reflects certain **point** in time. The projections are monthly so:
+The :code:`t` variable reflects certain **point** in time. If the projections are monthly, then:
     * :code:`t=1` is 2022-01-31,
     * :code:`t=2` is 2022-02-28,
     * :code:`t=3` is 2022-03-31,
