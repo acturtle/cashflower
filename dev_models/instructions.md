@@ -71,5 +71,5 @@ ensuring that they do not clutter the version control system.
 * `20` - model with stochastic variables
 * `21` - model with stochastic variables that form a cycle
 * `22` - model with strongly connected components ("interconnected" cycles)
-* `23` - model with dependent variables and subset in the output
+* `23` - model with dependent variables and subset in the output (`OUTPUT_COLUMNS`)
 * `99` - "special" model for testing memory limits

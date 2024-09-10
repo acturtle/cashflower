@@ -1,3 +1,4 @@
+# settings.py
 settings = {
     "AGGREGATE": True,
     "GROUP_BY_COLUMN": None,
