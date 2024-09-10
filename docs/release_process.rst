@@ -20,6 +20,7 @@ Building the package
 ..  code-block::
     :caption: terminal
 
+    python setup.py build_ext
     python setup.py sdist 
     python setup.py bdist_wheel
 

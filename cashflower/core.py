@@ -444,7 +444,11 @@ class Model:
         batch_start, batch_end = range_start, min(range_start + batch_size, range_end)
 
         # Create an array of multipliers based on the aggregation type of each variable
-        multiplier = np.array([1 if v.aggregation_type == "sum" else 0 for v in self.variables])
+        if len(self.settings["OUTPUT_COLUMNS"]) > 0:
+            multiplier = np.array([1 if v.aggregation_type == "sum" else 0 for v in self.variables if v.name in self.settings["OUTPUT_COLUMNS"]])
+        else:
+            multiplier = np.array([1 if v.aggregation_type == "sum" else 0 for v in self.variables])
+
 
         # Calculate aggregated results for all model points without grouping
         if self.settings["GROUP_BY_COLUMN"] is None:
