@@ -23,7 +23,7 @@ setup(
         'pandas',
         'psutil',
         'networkx',
-        'numpy'
+        'numpy>=2.0.1'
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",
