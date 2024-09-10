@@ -23,7 +23,7 @@ setup(
         'pandas',
         'psutil',
         'networkx',
-        'numpy'
+        'numpy>=2.0.1'
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -40,5 +40,5 @@ setup(
     },
     python_requires='>=3.9',
     url="https://github.com/acturtle/cashflower",
-    version="0.7.2",
+    version="0.7.3",
 )
