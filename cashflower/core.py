@@ -386,19 +386,20 @@ class Model:
 
     def run(self, part=None):
         """Orchestrate all steps of the cash flow model run."""
-        # Get the start and end indices of the model points to be calculated
+        # Get the start and end indices of the model points to be calculated (used for multiprocessing)
         calculation_range = self.get_calculation_range(part)
         if calculation_range is None:
             return None
         range_start, range_end = calculation_range
 
+        # Allocate memory for output
+        mp = range_end-range_start
+        output = self.allocate_memory_for_output(mp)
+
         # Perform calculations
-        one_core = part == 0 or part is None  # single core or first part of multiprocessing calculation
+        one_core = part == 0 or part is None  # bool; single core or first part of multiprocessing calculation
         log_message("Starting calculations...", show_time=True, print_and_save=one_core)
-        if self.settings["AGGREGATE"]:
-            output = self.compute_aggregated_results(range_start, range_end, one_core)
-        else:
-            output = self.compute_individual_results(range_start, range_end, one_core)
+        output = self.perform_calculations(range_start, range_end, one_core)
 
         # Create a diagnostic file
         diagnostic = self.create_diagnostic_data()
@@ -416,21 +417,34 @@ class Model:
             range_start, range_end = main_ranges[part]
         return range_start, range_end
 
-    def create_diagnostic_data(self):
-        if self.settings["SAVE_DIAGNOSTIC"]:
-            diagnostic = pd.DataFrame({
-                "variable": [v.name for v in self.variables],
-                "calc_order": [v.calc_order for v in self.variables],
-                "calc_direction": [v.calc_direction for v in self.variables],
-                "cycle": [v.cycle for v in self.variables],
-                "cycle_order": [v.cycle_order for v in self.variables],
-                "variable_type": [get_variable_type(v) for v in self.variables],
-                "aggregation_type": [v.aggregation_type for v in self.variables],
-                "runtime": [v.runtime for v in self.variables]
-            })
+    def perform_calculations(self, range_start, range_end, one_core):
+        calculate_model_point_partial = functools.partial(
+            self.calculate_model_point, one_core=one_core, progressbar_max=range_end
+        )
+        output_columns = self.prepare_output_columns()
+        num_output_columns = len(output_columns)
+
+        # Define the initial batch size to process, to prevent excessive memory usage
+        batch_size = self.get_batch_size(num_output_columns)
+        batch_start, batch_end = range_start, min(range_start + batch_size, range_end)
+
+        # Create an array of multipliers based on the aggregation type of each variable
+        output_variables = [get_object_by_name(self.variables, column) for column in output_columns]
+        multiplier = np.array([1 if v.aggregation_type == "sum" else 0 for v in output_variables])
+
+        # Calculate aggregated results for all model points without grouping
+        if self.settings["GROUP_BY"] is None:
+            results = self.agg_calculate_without_grouping(calculate_model_point_partial, batch_start, batch_end,
+                                                          batch_size, range_end, multiplier)
+            output = self.agg_prepare_output_without_grouping(results, output_columns, one_core)
+
+        # Calculate aggregated results for all model points, grouped by the specified column
         else:
-            diagnostic = None
-        return diagnostic
+            group_sums = self.agg_calculate_with_grouping(calculate_model_point_partial, batch_start, batch_end,
+                                                          batch_size, range_end, multiplier, num_output_columns)
+            output = self.agg_prepare_output_with_grouping(group_sums, output_columns, one_core)
+        return output
+
 
     def compute_aggregated_results(self, range_start, range_end, one_core):
         calculate_model_point_partial = functools.partial(
@@ -440,7 +454,7 @@ class Model:
         num_output_columns = len(output_columns)
 
         # Define the initial batch size to process, to prevent excessive memory usage
-        batch_size = self.agg_calculate_batch_size(num_output_columns)
+        batch_size = self.get_batch_size(num_output_columns)
         batch_start, batch_end = range_start, min(range_start + batch_size, range_end)
 
         # Create an array of multipliers based on the aggregation type of each variable
@@ -471,7 +485,7 @@ class Model:
 
         return output_columns
 
-    def agg_calculate_batch_size(self, num_output_columns):
+    def get_batch_size(self, num_output_columns):
         """
         Calculate the batch size based on available memory.
 
@@ -483,7 +497,7 @@ class Model:
             num_output_columns (int): The number of output columns.
 
         Returns:
-            int: The batch size.
+            int: The number of model points to be processed.
         """
         t = self.settings["T_MAX_OUTPUT"] + 1
         float_size = np.dtype(np.float64).itemsize
@@ -523,18 +537,18 @@ class Model:
     def agg_calculate_with_grouping(self, calculate_model_point_partial, batch_start, batch_end, batch_size, range_end,
                                 multiplier, num_output_columns):
         max_output = self.settings["T_MAX_OUTPUT"] + 1
-        group_by_column = self.settings["GROUP_BY_COLUMN"]
+        group_by = self.settings["GROUP_BY"]
         main = get_object_by_name(self.model_point_sets, "main")
 
         # Check that the grouping column exists in the main model point set
-        if group_by_column not in main.data.columns:
-            msg = (f"There is no column '{group_by_column}' in the 'main' model point set. "
+        if group_by not in main.data.columns:
+            msg = (f"There is no column '{group_by}' in the 'main' model point set. "
                    f"Please review the 'GROUP_BY_COLUMN' setting.")
             raise CashflowModelError(msg)
 
         # Get the indices of the first element from each group
-        unique_groups = main.data[group_by_column].unique()
-        first_indexes = get_first_indexes(main.data[group_by_column])
+        unique_groups = main.data[group_by].unique()
+        first_indexes = get_first_indexes(main.data[group_by])
 
         # Initialize empty results for each group
         group_sums = {group: np.zeros((max_output, num_output_columns)) for group in unique_groups}
@@ -543,7 +557,7 @@ class Model:
         while batch_start < range_end:
             # batch_results_list is a list of model point results (each result is a 2D array)
             batch_results_list = [calculate_model_point_partial(i) for i in range(batch_start, batch_end)]
-            groups = main.data.iloc[batch_start:batch_end][group_by_column].tolist()
+            groups = main.data.iloc[batch_start:batch_end][group_by].tolist()
             if_firsts = np.isin(range(batch_start, batch_end), first_indexes)
 
             for mp_result, group, if_first in zip(batch_results_list, groups, if_firsts):
@@ -584,6 +598,32 @@ class Model:
         output = self.ind_prepare_output(results, output_columns, one_core)
 
         return output
+
+    def allocate_memory_for_output(self, mp):
+        t = self.settings["T_MAX_OUTPUT"] + 1
+        v = len(self.variables) if len(self.settings["OUTPUT_COLUMNS"]) == 0 else len(self.settings["OUTPUT_COLUMNS"])
+
+        float_size = np.dtype(np.float64).itemsize
+        results_size = t * v * mp * float_size
+        results_size_mb = results_size / (1024 ** 2)
+        num_cores = 1 if not self.settings["MULTIPROCESSING"] else multiprocessing.cpu_count()
+
+        # Results may require a lot of memory
+        msg = (f"Failed to allocate memory for the output with {t} periods, {v} variables, and {mp} model points "
+               f"(~{results_size_mb:.0f}) MB. Terminating model execution.")
+
+        # Results do not fit into total RAM memory
+        total_ram_memory = psutil.virtual_memory().total / num_cores
+        if results_size > total_ram_memory:
+            raise CashflowModelError(msg)
+
+        # Allocate results to available RAM memory
+        try:
+            results = [np.empty((v, t), dtype=float) for _ in range(mp)]
+        except MemoryError:
+            raise CashflowModelError(msg)
+
+        return results
 
     def ind_allocate_memory_for_results(self, mp):
         # Allocate memory for results
@@ -687,3 +727,20 @@ class Model:
         avg_runtime = (end-start)/len(variables)
         for v in variables:
             v.runtime += avg_runtime
+
+    def create_diagnostic_data(self):
+        if self.settings["SAVE_DIAGNOSTIC"]:
+            diagnostic = pd.DataFrame({
+                "variable": [v.name for v in self.variables],
+                "calc_order": [v.calc_order for v in self.variables],
+                "calc_direction": [v.calc_direction for v in self.variables],
+                "cycle": [v.cycle for v in self.variables],
+                "cycle_order": [v.cycle_order for v in self.variables],
+                "variable_type": [get_variable_type(v) for v in self.variables],
+                "aggregation_type": [v.aggregation_type for v in self.variables],
+                "runtime": [v.runtime for v in self.variables]
+            })
+        else:
+            diagnostic = None
+
+        return diagnostic
