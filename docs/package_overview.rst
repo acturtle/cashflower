@@ -11,8 +11,9 @@ The repository of the :code:`cashflower` package follows this structure:
     │       ├── build_deploy.yml
     │       └── pytest.yml
     ├── cashflower/
-    │   ├── model_tpl/           # Template for the cash flow model's structure (for users)
-    │   ├── __init__.py
+    │   ├── cython/              # Cython extension for performance optimization
+    │   ├── model_tpl/           # Template for the cash flow model's structure
+    │   ├── __init__.py          # Imports core components and utilities
     │   ├── core.py              # Main logic for cash flow models
     │   ├── error.py             # Custom error definitions
     │   ├── graph.py             # Dependency graph creation
