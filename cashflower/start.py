@@ -419,13 +419,10 @@ def merge_part_outputs(part_outputs, settings):
     part_outputs = [part_output for part_output in part_outputs if part_output is not None]
 
     # Merge or concatenate outputs into one
-    if settings["AGGREGATE"]:
-        output = functools.reduce(lambda x, y: x.add(y, fill_value=0), part_outputs)
-        if settings["GROUP_BY_COLUMN"] is not None:
-            # group_by_column should not be added up
-            output[settings["GROUP_BY_COLUMN"]] = part_outputs[0][settings["GROUP_BY_COLUMN"]]
-    else:
-        output = pd.concat(part_outputs)
+    output = functools.reduce(lambda x, y: x.add(y, fill_value=0), part_outputs)
+    if settings["GROUP_BY"] is not None:
+        # group_by column should not be added up
+        output[settings["GROUP_BY"]] = part_outputs[0][settings["GROUP_BY"]]
 
     return output
 

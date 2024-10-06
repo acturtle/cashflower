@@ -524,7 +524,8 @@ class Model:
 
         # Initialize first batch if starting from 0
         if batch_start == 0:
-            group_sums[None if not group_by else main.data.iloc[0][group_by]] = calculate_model_point_partial(0)
+            first_group = None if not group_by else main.data.iloc[0][group_by]
+            group_sums[first_group] = calculate_model_point_partial(0)
             batch_start += 1
 
         # Process batches iteratively to calculate the results
@@ -535,6 +536,7 @@ class Model:
             if_firsts = np.isin(range(batch_start, batch_end), first_indexes) if group_by else [True] * (
                         batch_end - batch_start)
 
+            # TODO --> check multiplier
             for mp_result, group, if_first in zip(batch_results_list, groups, if_firsts):
                 if if_first:
                     group_sums[group] += mp_result
