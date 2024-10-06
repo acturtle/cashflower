@@ -404,6 +404,7 @@ class Model:
         log_message("Starting calculations...", show_time=True, print_and_save=one_core)
         group_sums = self.perform_calculations(range_start, range_end, one_core)
 
+        # Transform results into a data frame
         output = self.prepare_output(group_sums, output_columns, one_core)
 
         # Create a diagnostic file
@@ -459,7 +460,7 @@ class Model:
         calculate_model_point_partial = functools.partial(
             self.calculate_model_point, one_core=one_core, progressbar_max=range_end
         )
-        output_columns = self.get_output_columns()
+        output_columns = self.get_output_columns() # TODO, take from function
         num_output_columns = len(output_columns)
 
         # Define the initial batch size to process, to prevent excessive memory usage
@@ -473,6 +474,8 @@ class Model:
         # Calculate aggregated results for all model points
         group_sums = self.calculate_model_points(calculate_model_point_partial, batch_start, batch_end, batch_size,
                                                  range_end, multiplier, num_output_columns)
+
+        # TODO paste here calculate_model_points
 
         return group_sums
 
@@ -550,7 +553,8 @@ class Model:
         lst_dfs = []
         for group, data in group_sums.items():
             group_df = pd.DataFrame(data=data, columns=output_columns)
-            group_df.insert(0, group_by, group)
+            if group_by:
+                group_df.insert(0, group_by, group)
             lst_dfs.append(group_df)
 
         output = pd.concat(lst_dfs, ignore_index=True)

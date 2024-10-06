@@ -1,6 +1,5 @@
 settings = {
-    "AGGREGATE": True,
-    "GROUP_BY_COLUMN": "product_code",
+    "GROUP_BY": "product_code",
     "ID_COLUMN": "id",
     "MULTIPROCESSING": True,
     "OUTPUT_COLUMNS": [],

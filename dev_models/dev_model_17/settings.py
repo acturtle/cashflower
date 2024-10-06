@@ -1,6 +1,5 @@
 settings = {
-    "AGGREGATE": True,
-    "GROUP_BY_COLUMN": "group",
+    "GROUP_BY": "group",
     "ID_COLUMN": "id",
     "MULTIPROCESSING": False,
     "OUTPUT_COLUMNS": [],

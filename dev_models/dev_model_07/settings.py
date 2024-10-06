@@ -1,5 +1,5 @@
 settings = {
-    "AGGREGATE": True,
+    "GROUP_BY": None,
     "ID_COLUMN": "id",
     "MULTIPROCESSING": False,
     "OUTPUT_COLUMNS": ["f"],
