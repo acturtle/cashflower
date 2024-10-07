@@ -402,7 +402,7 @@ class Model:
         # Perform calculations
         one_core = part == 0 or part is None  # bool; single core or first part of multiprocessing calculation
         log_message("Starting calculations...", show_time=True, print_and_save=one_core)
-        group_sums = self.perform_calculations(range_start, range_end, one_core)
+        group_sums = self.perform_calculations(range_start, range_end, one_core, output_columns)
 
         # Transform results into a data frame
         output = self.prepare_output(group_sums, output_columns, one_core)
@@ -456,11 +456,13 @@ class Model:
 
         return results
 
-    def perform_calculations(self, range_start, range_end, one_core):
+    def perform_calculations(self, range_start, range_end, one_core, output_columns):
+        max_output = self.settings["T_MAX_OUTPUT"] + 1
+        group_by = self.settings["GROUP_BY"]
+        main = get_object_by_name(self.model_point_sets, "main")
         calculate_model_point_partial = functools.partial(
             self.calculate_model_point, one_core=one_core, progressbar_max=range_end
         )
-        output_columns = self.get_output_columns() # TODO, take from function
         num_output_columns = len(output_columns)
 
         # Define the initial batch size to process, to prevent excessive memory usage
@@ -471,11 +473,42 @@ class Model:
         output_variables = [get_object_by_name(self.variables, column) for column in output_columns]
         multiplier = np.array([1 if v.aggregation_type == "sum" else 0 for v in output_variables])
 
-        # Calculate aggregated results for all model points
-        group_sums = self.calculate_model_points(calculate_model_point_partial, batch_start, batch_end, batch_size,
-                                                 range_end, multiplier, num_output_columns)
+        # Grouping column must be part of the model point set
+        if group_by and group_by not in main.data.columns:
+            msg = (f"There is no column '{group_by}' in the 'main' model point set. "
+                   f"Please review the 'GROUP_BY' setting.")
+            raise CashflowModelError(msg)
 
-        # TODO paste here calculate_model_points
+        # Handle grouping if group_by is set, otherwise treat everything as a single group
+        unique_groups = main.data[group_by].unique() if group_by else [None]
+        group_sums = {group: np.zeros((max_output, num_output_columns)) for group in unique_groups}
+
+        # Get first indexes of groups
+        first_indexes = get_first_indexes(main.data[group_by]) if group_by else []
+
+        # Populate results for the first model point (needed for aggregation_type=first)
+        if batch_start == 0:
+            first_group = main.data.iloc[0][group_by] if group_by else None
+            group_sums[first_group] = calculate_model_point_partial(0)
+            batch_start += 1
+
+        # Process batches iteratively to calculate the results
+        # batch_results_list is a list of model point results (each result is a 2D array)
+        while batch_start < range_end:
+            batch_results_list = [calculate_model_point_partial(i) for i in range(batch_start, batch_end)]
+            batch_range = batch_end - batch_start
+            groups = main.data.iloc[batch_start:batch_end][group_by].tolist() if group_by else [None] * batch_range
+            if_firsts = np.isin(range(batch_start, batch_end), first_indexes)
+
+            # When aggregation_type=first, we want results only once
+            for mp_result, group, if_first in zip(batch_results_list, groups, if_firsts):
+                if if_first:
+                    group_sums[group] += mp_result
+                else:
+                    group_sums[group] += mp_result * multiplier[None, :]
+
+            batch_start = batch_end
+            batch_end = min(batch_end + batch_size, range_end)
 
         return group_sums
 
@@ -501,52 +534,6 @@ class Model:
         batch_size = int(available_memory // (memory_per_model_point // num_cores))
         batch_size = max(batch_size, 1)
         return batch_size
-
-    def calculate_model_points(self, calculate_model_point_partial, batch_start, batch_end, batch_size, range_end,
-                                multiplier, num_output_columns):
-        # batch_results_list is a list of model point results (each result is a 2D array)
-        max_output = self.settings["T_MAX_OUTPUT"] + 1
-        group_by = self.settings["GROUP_BY"]
-        main = get_object_by_name(self.model_point_sets, "main")
-
-        # Handle grouping if group_by is set, otherwise treat everything as a single group
-        unique_groups = [None] if not group_by else main.data[group_by].unique()
-        group_sums = {group: np.zeros((max_output, num_output_columns)) for group in unique_groups}
-
-        # Grouping column must be part of the model point set
-        if group_by and group_by not in main.data.columns:
-            msg = (f"There is no column '{group_by}' in the 'main' model point set. "
-                   f"Please review the 'GROUP_BY' setting.")
-            raise CashflowModelError(msg)
-
-        # Get first indexes for groups, if needed
-        first_indexes = get_first_indexes(main.data[group_by]) if group_by else []
-
-        # Initialize first batch if starting from 0
-        if batch_start == 0:
-            first_group = None if not group_by else main.data.iloc[0][group_by]
-            group_sums[first_group] = calculate_model_point_partial(0)
-            batch_start += 1
-
-        # Process batches iteratively to calculate the results
-        while batch_start < range_end:
-            batch_results_list = [calculate_model_point_partial(i) for i in range(batch_start, batch_end)]
-            groups = main.data.iloc[batch_start:batch_end][group_by].tolist() if group_by else [None] * (
-                        batch_end - batch_start)
-            if_firsts = np.isin(range(batch_start, batch_end), first_indexes) if group_by else [True] * (
-                        batch_end - batch_start)
-
-            # TODO --> check multiplier
-            for mp_result, group, if_first in zip(batch_results_list, groups, if_firsts):
-                if if_first:
-                    group_sums[group] += mp_result
-                else:
-                    group_sums[group] += mp_result * multiplier[None, :]
-
-            batch_start = batch_end
-            batch_end = min(batch_end + batch_size, range_end)
-
-        return group_sums
 
     def prepare_output(self, group_sums, output_columns, one_core):
         group_by = self.settings["GROUP_BY"]
