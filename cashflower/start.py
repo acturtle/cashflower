@@ -8,13 +8,26 @@ import multiprocessing
 import networkx as nx
 import numpy as np
 import os
-import pandas as pd
 import shutil
 
 from .core import ArrayVariable, Model, ModelPointSet, Runplan, StochasticVariable, Variable
 from .error import CashflowModelError
 from .graph import create_directed_graph, filter_variables_and_graph, get_calls, get_predecessors, set_calc_direction
 from .utils import get_git_commit_info, get_object_by_name, log_message, save_log_to_file
+
+
+DEFAULT_SETTINGS = {
+        "GROUP_BY": None,
+        "ID_COLUMN": "id",
+        "MULTIPROCESSING": False,
+        "NUM_STOCHASTIC_SCENARIOS": None,
+        "OUTPUT_COLUMNS": [],
+        "SAVE_DIAGNOSTIC": True,
+        "SAVE_LOG": True,
+        "SAVE_OUTPUT": True,
+        "T_MAX_CALCULATION": 720,
+        "T_MAX_OUTPUT": 720,
+    }
 
 
 def create_model(model):
@@ -34,49 +47,47 @@ def create_model(model):
         print(f"Error: {e.filename} - {e.strerror}.")
 
 
-def load_settings(settings=None):
-    """
-    Load settings for the model.
-
-    If T_MAX_OUTPUT exceeds T_MAX_CALCULATION, T_MAX_OUTPUT is adjusted to match T_MAX_CALCULATION
-    and a log message is generated.
-
-    Args:
-        settings (dict, optional): A dictionary of user's settings. Defaults to None.
-
-    Returns:
-        dict: A dictionary of settings.
-    """
-    initial_settings = {
-        "GROUP_BY": None,
-        "ID_COLUMN": "id",
-        "MULTIPROCESSING": False,
-        "NUM_STOCHASTIC_SCENARIOS": None,
-        "OUTPUT_COLUMNS": [],
-        "SAVE_DIAGNOSTIC": True,
-        "SAVE_LOG": True,
-        "SAVE_OUTPUT": True,
-        "T_MAX_CALCULATION": 720,
-        "T_MAX_OUTPUT": 720,
-    }
+def log_settings_changes(settings=None):
+    changes = []
 
     if settings is None:
-        return initial_settings
+        changes.append("The settings are currently empty. Default settings will be applied.")
+        return changes
+
+    # Some user's settings may be missing or redundant
+    missing_settings = set(DEFAULT_SETTINGS.keys()) - set(settings.keys())
+    redundant_settings = set(settings.keys()) - set(DEFAULT_SETTINGS.keys())
+
+    if missing_settings:
+        changes.append(f"Missing settings: {missing_settings}")
+
+    if redundant_settings:
+        changes.append(f"Redundant settings: {redundant_settings}")
+
+    # TODO - return from this func
+    # # The output time period cannot exceed the calculation time period
+    # out = DEFAULT_SETTINGS["T_MAX_OUTPUT"]
+    # cal = DEFAULT_SETTINGS["T_MAX_CALCULATION"]
+    #
+    # if cal < out:
+    #     msg = (f"T_MAX_OUTPUT ('{out}') exceeds T_MAX_CALCULATION ('{cal}'); "
+    #            f"T_MAX_OUTPUT adjusted to match T_MAX_CALCULATION.")
+    #     changes.append(msg)
+    #     DEFAULT_SETTINGS["T_MAX_OUTPUT"] = cal
+
+
+def load_settings(settings=None):
+    if settings is None:
+        return DEFAULT_SETTINGS
 
     # Update with the user settings
-    initial_settings.update(settings)
+    updated_settings = DEFAULT_SETTINGS.copy()
+    updated_settings.update(settings)
 
-    # Maximal output t can't exceed maximal calculation t
-    out = initial_settings["T_MAX_OUTPUT"]
-    cal = initial_settings["T_MAX_CALCULATION"]
+    # The output time period cannot exceed the calculation time period
+    updated_settings["T_MAX_OUTPUT"] = min(updated_settings["T_MAX_OUTPUT"], updated_settings["T_MAX_CALCULATION"])
 
-    if cal < out:
-        msg = (f"T_MAX_OUTPUT ('{out}') exceeds T_MAX_CALCULATION ('{cal}'); "
-               f"T_MAX_OUTPUT adjusted to match T_MAX_CALCULATION.")
-        log_message(msg)
-        initial_settings["T_MAX_OUTPUT"] = cal
-
-    return initial_settings
+    return updated_settings
 
 
 def get_runplan(input_members, args):
