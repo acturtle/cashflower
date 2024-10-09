@@ -27,7 +27,7 @@ DEFAULT_SETTINGS = {
         "SAVE_OUTPUT": True,
         "T_MAX_CALCULATION": 720,
         "T_MAX_OUTPUT": 720,
-    }
+}
 
 
 def create_model(model):
@@ -51,7 +51,7 @@ def log_settings_changes(settings=None):
     changes = []
 
     if settings is None:
-        changes.append("The settings are currently empty. Default settings will be applied.")
+        changes.append("* The settings are currently empty. Default settings will be applied.")
         return changes
 
     # Some user's settings may be missing or redundant
@@ -59,30 +59,25 @@ def log_settings_changes(settings=None):
     redundant_settings = set(settings.keys()) - set(DEFAULT_SETTINGS.keys())
 
     if missing_settings:
-        changes.append(f"Missing settings: {missing_settings}")
+        changes.append(f"* Missing: {', '.join(missing_settings)}")
 
     if redundant_settings:
-        changes.append(f"Redundant settings: {redundant_settings}")
+        changes.append(f"* Redundant: {', '.join(redundant_settings)}")
 
-    # TODO - return from this func
-    # # The output time period cannot exceed the calculation time period
-    # out = DEFAULT_SETTINGS["T_MAX_OUTPUT"]
-    # cal = DEFAULT_SETTINGS["T_MAX_CALCULATION"]
-    #
-    # if cal < out:
-    #     msg = (f"T_MAX_OUTPUT ('{out}') exceeds T_MAX_CALCULATION ('{cal}'); "
-    #            f"T_MAX_OUTPUT adjusted to match T_MAX_CALCULATION.")
-    #     changes.append(msg)
-    #     DEFAULT_SETTINGS["T_MAX_OUTPUT"] = cal
+    # Output cannot exceed calculation
+    out, cal = settings["T_MAX_OUTPUT"], settings["T_MAX_CALCULATION"]
+    if out > cal:
+        changes.append(f"* T_MAX_OUTPUT ('{out}') cannot exceed T_MAX_CALCULATION ('{cal}')")
+
+    return changes
 
 
 def load_settings(settings=None):
     if settings is None:
         return DEFAULT_SETTINGS
 
-    # Update with the user settings
-    updated_settings = DEFAULT_SETTINGS.copy()
-    updated_settings.update(settings)
+    # Update default settings with the user's settings
+    updated_settings = {key: settings.get(key, DEFAULT_SETTINGS[key]) for key in DEFAULT_SETTINGS}
 
     # The output time period cannot exceed the calculation time period
     updated_settings["T_MAX_OUTPUT"] = min(updated_settings["T_MAX_OUTPUT"], updated_settings["T_MAX_CALCULATION"])
@@ -524,7 +519,7 @@ def save_results(timestamp, output, diagnostic, settings):
         save_log_to_file(timestamp)
 
 
-def log_run_info(timestamp, path, args, settings):
+def log_run_info(timestamp, path, args, settings_changes, settings):
     """
     Logs information about the current run.
 
@@ -532,6 +527,7 @@ def log_run_info(timestamp, path, args, settings):
         timestamp (str): The timestamp of the run.
         path (str): The path to the model.
         args (argparse.Namespace): The command line arguments.
+        settings_changes (list): Changes to the settings provided by the user.
         settings (dict): The settings for the run.
 
     Returns:
@@ -560,11 +556,19 @@ def log_run_info(timestamp, path, args, settings):
         log_message("")
 
     # Log settings
-    log_message("Settings:")
+    if settings_changes:
+        log_message("Changes to user's settings:")
+        for change in settings_changes:
+            log_message(change)
+        log_message("")
+
+    log_message("Run settings:")
     for key, value in settings.items():
         msg = f"- {key}: {value}"
         log_message(msg)
     log_message("")
+
+    return None
 
 
 def run(settings=None, path=None):
@@ -579,9 +583,10 @@ def run(settings=None, path=None):
         pandas.DataFrame: The output of the modl.
     """
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    settings_changes = log_settings_changes(settings)
     settings = load_settings(settings)
     args = parse_arguments()
-    log_run_info(timestamp, path, args, settings)
+    log_run_info(timestamp, path, args, settings_changes, settings)
 
     # Run on single or multiple cores
     if not settings["MULTIPROCESSING"]:

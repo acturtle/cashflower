@@ -19,7 +19,7 @@ Overview
 Welcome to the **cashflower** documentation, your resource for financial and actuarial cash flow modeling with Python.
 Cashflower simplifies complex financial scenarios, allowing actuaries, analysts, and developers to make data-driven decisions effectively.
 
-Cashflower's flexible framework empowers you to model various financial scenarios, from insurance policies and annuities to investment portfolios and loans.
+Cashflower's flexible framework supports you in modeling various financial scenarios, from insurance policies and annuities to investment portfolios and loans.
 This documentation is here to assist you in understanding and using the package to achieve your financial modeling goals.
 
 Key features
@@ -45,15 +45,7 @@ You're just a few commands away from running your first cash flow model with cas
         $ cd mymodel
         $ python run.py
 
-Congratulations, you're all set!
-
-Getting Started
-^^^^^^^^^^^^^^^
-
-To get started with the cashflower package, follow these steps:
- #. **Quick Start**: Get up and running quickly with the :ref:`Getting started` section.
- #. **Tutorials**: Check out our collection of practical examples in the :ref:`Tutorials` section.
- #. **Discussions**: If you encounter any issues, share your thoughts in the `Discussions <https://github.com/acturtle/cashflower/discussions>`_ page.
+Congratulations, you’ve just run your first cash flow model with cashflower!
 
 Cheat sheet
 ^^^^^^^^^^^
@@ -66,6 +58,13 @@ You can download `the Cashflower cheat sheet (PDF) <https://www.acturtle.com/sta
    :target: https://www.acturtle.com/static/pdf/cheat_sheet.pdf
    :align: center
 
+Getting Started
+^^^^^^^^^^^^^^^
+
+To get started with the cashflower package, follow these steps:
+ #. **Quick Start**: Get up and running quickly with the :ref:`Getting started` section.
+ #. **Tutorials**: Check out our collection of practical examples in the :ref:`Tutorials` section.
+ #. **Discussions**: If you encounter any issues, share your thoughts in the `Discussions <https://github.com/acturtle/cashflower/discussions>`_ page.
 
 License
 ^^^^^^^
