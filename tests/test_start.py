@@ -20,8 +20,7 @@ class TestCreateModel(TestCase):
 class TestLoadSettings(TestCase):
     def test_load_settings(self):
         default_settings = {
-            "AGGREGATE": True,
-            "GROUP_BY_COLUMN": None,
+            "GROUP_BY": None,
             "ID_COLUMN": "id",
             "MULTIPROCESSING": False,
             "NUM_STOCHASTIC_SCENARIOS": None,
@@ -45,8 +44,7 @@ class TestLoadSettings(TestCase):
         }
         settings = load_settings(my_settings2)
         assert settings == {
-            "AGGREGATE": True,
-            "GROUP_BY_COLUMN": None,
+            "GROUP_BY": None,
             "ID_COLUMN": "polnumber",
             "MULTIPROCESSING": False,
             "NUM_STOCHASTIC_SCENARIOS": None,

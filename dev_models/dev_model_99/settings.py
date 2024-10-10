@@ -2,6 +2,7 @@ settings = {
     "AGGREGATE": True,
     "ID_COLUMN": "id",
     "MULTIPROCESSING": False,
+    "NUM_STOCHASTIC_SCENARIOS": None,
     "OUTPUT_COLUMNS": [],
     "SAVE_DIAGNOSTIC": True,
     "SAVE_LOG": True,

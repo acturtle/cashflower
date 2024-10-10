@@ -395,10 +395,6 @@ class Model:
         # User can choose output columns
         output_columns = self.get_output_columns()
 
-        # Allocate memory for output
-        mp = range_end - range_start
-        output = self.allocate_memory_for_output(mp)
-
         # Perform calculations
         one_core = part == 0 or part is None  # bool; single core or first part of multiprocessing calculation
         log_message("Starting calculations...", show_time=True, print_and_save=one_core)

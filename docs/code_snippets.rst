@@ -1,6 +1,8 @@
 Code snippets
 =============
 
+**How to run all versions?**
+
 Run all versions from the runplan:
 
 .. code-block:: python
@@ -15,7 +17,9 @@ Run all versions from the runplan:
 
 |
 
-Print all rows and columns of the :code:`output` DataFrame with 2 decimal places:
+**How to pretty-print a data frame?**
+
+Print all rows and columns of the :code:`output` data frame with 2 decimal places:
 
 ..  code-block:: python
     :caption: run.py

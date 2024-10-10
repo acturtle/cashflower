@@ -23,7 +23,7 @@ Structure
 The output of a cash flow model is presented as a table, where rows represent time periods,
 and columns represent model variables. The structure of the output depends on the following settings:
 
-* :code:`AGGREGATE` - this flag determines whether the results should be aggregated or not.
+* :code:`GROUP_BY` - the column name used to group the results.
 * :code:`T_MAX_OUTPUT` - specifies the number of projection periods included in the output.
 * :code:`OUTPUT_COLUMNS` - a list of output columns to be included (by default, all columns are included).
 
@@ -31,28 +31,27 @@ Let's explore these settings with examples.
 
 |
 
-Aggregated output
-^^^^^^^^^^^^^^^^^
+Grouped output
+^^^^^^^^^^^^^^
 
-You can create aggregated output by setting the :code:`AGGREGATE` option to :code:`True`, which is the default setting.
+By default, the :code:`GROUP_BY` is set to :code:`None` which means that the results are aggregated across
+all model points.
 
 .. code-block:: python
    :caption: settings.py
 
    settings = {
        ...
-       "AGGREGATE": True,
+       "GROUP_BY": None,
        ...
    }
 
-.. image:: https://acturtle.com/static/img/39/output_aggregated.png
-   :align: center
 
 In the aggregated output, results are summed across all model points, resulting in a single set of projections.
 The number of rows in this output is determined by :code:`T_MAX_OUTPUT + 1`, where the :code:`+1` accounts for the projection starting at time period 0.
 
-You can also aggregate data by groups. To do this, set the :code:`AGGREGATE` option to :code:`True` and specify
-the :code:`GROUP_BY_COLUMN` as the column name containing the grouping variable from your 'main' model point set.
+You can also aggregate data by groups. To do this, specify the :code:`GROUP_BY` as the column name containing
+the grouping variable from your 'main' model point set.
 
 For example, to group results by :code:`product_code`, configure your settings as follows:
 
@@ -61,31 +60,25 @@ For example, to group results by :code:`product_code`, configure your settings a
 
    settings = {
        ...
-       "AGGREGATE": True,
-       "GROUP_BY_COLUMN": "product_code",
+       "GROUP_BY": "product_code",
        ...
    }
 
 |
 
-Individual output
-^^^^^^^^^^^^^^^^^
-
-To generate individual output, set the :code:`AGGREGATE` option to :code:`False`.
+To generate output for individual model points, set the :code:`GROUP_BY` to the 'id' column'.
 
 ..  code-block:: python
     :caption: settings.py
 
     settings = {
         ...
-        "AGGREGATE": False,
+        "GROUP_BY": "id",
         ...
     }
 
-.. image:: https://acturtle.com/static/img/39/output_individual.png
-   :align: center
 
-In this case, each model point has its own set of results.
+In this case, each model point will have its own set of results.
 
 |
 

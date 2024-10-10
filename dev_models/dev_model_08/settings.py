@@ -2,6 +2,7 @@ settings = {
     "GROUP_BY": None,
     "ID_COLUMN": "id",
     "MULTIPROCESSING": False,
+    "NUM_STOCHASTIC_SCENARIOS": None,
     "OUTPUT_COLUMNS": [],
     "SAVE_DIAGNOSTIC": False,
     "SAVE_LOG": True,

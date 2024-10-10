@@ -13,11 +13,7 @@ The table below summarizes available settings.
      - Possible values
      - Default value
      - Description
-   * - AGGREGATE
-     - :code:`True` / :code:`False`
-     - :code:`True`
-     - Flag indicating whether results should be aggregated.
-   * - GROUP_BY_COLUMN
+   * - GROUP_BY
      - a string
      - :code:`None`
      - The column in the 'main' model point set to group aggregated results.
@@ -59,57 +55,16 @@ The table below summarizes available settings.
      - The maximal month for output file.
 
 
-AGGREGATE
----------
-
-The :code:`AGGREGATE` setting is a flag if the results should be aggregated for model points.
-
-If the setting is set to :code:`False`, the results will be on the individual level:
-
-..  code-block::
-    :caption: <timestamp>_output.csv
-
-    t,fund_value
-    0,15000.0
-    1,15030.0
-    2,15060.06
-    3,15090.18
-    0,3000.0
-    1,3006.0
-    2,3012.01
-    3,3018.03
-    0,9000.0
-    1,9018.0
-    2,9036.04
-    3,9054.11
-
-There are results for 3 separate model points.
-
-If the AGGREGATE setting is set to :code:`True`, the results will be aggregated:
-
-..  code-block::
-    :caption: <timestamp>_output.csv
-
-    t,fund_value
-    0,27000.0
-    1,27054.0
-    2,27108.11
-    3,27162.32
-
-There is only one set of results which is the sum of all results.
-
-|
-
-GROUP_BY_COLUMN
----------------
+GROUP_BY
+--------
 
 
-The :code:`GROUP_BY_COLUMN` setting is used to specify the column for grouping the aggregated results.
+The :code:`GROUP_BY` setting is used to specify the column for grouping the aggregated results.
 By default, this setting is configured as :code:`None`, which means that results are aggregated for all model points without grouping.
 
 When you specify a column from the 'main' model point set that defines groups, the results will be grouped based on the values in this attribute.
 
-For instance, if you want to group the results by the :code:`product_code`, you can set the :code:`GROUP_BY_COLUMN`
+For instance, if you want to group the results by the :code:`product_code`, you can set the :code:`GROUP_BY`
 in your configuration file, :code:`settings.py`, as follows:
 
 ..  code-block:: python
@@ -117,7 +72,7 @@ in your configuration file, :code:`settings.py`, as follows:
 
     settings = {
         ...
-        "GROUP_BY_COLUMN": "product_code",
+        "GROUP_BY": "product_code",
         ...
     }
 
@@ -151,7 +106,7 @@ The resulting output will contain aggregated results grouped by the specified co
     3,B,3018.03
 
 
-By setting the :code:`GROUP_BY_COLUMN` appropriately, you can conveniently aggregate and group your results according to your specific needs.
+To get the results at the individual level, set the  :code:`GROUP_BY` to the 'id' column.
 
 |
 
@@ -407,28 +362,29 @@ Here is an example of the content of the log file (:code:`<timestamp>_log.txt`):
 ..  code-block:: python
     :caption: <timestamp>_log.txt
 
-    09:40:49 | Building model 'example'
-    09:40:49 | Timestamp: 20230920_094049
-    09:40:49 | Settings:
-               AGGREGATE: True
-               MULTIPROCESSING: False
-               OUTPUT_COLUMNS: []
-               ID_COLUMN: id
-               SAVE_DIAGNOSTIC: True
-               SAVE_LOG: True
-               SAVE_OUTPUT: True
-               T_MAX_CALCULATION: 720
-               T_MAX_OUTPUT: 720
-    09:40:49 | Reading model components
-    09:40:49 | Total number of model points: 1
-    09:40:49 | Preparing output
-    09:40:49 | Finished
-    09:40:49 | Saving output file:
-               output/20230920_094049_output.csv
-    09:40:49 | Saving diagnostic file:
-               output/20230920_094049_diagnostic.csv
-    09:40:49 | Saving log file:
-               output/20230920_094049_log.txt
+    14:40:08 | Model: 'example'
+               Path: C:\Users\john_doe\example
+               Timestamp: 20241010_144008
+               User: 'johndoe'
+               Git commit: 3802041aa00b7a4b4a9fbd9aaaed079add84e0e8
+
+               Run settings:
+               - GROUP_BY: None
+               - ID_COLUMN: id
+               - MULTIPROCESSING: False
+               - NUM_STOCHASTIC_SCENARIOS: None
+               - OUTPUT_COLUMNS: []
+               - SAVE_DIAGNOSTIC: True
+               - SAVE_LOG: True
+               - SAVE_OUTPUT: True
+               - T_MAX_CALCULATION: 720
+               - T_MAX_OUTPUT: 720
+
+    14:40:08 | Reading model components...
+               Number of model points: 1534
+    14:40:08 | Starting calculations...
+    14:41:12 | Preparing output...
+    14:41:13 | Finished!
 
 
 The log file is a valuable resource for understanding the model's execution flow and can be particularly useful for
