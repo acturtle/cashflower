@@ -8,13 +8,26 @@ import multiprocessing
 import networkx as nx
 import numpy as np
 import os
-import pandas as pd
 import shutil
 
 from .core import ArrayVariable, Model, ModelPointSet, Runplan, StochasticVariable, Variable
 from .error import CashflowModelError
 from .graph import create_directed_graph, filter_variables_and_graph, get_calls, get_predecessors, set_calc_direction
 from .utils import get_git_commit_info, get_object_by_name, log_message, save_log_to_file
+
+
+DEFAULT_SETTINGS = {
+        "GROUP_BY": None,
+        "ID_COLUMN": "id",
+        "MULTIPROCESSING": False,
+        "NUM_STOCHASTIC_SCENARIOS": None,
+        "OUTPUT_COLUMNS": [],
+        "SAVE_DIAGNOSTIC": True,
+        "SAVE_LOG": True,
+        "SAVE_OUTPUT": True,
+        "T_MAX_CALCULATION": 720,
+        "T_MAX_OUTPUT": 720,
+}
 
 
 def create_model(model):
@@ -34,50 +47,42 @@ def create_model(model):
         print(f"Error: {e.filename} - {e.strerror}.")
 
 
-def load_settings(settings=None):
-    """
-    Load settings for the model.
-
-    If T_MAX_OUTPUT exceeds T_MAX_CALCULATION, T_MAX_OUTPUT is adjusted to match T_MAX_CALCULATION
-    and a log message is generated.
-
-    Args:
-        settings (dict, optional): A dictionary of user's settings. Defaults to None.
-
-    Returns:
-        dict: A dictionary of settings.
-    """
-    initial_settings = {
-        "AGGREGATE": True,
-        "GROUP_BY_COLUMN": None,
-        "ID_COLUMN": "id",
-        "MULTIPROCESSING": False,
-        "NUM_STOCHASTIC_SCENARIOS": None,
-        "OUTPUT_COLUMNS": [],
-        "SAVE_DIAGNOSTIC": True,
-        "SAVE_LOG": True,
-        "SAVE_OUTPUT": True,
-        "T_MAX_CALCULATION": 720,
-        "T_MAX_OUTPUT": 720,
-    }
+def log_settings_changes(settings=None):
+    changes = []
 
     if settings is None:
-        return initial_settings
+        changes.append("* The settings are currently empty. Default settings will be applied.")
+        return changes
 
-    # Update with the user settings
-    initial_settings.update(settings)
+    # Some user's settings may be missing or redundant
+    missing_settings = set(DEFAULT_SETTINGS.keys()) - set(settings.keys())
+    redundant_settings = set(settings.keys()) - set(DEFAULT_SETTINGS.keys())
 
-    # Maximal output t can't exceed maximal calculation t
-    out = initial_settings["T_MAX_OUTPUT"]
-    cal = initial_settings["T_MAX_CALCULATION"]
+    if missing_settings:
+        changes.append(f"* Missing: {', '.join(missing_settings)}")
 
-    if cal < out:
-        msg = (f"T_MAX_OUTPUT ('{out}') exceeds T_MAX_CALCULATION ('{cal}'); "
-               f"T_MAX_OUTPUT adjusted to match T_MAX_CALCULATION.")
-        log_message(msg)
-        initial_settings["T_MAX_OUTPUT"] = cal
+    if redundant_settings:
+        changes.append(f"* Redundant: {', '.join(redundant_settings)}")
 
-    return initial_settings
+    # Output cannot exceed calculation
+    out, cal = settings["T_MAX_OUTPUT"], settings["T_MAX_CALCULATION"]
+    if out > cal:
+        changes.append(f"* T_MAX_OUTPUT ('{out}') cannot exceed T_MAX_CALCULATION ('{cal}')")
+
+    return changes
+
+
+def load_settings(settings=None):
+    if settings is None:
+        return DEFAULT_SETTINGS
+
+    # Update default settings with the user's settings
+    updated_settings = {key: settings.get(key, DEFAULT_SETTINGS[key]) for key in DEFAULT_SETTINGS}
+
+    # The output time period cannot exceed the calculation time period
+    updated_settings["T_MAX_OUTPUT"] = min(updated_settings["T_MAX_OUTPUT"], updated_settings["T_MAX_CALCULATION"])
+
+    return updated_settings
 
 
 def get_runplan(input_members, args):
@@ -420,13 +425,10 @@ def merge_part_outputs(part_outputs, settings):
     part_outputs = [part_output for part_output in part_outputs if part_output is not None]
 
     # Merge or concatenate outputs into one
-    if settings["AGGREGATE"]:
-        output = functools.reduce(lambda x, y: x.add(y, fill_value=0), part_outputs)
-        if settings["GROUP_BY_COLUMN"] is not None:
-            # group_by_column should not be added up
-            output[settings["GROUP_BY_COLUMN"]] = part_outputs[0][settings["GROUP_BY_COLUMN"]]
-    else:
-        output = pd.concat(part_outputs)
+    output = functools.reduce(lambda x, y: x.add(y, fill_value=0), part_outputs)
+    if settings["GROUP_BY"] is not None:
+        # group_by column should not be added up
+        output[settings["GROUP_BY"]] = part_outputs[0][settings["GROUP_BY"]]
 
     return output
 
@@ -517,7 +519,7 @@ def save_results(timestamp, output, diagnostic, settings):
         save_log_to_file(timestamp)
 
 
-def log_run_info(timestamp, path, args, settings):
+def log_run_info(timestamp, path, args, settings_changes, settings):
     """
     Logs information about the current run.
 
@@ -525,6 +527,7 @@ def log_run_info(timestamp, path, args, settings):
         timestamp (str): The timestamp of the run.
         path (str): The path to the model.
         args (argparse.Namespace): The command line arguments.
+        settings_changes (list): Changes to the settings provided by the user.
         settings (dict): The settings for the run.
 
     Returns:
@@ -553,11 +556,19 @@ def log_run_info(timestamp, path, args, settings):
         log_message("")
 
     # Log settings
-    log_message("Settings:")
+    if settings_changes:
+        log_message("Changes to user's settings:")
+        for change in settings_changes:
+            log_message(change)
+        log_message("")
+
+    log_message("Run settings:")
     for key, value in settings.items():
         msg = f"- {key}: {value}"
         log_message(msg)
     log_message("")
+
+    return None
 
 
 def run(settings=None, path=None):
@@ -572,9 +583,10 @@ def run(settings=None, path=None):
         pandas.DataFrame: The output of the modl.
     """
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    settings_changes = log_settings_changes(settings)
     settings = load_settings(settings)
     args = parse_arguments()
-    log_run_info(timestamp, path, args, settings)
+    log_run_info(timestamp, path, args, settings_changes, settings)
 
     # Run on single or multiple cores
     if not settings["MULTIPROCESSING"]:

@@ -1,8 +1,8 @@
 settings = {
-    "AGGREGATE": True,
-    "GROUP_BY_COLUMN": "group",
+    "GROUP_BY": "group",
     "ID_COLUMN": "id",
     "MULTIPROCESSING": True,
+    "NUM_STOCHASTIC_SCENARIOS": None,
     "OUTPUT_COLUMNS": [],
     "SAVE_DIAGNOSTIC": True,
     "SAVE_LOG": True,

@@ -1,6 +1,5 @@
 settings = {
-    "AGGREGATE": False,
-    "GROUP_BY_COLUMN": None,
+    "GROUP_BY": "id",
     "ID_COLUMN": "id",
     "MULTIPROCESSING": False,
     "NUM_STOCHASTIC_SCENARIOS": 3,

@@ -1,4 +1,3 @@
-# input.py
 import pandas as pd
 from cashflower import Runplan, ModelPointSet
 
