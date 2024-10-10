@@ -1,7 +1,5 @@
-# settings.py
 settings = {
-    "AGGREGATE": True,
-    "GROUP_BY_COLUMN": None,
+    "GROUP_BY": None,
     "ID_COLUMN": "id",
     "MULTIPROCESSING": False,
     "NUM_STOCHASTIC_SCENARIOS": None,
