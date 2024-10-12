@@ -12,4 +12,3 @@ Tutorials
    annuity
    bond
    mortgage
-   snippets
