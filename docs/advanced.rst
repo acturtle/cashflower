@@ -9,3 +9,4 @@ Advanced
    array_variables
    stochastic_variables
    discount_function
+   code_snippets

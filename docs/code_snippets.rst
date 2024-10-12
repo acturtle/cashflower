@@ -17,7 +17,7 @@ Run all versions from the runplan:
 
 |
 
-**How to pretty-print a data frame?**
+**How to pretty-print the output data frame?**
 
 Print all rows and columns of the :code:`output` data frame with 2 decimal places:
 
@@ -36,5 +36,21 @@ Print all rows and columns of the :code:`output` data frame with 2 decimal place
 
     if __name__ == "__main__":
         output = run(settings=settings, path=os.path.dirname(__file__))
-        print(output)
+        print(output.to_string(index=False))
 
+
+**How to loop through all records of a model point?**
+
+To iterate over all records of a model point, use :code:`fund.model_point_data.shape[0]` as the upper bound:
+
+..  code-block:: python
+    :caption: model.py
+
+    @variable()
+    def total_fund():
+        total = 0
+        for i in range(fund.model_point_data.shape[0]):
+            total += fund.get("fund_value", i)
+        return total
+
+This code loops through each record and sums the :code:`fund_value` for all records of the model point.

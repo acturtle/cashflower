@@ -142,13 +142,14 @@ Get multiple records
 
 The :code:`main` model point set must have a unique row per model point but the other model point sets don't.
 
-If the model point has multiple records, you can read them like this:
+If a model point contains multiple records, you can access a specific one using the record_num parameter. For example:
 
 ..  code-block:: python
 
     fund.get("fund_value", record_num=1)
 
-This code will get the value of :code:`fund_value` for the second record of the currently evaluated model point.
+Here, :code:`record_num=1` specifies that you are retrieving the value of :code:`fund_value` from the second record
+(since Python uses zero-based indexing, :code:`record_num=0` would refer to the first record).
 
 |
 
