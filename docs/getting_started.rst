@@ -200,9 +200,6 @@ Periods
 Some components of the model concern **periods** rather than points in time.
 In these cases, the :code:`t` variable has a different meaning.
 
-.. WARNING::
-   The :code:`t` variable might mean a point in time as well as a period.
-
 For example, interest rates curve helps to calculate the value of money in time.
 If the monthly rate amounts to :code:`0.1%` then €100.00 at the end of February is worth €100.10 at the end of March.
 
