@@ -118,9 +118,7 @@ This column is also used to connect records in case of multiple model point.
 
 By default, the column must be named :code:`id`.
 The value can be changed using the :code:`ID_COLUMN` setting.
-
-.. WARNING::
-   Column names are case-sensitive. :code:`id` is something else than :code:`ID`.
+Column names are case-sensitive. :code:`id` is something else than :code:`ID`.
 
 |
 
@@ -384,7 +382,7 @@ Here is an example of the content of the log file (:code:`<timestamp>_log.txt`):
                Number of model points: 1534
     14:40:08 | Starting calculations...
     14:41:12 | Preparing output...
-    14:41:13 | Finished!
+    14:41:13 | Finished.
 
 
 The log file is a valuable resource for understanding the model's execution flow and can be particularly useful for
@@ -492,6 +490,4 @@ The file saves only results for the first 3 months.
     3,27162.32
 
 :code:`T_MAX_OUTPUT` can't be greater than :code:`T_MAX_CALCULATION`.
-
-.. WARNING::
-    Model will set :code:`T_MAX_OUTPUT` to :code:`min(T_MAX_OUTPUT, T_MAX_CALCULATION)`.
+Model will set :code:`T_MAX_OUTPUT` to :code:`min(T_MAX_OUTPUT, T_MAX_CALCULATION)`.

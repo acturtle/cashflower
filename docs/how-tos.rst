@@ -1,5 +1,5 @@
-Code snippets
-=============
+How-to's
+========
 
 **How to run all versions?**
 
@@ -12,7 +12,6 @@ Run all versions from the runplan:
   
   for v in runplan.data["version"]:
       os.system(f"python run.py --version {v}")
-
 
 
 |
@@ -38,6 +37,7 @@ Print all rows and columns of the :code:`output` data frame with 2 decimal place
         output = run(settings=settings, path=os.path.dirname(__file__))
         print(output.to_string(index=False))
 
+|
 
 **How to loop through all records of a model point?**
 

@@ -598,7 +598,7 @@ def run(settings=None, path=None):
     values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output.shape[0] / (settings["T_MAX_OUTPUT"]+1))
     output.insert(0, "t", values)
 
-    log_message("Finished!", show_time=True)
+    log_message("Finished.", show_time=True)
     log_message("")
 
     # Save to csv files
