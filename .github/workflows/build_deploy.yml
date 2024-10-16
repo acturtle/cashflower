@@ -17,14 +17,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Create and activate virtual environment
+      - name: Create virtual environment and install dependencies
         run: |
           python -m venv venv
           source venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install setuptools
-          python -m pip install Cython
-          python -m pip install numpy
+          python -m pip install --upgrade pip setuptools Cython numpy
 
       - name: Build Cython extensions
         run: |
@@ -39,13 +36,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create and activate virtual environment
+      - name: Create virtual environment and install dependencies
         run: |
           python -m venv venv
           source venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install Cython
-          python -m pip install numpy
+          python -m pip install --upgrade pip Cython numpy
 
       - name: Build source distribution
         run: |
@@ -67,18 +62,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create and activate virtual environment
+      - name: Create virtual environment and install dependencies
         run: |
           python -m venv venv
           source venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install Cython
-          python -m pip install numpy
+          python -m pip install --upgrade pip Cython numpy
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.18.0
-        with:
-          platforms: "auto"
+        run: |
+          source venv/bin/activate
+          python -m pip install cibuildwheel
+          python -m cibuildwheel --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v3
         with:
@@ -95,16 +89,15 @@ jobs:
           name: artifact
           path: dist
 
-      - name: Create and activate virtual environment
+      - name: Create virtual environment and install Twine
         run: |
           python -m venv venv
           source venv/bin/activate
+          python -m pip install --upgrade pip twine
 
       - name: Publish distribution to PyPI
         run: |
           source venv/bin/activate
-          python -m pip install --upgrade pip
-          python -m pip install twine
           twine upload dist/*
         env:
           TWINE_USERNAME: __token__
