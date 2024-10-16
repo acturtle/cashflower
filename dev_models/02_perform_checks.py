@@ -6,7 +6,7 @@ import subprocess
 from cashflower import create_model
 
 
-def basic_check(model_name):
+def basic_check(model_name, num_files=1):
     """Run model and ensure that:
     - there are three new files in the output folder,
     - the new output has the same data as previous one.
@@ -24,8 +24,8 @@ def basic_check(model_name):
     last_output_file = output_files[-1]
 
     # Perform checks
-    print("\nCheck 1: There are 3 new files in the output folder.", end=" ")
-    assert num_files1 == num_files2 - 3
+    print("\nCheck 1: File(s) created.", end=" ")
+    assert num_files1 == num_files2 - num_files
     print("OK")
 
     print("Check 2: Output did not change.", end=" ")
@@ -50,8 +50,8 @@ def check_dev_model_00():
 
     # Model creates output files
     num_files = len(os.listdir("output"))
-    print("\nCheck 1: There are 3 new files in the output folder.", end=" ")
-    assert num_files == 3
+    print("\nCheck 1: The output file has been created.", end=" ")
+    assert num_files == 1
     print("OK")
 
     # Change directory back and remove the folder
@@ -90,7 +90,7 @@ def check_dev_model_06():
 
 
 def check_dev_model_07():
-    basic_check("dev_model_07")
+    basic_check("dev_model_07", num_files=2)
 
     # Output file should have 2 columns ("t", "f")
     print("Check 3: Output file has subset of columns.", end=" ")
@@ -108,61 +108,20 @@ def check_dev_model_07():
     assert "g" not in last_diagnostic["variable"].tolist()
     assert "h" not in last_diagnostic["variable"].tolist()
     print("OK")
-    print("\n")
 
 
 def check_dev_model_08():
-    # Change directory to the model's folder
-    working_directory = "dev_model_08"
-    os.chdir(working_directory)
-
-    # Run model and save information
-    num_files1 = len(os.listdir("output"))
-    subprocess.run("python run.py", shell=True, check=True)
-    num_files2 = len(os.listdir("output"))
-    diagnostic_files = [f for f in os.listdir("output") if f.endswith("diagnostic.csv")]
-
-    # Perform checks
-    print("\nCheck 1: There are 2 new files in the output folder.", end=" ")
-    assert num_files1 == num_files2 - 2
-    print("OK")
-
-    print("Check 2: Diagnostic file has not been saved.", end=" ")
-    assert len(diagnostic_files) == 0
-    print("OK")
-
-    # Change directory back
-    os.chdir("..")
-    print("\n")
+    basic_check("dev_model_08", num_files=2)
 
 
 def check_dev_model_09():
-    # Change directory to the model's folder
-    working_directory = "dev_model_09"
-    os.chdir(working_directory)
-
-    # Run model and save information
-    num_files1 = len(os.listdir("output"))
-    subprocess.run("python run.py", shell=True, check=True)
-    num_files2 = len(os.listdir("output"))
-    output_files = [f for f in os.listdir("output") if f.endswith("output.csv")]
-
-    # Perform checks
-    print("\nCheck 1: There are 2 new files in the output folder.", end=" ")
-    assert num_files1 == num_files2 - 2
-    print("OK")
-
-    print("Check 2: Output file has not been saved.", end=" ")
-    assert len(output_files) == 0
-    print("OK")
-
-    # Change directory back
-    os.chdir("..")
-    print("\n")
+    basic_check("dev_model_09", num_files=2)
 
 
 def check_dev_model_10():
-    basic_check("dev_model_10")
+    basic_check("dev_model_10", num_files=2)
+
+    # Backward calculation direction
     diagnostic_files = [f for f in os.listdir("dev_model_10/output") if f.endswith("diagnostic.csv")]
     last_diagnostic_file = diagnostic_files[-1]
     last_diagnostic = pd.read_csv(f"dev_model_10/output/{last_diagnostic_file}")
@@ -174,7 +133,7 @@ def check_dev_model_10():
 
 
 def check_dev_model_11():
-    basic_check("dev_model_11")
+    basic_check("dev_model_11", num_files=2)
     diagnostic_files = [f for f in os.listdir("dev_model_11/output") if f.endswith("diagnostic.csv")]
     last_diagnostic_file = diagnostic_files[-1]
     last_diagnostic = pd.read_csv(f"dev_model_11/output/{last_diagnostic_file}")
@@ -280,4 +239,4 @@ if __name__ == "__main__":
     check_dev_model_21()
     check_dev_model_22()
     check_dev_model_23()
-    print("\nFinished! All checks completed successfully.")
+    print("\n***\nFinished! All checks completed successfully.\n***")

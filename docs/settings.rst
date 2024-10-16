@@ -35,7 +35,7 @@ The table below summarizes available settings.
      - List of variables to be included in the output. If the list is empty, all variables are included.
    * - SAVE_DIAGNOSTIC
      - :code:`True` / :code:`False`
-     - :code:`True`
+     - :code:`False`
      - Flag indicating whether a diagnostic file should be created.
    * - SAVE_LOG
      - :code:`True` / :code:`False`
@@ -43,7 +43,7 @@ The table below summarizes available settings.
      - Flag indicating whether a log file should be created.
    * - SAVE_OUTPUT
      - :code:`True` / :code:`False`
-     - :code:`True`
+     - :code:`False`
      - Flag indicating whether output file should be created.
    * - T_MAX_CALCULATION
      - integer
@@ -283,16 +283,7 @@ The :code:`SAVE_DIAGNOSTIC` setting is a boolean flag that determines whether th
 
 |
 
-By default, the setting is set to :code:`True`.
-
-..  code-block:: python
-    :caption: settings.py
-
-    settings = {
-        ...
-        "SAVE_DIAGNOSTIC": True,
-        ...
-    }
+By default, the setting is set to :code:`False`, so the diagnostic file is not created.
 
 When the :code:`SAVE_DIAGNOSTIC` setting is set to :code:`True`, the model saves a file named :code:`<timestamp>_diagnostic.csv` in the output folder:
 
@@ -303,8 +294,6 @@ When the :code:`SAVE_DIAGNOSTIC` setting is set to :code:`True`, the model saves
         └── <timestamp>_diagnostic.csv
 
 |
-
-If you set :code:`SAVE_DIAGNOSTIC` to :code:`False`, the diagnostic file will not be created.
 
 The diagnostic file contains various pieces of information about the model's variables, such as:
 
@@ -328,16 +317,7 @@ SAVE_LOG
 
 The :code:`SAVE_LOG` setting is a boolean flag that controls whether the model should save its log to a file.
 
-By default, the setting is set to :code:`True`.
-
-..  code-block:: python
-    :caption: settings.py
-
-    settings = {
-        ...
-        "SAVE_LOG": True,
-        ...
-    }
+By default, the setting is set to :code:`False`, so the log is not saved.
 
 When :code:`SAVE_LOG` is set to :code:`True`, the model will save a file named :code:`<timestamp>_log.txt` in the output folder:
 
@@ -347,7 +327,6 @@ When :code:`SAVE_LOG` is set to :code:`True`, the model will save a file named :
     └── output/
         └── <timestamp>_log.txt
 
-If you change the :code:`SAVE_LOG` setting to :code:`False`, no log file will be created.
 
 |
 
