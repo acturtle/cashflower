@@ -17,15 +17,19 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Create and activate virtual environment
         run: |
+          python -m venv venv
+          source venv/bin/activate
           python -m pip install --upgrade pip
           python -m pip install setuptools
           python -m pip install Cython
           python -m pip install numpy
 
       - name: Build Cython extensions
-        run: python setup.py build_ext --inplace
+        run: |
+          source venv/bin/activate
+          python setup.py build_ext --inplace
 
   make_sdist:
     needs: build_extension
@@ -35,14 +39,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Create and activate virtual environment
         run: |
+          python -m venv venv
+          source venv/bin/activate
           python -m pip install --upgrade pip
           python -m pip install Cython
           python -m pip install numpy
 
       - name: Build source distribution
-        run: python setup.py sdist
+        run: |
+          source venv/bin/activate
+          python setup.py sdist
 
       - uses: actions/upload-artifact@v3
         with:
@@ -59,8 +67,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Create and activate virtual environment
         run: |
+          python -m venv venv
+          source venv/bin/activate
           python -m pip install --upgrade pip
           python -m pip install Cython
           python -m pip install numpy
@@ -85,8 +95,17 @@ jobs:
           name: artifact
           path: dist
 
+      - name: Create and activate virtual environment
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+
       - name: Publish distribution to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          source venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install twine
+          twine upload dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
