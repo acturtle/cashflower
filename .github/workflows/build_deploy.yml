@@ -57,22 +57,21 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, windows-2019, macos-12]
+        os: [ ubuntu-20.04, windows-2019, macos-12 ]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create virtual environment and install dependencies
+      - name: Install dependencies
         run: |
-          python -m venv venv
-          source venv/bin/activate
-          python -m pip install --upgrade pip Cython numpy
+          python -m pip install --upgrade pip
+          python -m pip install Cython
+          python -m pip install numpy
 
       - name: Build wheels
-        run: |
-          source venv/bin/activate
-          python -m pip install cibuildwheel
-          python -m cibuildwheel --output-dir wheelhouse
+        uses: pypa/cibuildwheel@v2.18.0
+        with:
+          platforms: "auto"
 
       - uses: actions/upload-artifact@v3
         with:
@@ -89,16 +88,8 @@ jobs:
           name: artifact
           path: dist
 
-      - name: Create virtual environment and install Twine
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          python -m pip install --upgrade pip twine
-
       - name: Publish distribution to PyPI
-        run: |
-          source venv/bin/activate
-          twine upload dist/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
