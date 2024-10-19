@@ -423,7 +423,8 @@ class Model:
         if len(self.settings["OUTPUT_COLUMNS"]) == 0:
             output_columns = [v.name for v in self.variables]
         else:
-            output_columns = self.settings["OUTPUT_COLUMNS"]
+            output_columns = self.settings["OUTPUT_COLUMNS"].copy()
+            output_columns.sort()
         return output_columns
 
     def allocate_memory_for_output(self, mp):
@@ -543,6 +544,11 @@ class Model:
             lst_dfs.append(group_df)
 
         output = pd.concat(lst_dfs, ignore_index=True)
+
+        # The columns in the order as the user set in the settings
+        if len(self.settings["OUTPUT_COLUMNS"]) > 0:
+            output = output[self.settings["OUTPUT_COLUMNS"]]
+
         return output
 
     def calculate_model_point(self, row, one_core, progressbar_max):
