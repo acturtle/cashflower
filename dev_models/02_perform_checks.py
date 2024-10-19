@@ -214,6 +214,21 @@ def check_dev_model_23():
     basic_check("dev_model_23")
 
 
+def check_dev_model_24():
+    basic_check("dev_model_24")
+
+    print("Check 3: Output file should have columns: one, two, three", end=" ")
+    output_files = [f for f in os.listdir("dev_model_24/output") if f.endswith("output.csv")]
+    last_output_file = output_files[-1]
+    last_output = pd.read_csv(f"dev_model_24/output/{last_output_file}")
+    assert list(last_output.columns) == ["t", "one", "two", "three"]
+    print("OK")
+
+    print("Check 4: First row is 0, 1, 2, 3.", end=" ")
+    assert last_output.iloc[0].tolist() == [0, 1, 2, 3]
+    print("OK")
+
+
 if __name__ == "__main__":
     check_dev_model_00()
     check_dev_model_01()
@@ -239,4 +254,5 @@ if __name__ == "__main__":
     check_dev_model_21()
     check_dev_model_22()
     check_dev_model_23()
+    check_dev_model_24()
     print("\n***\nFinished! All checks completed successfully.\n***")

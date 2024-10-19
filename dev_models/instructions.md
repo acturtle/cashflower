@@ -32,7 +32,7 @@ ensuring that they do not clutter the version control system.
 * `11` - variables forming a cycle (real estate mortgage)
 * `12` - runplan
 * `13` - array variable (`@variable(array=True)`)
-* `14` - `discount()`
+* `14` - cython function `discount()`
 * `15` - results aggregated by groups (`GROUP_BY = 'product_code'`)
 * `16` - `variable(aggregation_type="first")`
 * `17` - `variable(aggregation_type="first")` + `GROUP_BY`
@@ -42,4 +42,5 @@ ensuring that they do not clutter the version control system.
 * `21` - stochastic variables that form a cycle
 * `22` - strongly connected components ("interconnected" cycles)
 * `23` - dependent variables and subset in the output (`OUTPUT_COLUMNS`)
+* `24` - `"OUTPUT_COLUMNS": ["one", "two", "three"]`
 * `99` - "special" model for testing memory limits
