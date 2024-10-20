@@ -7,10 +7,6 @@ from cashflower import create_model
 
 
 def basic_check(model_name, num_files=1):
-    """Run model and ensure that:
-    - there are three new files in the output folder,
-    - the new output has the same data as previous one.
-    """
     # Change directory to the model's folder
     working_directory = model_name
     os.chdir(working_directory)
@@ -23,20 +19,24 @@ def basic_check(model_name, num_files=1):
     first_output_file = output_files[0]
     last_output_file = output_files[-1]
 
-    # Perform checks
-    print("\nCheck 1: File(s) created.", end=" ")
+    print("\nCheck: File(s) was created.", end=" ")
     assert num_files1 == num_files2 - num_files
     print("OK")
 
-    print("Check 2: Output did not change.", end=" ")
+    print("Check: Output did not change.", end=" ")
     first_output = pd.read_csv(f"output/{first_output_file}")
     last_output = pd.read_csv(f"output/{last_output_file}")
-
     assert first_output.equals(last_output)
     print("OK")
 
     # Change directory back
     os.chdir("..")
+
+
+def run_checks(model_name, num_files=1, extra_checks=None):
+    basic_check(model_name, num_files)
+    if extra_checks:
+        extra_checks()
 
 
 def check_dev_model_00():
@@ -59,49 +59,16 @@ def check_dev_model_00():
     shutil.rmtree(model_name)
 
 
-def check_dev_model_01():
-    basic_check("dev_model_01")
-    print("\n")
-
-
-def check_dev_model_02():
-    basic_check("dev_model_02")
-    print("\n")
-
-
-def check_dev_model_03():
-    basic_check("dev_model_03")
-    print("\n")
-
-
-def check_dev_model_04():
-    basic_check("dev_model_04")
-    print("\n")
-
-
-def check_dev_model_05():
-    basic_check("dev_model_05")
-    print("\n")
-
-
-def check_dev_model_06():
-    basic_check("dev_model_06")
-    print("\n")
-
-
 def check_dev_model_07():
-    basic_check("dev_model_07", num_files=2)
-
     # Output file should have 2 columns ("t", "f")
-    print("Check 3: Output file has subset of columns.", end=" ")
+    print("Check: Output file has subset of columns.", end=" ")
     output_files = [f for f in os.listdir("dev_model_07/output") if f.endswith("output.csv")]
     last_output_file = output_files[-1]
     last_output = pd.read_csv(f"dev_model_07/output/{last_output_file}")
     assert last_output.shape[1] == 2
     print("OK")
 
-    # Unnecessary columns were not calculated
-    print("Check 4: Unnecessary column were not evaluated.", end=" ")
+    print("Check: Unnecessary column were not evaluated.", end=" ")
     diagnostic_files = [f for f in os.listdir("dev_model_07/output") if f.endswith("diagnostic.csv")]
     last_diagnostic_file = diagnostic_files[-1]
     last_diagnostic = pd.read_csv(f"dev_model_07/output/{last_diagnostic_file}")
@@ -110,38 +77,22 @@ def check_dev_model_07():
     print("OK")
 
 
-def check_dev_model_08():
-    basic_check("dev_model_08", num_files=2)
-
-
-def check_dev_model_09():
-    basic_check("dev_model_09", num_files=2)
-
-
 def check_dev_model_10():
-    basic_check("dev_model_10", num_files=2)
-
-    # Backward calculation direction
+    print("Check: Calculation direction of the variable is backward.", end=" ")
     diagnostic_files = [f for f in os.listdir("dev_model_10/output") if f.endswith("diagnostic.csv")]
     last_diagnostic_file = diagnostic_files[-1]
     last_diagnostic = pd.read_csv(f"dev_model_10/output/{last_diagnostic_file}")
-
-    print("Check 3: Calculation direction of the variable is backward.", end=" ")
     assert last_diagnostic.iloc[0]["calc_direction"] == -1
     print("OK")
-    print("\n")
 
 
 def check_dev_model_11():
-    basic_check("dev_model_11", num_files=2)
+    print("Check: Variables form a cycle.", end=" ")
     diagnostic_files = [f for f in os.listdir("dev_model_11/output") if f.endswith("diagnostic.csv")]
     last_diagnostic_file = diagnostic_files[-1]
     last_diagnostic = pd.read_csv(f"dev_model_11/output/{last_diagnostic_file}")
-
-    print("Check 3: Variables form a cycle.", end=" ")
     assert last_diagnostic.loc[last_diagnostic["variable"] == "balance", "cycle"].values[0]
     print("OK")
-    print("\n")
 
 
 def check_dev_model_12():
@@ -152,8 +103,7 @@ def check_dev_model_12():
     output_files = [f for f in os.listdir("output") if f.endswith("output.csv")]
     last_output_file = output_files[-1]
 
-    # Perform checks
-    print("\nCheck 1: The value gets multiplied by the runplan's shock.", end=" ")
+    print("\nCheck: The value gets multiplied by the runplan's shock.", end=" ")
     last_output = pd.read_csv(f"output/{last_output_file}")
     assert last_output.iloc[0]["premium"] == 150
     print("OK")
@@ -162,14 +112,8 @@ def check_dev_model_12():
     os.chdir("..")
 
 
-def check_dev_model_13():
-    basic_check("dev_model_13")
-
-
 def check_dev_model_14():
-    basic_check("dev_model_14")
-
-    print("Check 3: There are no difference between two approaches to PV calculation.", end=" ")
+    print("Check: There are no difference between two approaches to PV calculation.", end=" ")
     output_files = [f for f in os.listdir("dev_model_14/output") if f.endswith("output.csv")]
     last_output_file = output_files[-1]
     last_output = pd.read_csv(f"dev_model_14/output/{last_output_file}")
@@ -178,81 +122,55 @@ def check_dev_model_14():
     print("OK")
 
 
-def check_dev_model_15():
-    basic_check("dev_model_15")
-
-
-def check_dev_model_16():
-    basic_check("dev_model_16")
-
-
-def check_dev_model_17():
-    basic_check("dev_model_17")
-
-
-def check_dev_model_18():
-    basic_check("dev_model_18")
-
-
-def check_dev_model_19():
-    basic_check("dev_model_19")
-
-
-def check_dev_model_20():
-    basic_check("dev_model_20")
-
-
-def check_dev_model_21():
-    basic_check("dev_model_21")
-
-
-def check_dev_model_22():
-    basic_check("dev_model_22")
-
-
-def check_dev_model_23():
-    basic_check("dev_model_23")
-
-
 def check_dev_model_24():
-    basic_check("dev_model_24")
-
-    print("Check 3: Output file should have columns: one, two, three", end=" ")
+    print("Check: Output file should have columns: one, two, three", end=" ")
     output_files = [f for f in os.listdir("dev_model_24/output") if f.endswith("output.csv")]
     last_output_file = output_files[-1]
     last_output = pd.read_csv(f"dev_model_24/output/{last_output_file}")
     assert list(last_output.columns) == ["t", "one", "two", "three"]
     print("OK")
 
-    print("Check 4: First row is 0, 1, 2, 3.", end=" ")
+    print("Check: First row is 0, 1, 2, 3.", end=" ")
     assert last_output.iloc[0].tolist() == [0, 1, 2, 3]
     print("OK")
 
 
+def check_all():
+    models = {
+        "dev_model_01": {},
+        "dev_model_02": {},
+        "dev_model_03": {},
+        "dev_model_04": {},
+        "dev_model_05": {},
+        "dev_model_06": {},
+        "dev_model_07": {"num_files": 2, "extra_checks": check_dev_model_07},
+        "dev_model_08": {"num_files": 2},
+        "dev_model_09": {"num_files": 2},
+        "dev_model_10": {"num_files": 2, "extra_checks": check_dev_model_10},
+        "dev_model_11": {"num_files": 2, "extra_checks": check_dev_model_11},
+        "dev_model_13": {},
+        "dev_model_14": {"extra_checks": check_dev_model_14},
+        "dev_model_15": {},
+        "dev_model_16": {},
+        "dev_model_17": {},
+        "dev_model_18": {},
+        "dev_model_19": {},
+        "dev_model_20": {},
+        "dev_model_21": {},
+        "dev_model_22": {},
+        "dev_model_23": {},
+        "dev_model_24": {"extra_checks": check_dev_model_24},
+    }
+    for model_name, settings in models.items():
+        run_checks(model_name, **settings)
+
+    # Models handled differently
+    check_dev_model_00()  # test `create_model`
+    check_dev_model_12()  # run with `python run.py --version 2`
+
+
 if __name__ == "__main__":
-    check_dev_model_00()
-    check_dev_model_01()
-    check_dev_model_02()
-    check_dev_model_03()
-    check_dev_model_04()
-    check_dev_model_05()
-    check_dev_model_06()
-    check_dev_model_07()
-    check_dev_model_08()
-    check_dev_model_09()
-    check_dev_model_10()
-    check_dev_model_11()
-    check_dev_model_12()
-    check_dev_model_13()
-    check_dev_model_14()
-    check_dev_model_15()
-    check_dev_model_16()
-    check_dev_model_17()
-    check_dev_model_18()
-    check_dev_model_19()
-    check_dev_model_20()
-    check_dev_model_21()
-    check_dev_model_22()
-    check_dev_model_23()
-    check_dev_model_24()
-    print("\n***\nFinished! All checks completed successfully.\n***")
+    check_all()
+    print("\n" + "*" * 72)
+    print("Finished! All checks completed successfully.")
+    print("*" * 72)
