@@ -21,7 +21,7 @@ DEFAULT_SETTINGS = {
         "ID_COLUMN": "id",
         "MULTIPROCESSING": False,
         "NUM_STOCHASTIC_SCENARIOS": None,
-        "OUTPUT_COLUMNS": [],
+        "OUTPUT_COLUMNS": None,
         "SAVE_DIAGNOSTIC": False,
         "SAVE_LOG": False,
         "SAVE_OUTPUT": True,
