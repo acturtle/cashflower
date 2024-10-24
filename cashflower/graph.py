@@ -27,7 +27,7 @@ def create_directed_graph(variables, calls):
     return dg
 
 
-def filter_variables_and_graph(output_columns, variables, dg):
+def filter_variables_and_graph(variables, output_variable_names, dg):
     """
     Select only variables and nodes that are required by the user.
 
@@ -35,7 +35,7 @@ def filter_variables_and_graph(output_columns, variables, dg):
     It filters out the variables and nodes in the graph that are not necessary for the calculation of the output columns.
 
     Parameters:
-        output_columns (list): A list of names of the output columns.
+        output_variable_names (list): A list of names of the output columns.
         variables (list): A list of all available variables.
         dg (nx.DiGraph): A directed graph representing the relationships between the variables.
 
@@ -44,7 +44,7 @@ def filter_variables_and_graph(output_columns, variables, dg):
         nx.DiGraph: A filtered directed graph containing only the necessary nodes and edges.
     """
     needed_variables = set()
-    output_variables = [get_object_by_name(variables, name) for name in output_columns]
+    output_variables = [get_object_by_name(variables, name) for name in output_variable_names]
 
     for output_variable in output_variables:
         needed_variables.add(output_variable)

@@ -241,7 +241,7 @@ def set_cycle_order(dg_cycle):
             raise CashflowModelError(msg)
 
 
-def resolve_calculation_order(variables, output_variables):
+def resolve_calculation_order(variables, output_variable_names):
     """
     Determines a safe execution order for variables to avoid recursion errors.
 
@@ -274,8 +274,8 @@ def resolve_calculation_order(variables, output_variables):
     # plt.show()
 
     # [3] User has chosen output columns so remove unneeded variables
-    if output_variables is not None:
-        variables, dg = filter_variables_and_graph(output_variables, variables, dg)
+    if output_variable_names is not None:
+        variables, dg = filter_variables_and_graph(variables, output_variable_names, dg)
 
     # [4] Set calculation order of variables ('calc_order')
     calc_order = 0
@@ -355,8 +355,8 @@ def start_single_core(settings, args):
     # Prepare model components
     log_message("Reading model components...", show_time=True)
     runplan, model_point_sets, variables = prepare_model_input(settings, args)
-    output_variables = settings["OUTPUT_VARIABLES"]
-    variables = resolve_calculation_order(variables, output_variables)
+    output_variable_names = settings["OUTPUT_VARIABLES"]
+    variables = resolve_calculation_order(variables, output_variable_names)
 
     # Log runplan version and number of model points
     if runplan is not None:
