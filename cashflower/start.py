@@ -21,7 +21,7 @@ DEFAULT_SETTINGS = {
         "ID_COLUMN": "id",
         "MULTIPROCESSING": False,
         "NUM_STOCHASTIC_SCENARIOS": None,
-        "OUTPUT_COLUMNS": [],
+        "OUTPUT_VARIABLES": None,
         "SAVE_DIAGNOSTIC": False,
         "SAVE_LOG": False,
         "SAVE_OUTPUT": True,
@@ -72,7 +72,7 @@ def log_settings_changes(settings=None):
     return changes
 
 
-def load_settings(settings=None):
+def get_settings(settings=None):
     if settings is None:
         return DEFAULT_SETTINGS
 
@@ -241,7 +241,7 @@ def set_cycle_order(dg_cycle):
             raise CashflowModelError(msg)
 
 
-def resolve_calculation_order(variables, output_columns):
+def resolve_calculation_order(variables, output_variable_names):
     """
     Determines a safe execution order for variables to avoid recursion errors.
 
@@ -274,8 +274,8 @@ def resolve_calculation_order(variables, output_columns):
     # plt.show()
 
     # [3] User has chosen output columns so remove unneeded variables
-    if output_columns is not None:
-        variables, dg = filter_variables_and_graph(output_columns, variables, dg)
+    if output_variable_names is not None:
+        variables, dg = filter_variables_and_graph(variables, output_variable_names, dg)
 
     # [4] Set calculation order of variables ('calc_order')
     calc_order = 0
@@ -355,8 +355,8 @@ def start_single_core(settings, args):
     # Prepare model components
     log_message("Reading model components...", show_time=True)
     runplan, model_point_sets, variables = prepare_model_input(settings, args)
-    output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
-    variables = resolve_calculation_order(variables, output_columns)
+    output_variable_names = settings["OUTPUT_VARIABLES"]
+    variables = resolve_calculation_order(variables, output_variable_names)
 
     # Log runplan version and number of model points
     if runplan is not None:
@@ -388,8 +388,8 @@ def start_multiprocessing(part, settings, args):
     # Prepare model components
     log_message("Reading model components...", show_time=True, print_and_save=one_core)
     runplan, model_point_sets, variables = prepare_model_input(settings, args)
-    output_columns = None if len(settings["OUTPUT_COLUMNS"]) == 0 else settings["OUTPUT_COLUMNS"]
-    variables = resolve_calculation_order(variables, output_columns)
+    output_variables = settings["OUTPUT_VARIABLES"]
+    variables = resolve_calculation_order(variables, output_variables)
 
     # Log runplan version and number of model points
     if runplan is not None:
@@ -584,7 +584,7 @@ def run(settings=None, path=None):
     """
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     settings_changes = log_settings_changes(settings)
-    settings = load_settings(settings)
+    settings = get_settings(settings)
     args = parse_arguments()
     log_run_info(timestamp, path, args, settings_changes, settings)
 

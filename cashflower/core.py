@@ -392,16 +392,16 @@ class Model:
             return None
         range_start, range_end = calculation_range
 
-        # User can choose output columns
-        output_columns = self.get_output_columns()
+        # User can choose output variables
+        output_variable_names = self.get_output_variable_names()
 
         # Perform calculations
         one_core = part == 0 or part is None  # bool; single core or first part of multiprocessing calculation
         log_message("Starting calculations...", show_time=True, print_and_save=one_core)
-        group_sums = self.perform_calculations(range_start, range_end, one_core, output_columns)
+        group_sums = self.perform_calculations(range_start, range_end, one_core, output_variable_names)
 
         # Transform results into a data frame
-        output = self.prepare_output(group_sums, output_columns, one_core)
+        output = self.prepare_output(group_sums, output_variable_names, one_core)
 
         # Create a diagnostic file
         diagnostic = self.create_diagnostic_data()
@@ -419,17 +419,17 @@ class Model:
             range_start, range_end = main_ranges[part]
         return range_start, range_end
 
-    def get_output_columns(self):
-        if len(self.settings["OUTPUT_COLUMNS"]) == 0:
-            output_columns = [v.name for v in self.variables]
+    def get_output_variable_names(self):
+        if not self.settings["OUTPUT_VARIABLES"]:
+            output_variable_names = [v.name for v in self.variables]
         else:
-            output_columns = self.settings["OUTPUT_COLUMNS"].copy()
-            output_columns.sort()
-        return output_columns
+            output_variable_names = self.settings["OUTPUT_VARIABLES"].copy()
+            output_variable_names.sort()
+        return output_variable_names
 
     def allocate_memory_for_output(self, mp):
         t = self.settings["T_MAX_OUTPUT"] + 1
-        v = len(self.variables) if len(self.settings["OUTPUT_COLUMNS"]) == 0 else len(self.settings["OUTPUT_COLUMNS"])
+        v = len(self.variables) if not self.settings["OUTPUT_VARIABLES"] else len(self.settings["OUTPUT_VARIABLES"])
 
         float_size = np.dtype(np.float64).itemsize
         results_size = t * v * mp * float_size
@@ -453,21 +453,21 @@ class Model:
 
         return results
 
-    def perform_calculations(self, range_start, range_end, one_core, output_columns):
+    def perform_calculations(self, range_start, range_end, one_core, output_variable_names):
         max_output = self.settings["T_MAX_OUTPUT"] + 1
         group_by = self.settings["GROUP_BY"]
         main = get_object_by_name(self.model_point_sets, "main")
         calculate_model_point_partial = functools.partial(
             self.calculate_model_point, one_core=one_core, progressbar_max=range_end
         )
-        num_output_columns = len(output_columns)
+        num_output_variables = len(output_variable_names)
 
         # Define the initial batch size to process, to prevent excessive memory usage
-        batch_size = self.get_batch_size(num_output_columns)
+        batch_size = self.get_batch_size(num_output_variables)
         batch_start, batch_end = range_start, min(range_start + batch_size, range_end)
 
         # Create an array of multipliers based on the aggregation type of each variable
-        output_variables = [get_object_by_name(self.variables, column) for column in output_columns]
+        output_variables = [get_object_by_name(self.variables, name) for name in output_variable_names]
         multiplier = np.array([1 if v.aggregation_type == "sum" else 0 for v in output_variables])
 
         # Grouping column must be part of the model point set
@@ -478,7 +478,7 @@ class Model:
 
         # Handle grouping if group_by is set, otherwise treat everything as a single group
         unique_groups = main.data[group_by].unique() if group_by else [None]
-        group_sums = {group: np.zeros((max_output, num_output_columns)) for group in unique_groups}
+        group_sums = {group: np.zeros((max_output, num_output_variables)) for group in unique_groups}
 
         # Get first indexes of groups
         first_indexes = get_first_indexes(main.data[group_by]) if group_by else []
@@ -509,16 +509,16 @@ class Model:
 
         return group_sums
 
-    def get_batch_size(self, num_output_columns):
+    def get_batch_size(self, num_output_variables):
         """
         Calculate the batch size based on available memory.
 
         The batch size is calculated to avoid memory errors when processing model points.
-        Each model point outputs a numpy array with "t" rows and "num_output_columns" columns.
+        Each model point outputs a numpy array with "t" rows and "num_output_variables" columns.
         The calculation takes into account whether the processing is done on one core or multiple cores (multiprocessing).
 
         Args:
-            num_output_columns (int): The number of output columns.
+            num_output_variables (int): The number of output variables.
 
         Returns:
             int: The number of model points to be processed.
@@ -527,12 +527,12 @@ class Model:
         float_size = np.dtype(np.float64).itemsize
         num_cores = 1 if not self.settings["MULTIPROCESSING"] else multiprocessing.cpu_count()
         available_memory = psutil.virtual_memory().available * 0.95
-        memory_per_model_point = (t * num_output_columns) * float_size
+        memory_per_model_point = (t * num_output_variables) * float_size
         batch_size = int(available_memory // (memory_per_model_point // num_cores))
         batch_size = max(batch_size, 1)
         return batch_size
 
-    def prepare_output(self, group_sums, output_columns, one_core):
+    def prepare_output(self, group_sums, output_variable_names, one_core):
         group_by = self.settings["GROUP_BY"]
         log_message("Preparing output...", show_time=True, print_and_save=one_core)
 
@@ -543,16 +543,16 @@ class Model:
 
         lst_dfs = []
         for group, data in group_sums.items():
-            group_df = pd.DataFrame(data=data, columns=columns)
+            group_df = pd.DataFrame(data=data, columns=output_variable_names)
             if group_by:
                 group_df.insert(0, group_by, group)
             lst_dfs.append(group_df)
 
         output = pd.concat(lst_dfs, ignore_index=True)
 
-        # The columns in the order as the user set in the settings
-        if len(self.settings["OUTPUT_COLUMNS"]) > 0:
-            output = output[self.settings["OUTPUT_COLUMNS"]]
+        # The columns should follow the order specified by the user in the settings
+        if self.settings["OUTPUT_VARIABLES"]:
+            output = output[self.settings["OUTPUT_VARIABLES"]]
 
         return output
 
@@ -591,8 +591,8 @@ class Model:
                 v.average_result_stoch()
 
         # Get results and trim for T_MAX_OUTPUT (results may contain subset of columns)
-        if len(self.settings["OUTPUT_COLUMNS"]) > 0:
-            mp_results = np.array([v.result[:self.settings["T_MAX_OUTPUT"]+1] for v in self.variables if v.name in self.settings["OUTPUT_COLUMNS"]])
+        if self.settings["OUTPUT_VARIABLES"]:
+            mp_results = np.array([v.result[:self.settings["T_MAX_OUTPUT"]+1] for v in self.variables if v.name in self.settings["OUTPUT_VARIABLES"]])
         else:
             mp_results = np.array([v.result[:self.settings["T_MAX_OUTPUT"]+1] for v in self.variables])
 
