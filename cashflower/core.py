@@ -420,16 +420,16 @@ class Model:
         return range_start, range_end
 
     def get_output_columns(self):
-        if len(self.settings["OUTPUT_COLUMNS"]) == 0:
+        if not self.settings["OUTPUT_VARIABLES"]:
             output_columns = [v.name for v in self.variables]
         else:
-            output_columns = self.settings["OUTPUT_COLUMNS"].copy()
+            output_columns = self.settings["OUTPUT_VARIABLES"].copy()
             output_columns.sort()
         return output_columns
 
     def allocate_memory_for_output(self, mp):
         t = self.settings["T_MAX_OUTPUT"] + 1
-        v = len(self.variables) if len(self.settings["OUTPUT_COLUMNS"]) == 0 else len(self.settings["OUTPUT_COLUMNS"])
+        v = len(self.variables) if not self.settings["OUTPUT_VARIABLES"] else len(self.settings["OUTPUT_VARIABLES"])
 
         float_size = np.dtype(np.float64).itemsize
         results_size = t * v * mp * float_size
@@ -545,9 +545,9 @@ class Model:
 
         output = pd.concat(lst_dfs, ignore_index=True)
 
-        # The columns in the order as the user set in the settings
-        if len(self.settings["OUTPUT_COLUMNS"]) > 0:
-            output = output[self.settings["OUTPUT_COLUMNS"]]
+        # The columns should follow the order specified by the user in the settings
+        if self.settings["OUTPUT_VARIABLES"]:
+            output = output[self.settings["OUTPUT_VARIABLES"]]
 
         return output
 
@@ -586,8 +586,8 @@ class Model:
                 v.average_result_stoch()
 
         # Get results and trim for T_MAX_OUTPUT (results may contain subset of columns)
-        if len(self.settings["OUTPUT_COLUMNS"]) > 0:
-            mp_results = np.array([v.result[:self.settings["T_MAX_OUTPUT"]+1] for v in self.variables if v.name in self.settings["OUTPUT_COLUMNS"]])
+        if self.settings["OUTPUT_VARIABLES"]:
+            mp_results = np.array([v.result[:self.settings["T_MAX_OUTPUT"]+1] for v in self.variables if v.name in self.settings["OUTPUT_VARIABLES"]])
         else:
             mp_results = np.array([v.result[:self.settings["T_MAX_OUTPUT"]+1] for v in self.variables])
 

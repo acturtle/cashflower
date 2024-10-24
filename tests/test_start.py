@@ -24,31 +24,31 @@ class TestLoadSettings(TestCase):
             "ID_COLUMN": "id",
             "MULTIPROCESSING": False,
             "NUM_STOCHASTIC_SCENARIOS": None,
-            "OUTPUT_COLUMNS": None,
+            "OUTPUT_VARIABLES": None,
             "SAVE_DIAGNOSTIC": False,
             "SAVE_LOG": False,
             "SAVE_OUTPUT": True,
             "T_MAX_CALCULATION": 720,
             "T_MAX_OUTPUT": 720,
         }
-        assert load_settings() == default_settings
+        assert get_settings() == default_settings
 
         my_settings1 = {}
-        settings = load_settings(my_settings1)
+        settings = get_settings(my_settings1)
         assert settings == default_settings
 
         my_settings2 = {
             "ID_COLUMN": "polnumber",
             "T_MAX_CALCULATION": 100,
-            "OUTPUT_COLUMNS": ["a", "b", "c"],
+            "OUTPUT_VARIABLES": ["a", "b", "c"],
         }
-        settings = load_settings(my_settings2)
+        settings = get_settings(my_settings2)
         assert settings == {
             "GROUP_BY": None,
             "ID_COLUMN": "polnumber",
             "MULTIPROCESSING": False,
             "NUM_STOCHASTIC_SCENARIOS": None,
-            "OUTPUT_COLUMNS": ["a", "b", "c"],
+            "OUTPUT_VARIABLES": ["a", "b", "c"],
             "SAVE_DIAGNOSTIC": False,
             "SAVE_LOG": False,
             "SAVE_OUTPUT": True,
@@ -68,7 +68,7 @@ class TestGetModelPointSets(TestCase):
     def test_get_model_point_sets(self):
         main = ModelPointSet(data=pd.DataFrame({"id": [1]}))
         input_members_1 = [("main", main)]
-        settings = load_settings()
+        settings = get_settings()
         model_point_sets = get_model_point_sets(input_members_1, settings, argparse.Namespace(**{'id': None}))
         assert model_point_sets == [main]
 
@@ -79,7 +79,7 @@ class TestGetModelPointSets(TestCase):
 
 class TestGetVariables(TestCase):
     def test_get_variables(self):
-        settings = load_settings()
+        settings = get_settings()
 
         @variable()
         def foo(t):
@@ -90,7 +90,7 @@ class TestGetVariables(TestCase):
         assert variables == [foo]
 
     def test_get_variables_raises_error_when_name_is_t_or_r(self):
-        settings = load_settings()
+        settings = get_settings()
 
         @variable()
         def t(t):

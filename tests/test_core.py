@@ -5,7 +5,7 @@ import pytest
 from unittest import TestCase
 
 from cashflower.core import CashflowModelError, ModelPointSet, Runplan, variable, Variable
-from cashflower.start import load_settings
+from cashflower.start import get_settings
 
 
 class TestVariableDecorator(TestCase):
@@ -52,7 +52,7 @@ class TestModelPointSet(TestCase):
         assert len(main) == 3
 
         main.name = "main"
-        main.settings = load_settings()
+        main.settings = get_settings()
         main.initialize()
         assert main.id == "1"
         assert main.get("age") == 52
@@ -62,7 +62,7 @@ class TestModelPointSet(TestCase):
         main = ModelPointSet(
             data=pd.DataFrame({"age": [52, 47, 35]}),
             name="policy",
-            settings=load_settings()
+            settings=get_settings()
         )
         with pytest.raises(CashflowModelError):
             main.initialize()
@@ -71,7 +71,7 @@ class TestModelPointSet(TestCase):
         main = ModelPointSet(
             data=pd.DataFrame({"id": [1, 2, 2]}),
             name="main",
-            settings=load_settings()
+            settings=get_settings()
         )
         with pytest.raises(CashflowModelError):
             main.initialize()

@@ -52,7 +52,7 @@ The next variables to be processed are :code:`F` with an order of :code:`4`, :co
 Output subset
 ^^^^^^^^^^^^^
 
-Users have the flexibility to choose a specific subset of output columns through the :code:`OUTPUT_COLUMNS` setting.
+Users have the flexibility to choose a specific subset of output variables through the :code:`OUTPUT_VARIABLES` setting.
 
 For instance, let's consider a scenario where the user has configured their settings to output only the variable :code:`F`:
 
@@ -60,7 +60,7 @@ For instance, let's consider a scenario where the user has configured their sett
     :caption: settings.py
 
     settings = {
-        "OUTPUT_COLUMNS": ["F"],
+        "OUTPUT_VARIABLES": ["F"],
     }
 
 In this case, variables :code:`G` and :code:`H` are not required for the desired output and can be safely omitted from the calculation graph and the model itself.
@@ -91,7 +91,7 @@ The :code:`AGGREGATE` setting determines whether the model returns the sum of al
 The :code:`T_MAX_OUTPUT` setting specifies how many projection periods should be included in the output. A larger projection period increases memory usage.
 
 3. **Number of variables:**
-The :code:`OUTPUT_COLUMNS` setting specifies which variables should be part of the output.
+The :code:`OUTPUT_VARIABLES` setting specifies which variables should be part of the output.
 
 The estimated output memory usage:
 
