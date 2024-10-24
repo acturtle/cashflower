@@ -25,7 +25,7 @@ ensuring that they do not clutter the version control system.
 * `04` - 100 model points + `MULTIPROCESSING = True`
 * `05` - 10 model points + individual results (`GROUP_BY = "id"`)
 * `06` - 10 model points + `ID_COLUMN = "mp"`
-* `07` - `OUTPUT_COLUMNS = ["f"]`
+* `07` - `OUTPUT_VARIABLES = ["f"]`
 * `08` - `SAVE_DIAGNOSTIC = True`
 * `09` - `SAVE_OUTPUT = True`
 * `10` - variable that is calculated backward (`discounted_premium(t+1)`)
@@ -41,6 +41,6 @@ ensuring that they do not clutter the version control system.
 * `20` - stochastic variables
 * `21` - stochastic variables that form a cycle
 * `22` - strongly connected components ("interconnected" cycles)
-* `23` - dependent variables and subset in the output (`OUTPUT_COLUMNS`)
-* `24` - `"OUTPUT_COLUMNS": ["one", "two", "three"]`
+* `23` - dependent variables and subset in the output (`OUTPUT_VARIABLES`)
+* `24` - `"OUTPUT_VARIABLES": ["one", "two", "three"]`
 * `99` - "special" model for testing memory limits

@@ -3,7 +3,7 @@ settings = {
     "ID_COLUMN": "id",
     "MULTIPROCESSING": False,
     "NUM_STOCHASTIC_SCENARIOS": None,
-    "OUTPUT_COLUMNS": ["f"],
+    "OUTPUT_VARIABLES": ["f"],
     "SAVE_DIAGNOSTIC": True,
     "SAVE_LOG": False,
     "SAVE_OUTPUT": True,

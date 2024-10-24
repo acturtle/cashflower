@@ -25,7 +25,7 @@ and columns represent model variables. The structure of the output depends on th
 
 * :code:`GROUP_BY` - the column name used to group the results.
 * :code:`T_MAX_OUTPUT` - specifies the number of projection periods included in the output.
-* :code:`OUTPUT_COLUMNS` - a list of output columns to be included (by default, all columns are included).
+* :code:`OUTPUT_VARIABLES` - a list of output variables to be included (by default, all variables are included).
 
 Let's explore these settings with examples.
 
@@ -85,14 +85,14 @@ In this case, each model point will have its own set of results.
 Subset of columns
 ^^^^^^^^^^^^^^^^^
 
-If you only require specific variables in the output, you can select them using the :code:`OUTPUT_COLUMNS` setting:
+If you only require specific variables in the output, you can select them using the :code:`OUTPUT_VARIABLES` setting:
 
 ..  code-block:: python
     :caption: settings.py
 
     settings = {
         ...
-        "OUTPUT_COLUMNS": ["bel"],
+        "OUTPUT_VARIABLES": ["bel"],
         ...
     }
 
@@ -101,7 +101,7 @@ If you only require specific variables in the output, you can select them using 
    :align: center
 
 
-The :code:`OUTPUT_COLUMNS` setting takes a list of variables names to include in the output.
+The :code:`OUTPUT_VARIABLES` setting takes a list of variables names to include in the output.
 By default, when this setting is an empty list, results for all model variables are generated.
 
 |

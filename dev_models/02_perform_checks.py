@@ -57,6 +57,7 @@ def check_dev_model_00():
     # Change directory back and remove the folder
     os.chdir("..")
     shutil.rmtree(model_name)
+    print("\n")
 
 
 def check_dev_model_07():
@@ -110,6 +111,7 @@ def check_dev_model_12():
 
     # Change directory back
     os.chdir("..")
+    print("\n")
 
 
 def check_dev_model_14():
@@ -163,6 +165,7 @@ def check_all():
     }
     for model_name, settings in models.items():
         run_checks(model_name, **settings)
+        print("\n")
 
     # Models handled differently
     check_dev_model_00()  # test `create_model`

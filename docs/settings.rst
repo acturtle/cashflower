@@ -29,10 +29,10 @@ The table below summarizes available settings.
      - :code:`integer`
      - :code:`None`
      - The number of stochastic scenarios to be simulated in the model.
-   * - OUTPUT_COLUMNS
-     - empty list or list of strings
-     - :code:`[]`
-     - List of variables to be included in the output. If the list is empty, all variables are included.
+   * - OUTPUT_VARIABLES
+     - list of strings or :code:`None`
+     - :code:`None`
+     - List of variables to be included in the output. If :code:`None`, all variables are included.
    * - SAVE_DIAGNOSTIC
      - :code:`True` / :code:`False`
      - :code:`False`
