@@ -536,6 +536,11 @@ class Model:
         group_by = self.settings["GROUP_BY"]
         log_message("Preparing output...", show_time=True, print_and_save=one_core)
 
+        if len(self.settings["OUTPUT_COLUMNS"]) > 0:
+            columns = [v.name for v in self.variables if v.name in self.settings["OUTPUT_COLUMNS"]]
+        else:
+            columns = [v.name for v in self.variables]
+
         lst_dfs = []
         for group, data in group_sums.items():
             group_df = pd.DataFrame(data=data, columns=output_variable_names)
