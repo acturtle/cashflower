@@ -48,6 +48,7 @@ def create_model(model):
 
 
 def log_settings_changes(settings=None):
+    """Returns a list of logs describing adjustments to the user's settings."""
     changes = []
 
     if settings is None:
@@ -72,6 +73,42 @@ def log_settings_changes(settings=None):
     return changes
 
 
+def check_settings(settings):
+    # Boolean (True/False)
+    # MULTIPROCESSING, SAVE_DIAGNOSTIC, SAVE_LOG, SAVE_OUTPUT
+    for setting_name in ["MULTIPROCESSING", "SAVE_DIAGNOSTIC", "SAVE_LOG", "SAVE_OUTPUT"]:
+        if not isinstance(settings[setting_name], bool):
+            raise CashflowModelError(f"The {setting_name} setting must be a boolean (True or False).")
+
+    # String
+    # ID_COLUMN
+    if not isinstance(settings["ID_COLUMN"], str):
+        raise CashflowModelError("The ID_COLUMN setting must be a string.")
+
+    # None or string
+    # GROUP_BY
+    if not (settings["GROUP_BY"] is None or isinstance(settings["GROUP_BY"], str)):
+        raise CashflowModelError("The GROUP_BY setting must be None or a string.")
+
+    # None or a list of strings
+    # OUTPUT_VARIABLES
+    setting = settings["OUTPUT_VARIABLES"]
+    if not (setting is None or (isinstance(setting, list) and all(isinstance(item, str) for item in setting))):
+        raise CashflowModelError("The OUTPUT_VARIABLES setting must be None or a list of strings.")
+
+    # None or non-negative integer
+    # NUM_STOCHASTIC_SCENARIOS
+    setting = settings["NUM_STOCHASTIC_SCENARIOS"]
+    if not (setting is None or (isinstance(setting, int) and setting >= 0)):
+        raise CashflowModelError("The NUM_STOCHASTIC_SCENARIOS setting must be None or a non-negative integer.")
+
+    # Non-negative integer
+    # T_MAX_CALCULATION, T_MAX_OUTPUT
+    for setting_name in ["T_MAX_CALCULATION", "T_MAX_OUTPUT"]:
+        if not (isinstance(settings[setting_name], int) and settings[setting_name] >= 0):
+            raise CashflowModelError(f"The {setting_name} setting must be a non-negative integer.")
+
+
 def get_settings(settings=None):
     if settings is None:
         return DEFAULT_SETTINGS
@@ -81,6 +118,9 @@ def get_settings(settings=None):
 
     # The output time period cannot exceed the calculation time period
     updated_settings["T_MAX_OUTPUT"] = min(updated_settings["T_MAX_OUTPUT"], updated_settings["T_MAX_CALCULATION"])
+
+    # Check if settings have been set correctly by the user
+    check_settings(updated_settings)
 
     return updated_settings
 
@@ -180,8 +220,25 @@ def get_variables(model_members, settings):
 
             variable.result_stoch = np.empty((settings["NUM_STOCHASTIC_SCENARIOS"], settings["T_MAX_CALCULATION"]+1))
 
+        # Add to the list
         variables.append(variable)
+
     return variables
+
+
+def check_input(settings, variables):
+    # Ensure OUTPUT_VARIABLES contain only existing variables
+    variable_names = [v.name for v in variables]
+    output_variable_names = settings["OUTPUT_VARIABLES"]
+
+    if output_variable_names:
+        for output_variable_name in output_variable_names:
+            if output_variable_name not in variable_names:
+                msg = (f"The '{output_variable_name}' is not defined in the model. "
+                       f"Please check the OUTPUT_VARIABLES setting.")
+                raise CashflowModelError(msg)
+
+    return None
 
 
 def prepare_model_input(settings, args):
@@ -210,6 +267,9 @@ def prepare_model_input(settings, args):
     # model.py contains model variables
     model_members = inspect.getmembers(model_module)
     variables = get_variables(model_members, settings)
+
+    # Check consistency of the input
+    check_input(settings, variables)
 
     return runplan, model_point_sets, variables
 
@@ -241,25 +301,24 @@ def set_cycle_order(dg_cycle):
             raise CashflowModelError(msg)
 
 
-def resolve_calculation_order(variables, output_variable_names):
+def resolve_calculation_order(variables, settings):
     """
     Determines a safe execution order for variables to avoid recursion errors.
 
-    This function takes a list of variables and an optional list of output columns as input.
-    It first creates a dictionary of called functions for each variable, then creates a directed graph representing
-    the relationships between variables. If output columns are specified, it filters the variables and graph
+    The function creates a dictionary of called functions for each variable, then creates a directed graph representing
+    the relationships between variables. If output variables are specified, it filters the variables and graph
     to only include the necessary variables. It then sets the calculation order of the variables,
     handling both acyclic and cyclic relationships.
     Finally, it sorts the variables by calculation order and sets the calculation direction.
 
     Parameters:
     variables (list): A list of variable objects.
-    output_columns (list, optional): A list of output column names. If specified, only variables that are needed for
-        these columns will be included in the calculation order.
-
+    settings (dict): A dictionary with model's settings.
     Returns:
     list: A list of variable objects, sorted by calculation order and with their calculation direction set.
     """
+    output_variable_names = settings["OUTPUT_VARIABLES"]
+
     # [1] Dictionary of called functions (key = variable; value = other variables called by it)
     calls = {}
     for variable in variables:
@@ -268,13 +327,8 @@ def resolve_calculation_order(variables, output_variable_names):
     # [2] Create directed graph for all variables
     dg = create_directed_graph(variables, calls)
 
-    # Debug
-    # import matplotlib.pyplot as plt
-    # nx.draw(dg, with_labels=True)
-    # plt.show()
-
     # [3] User has chosen output columns so remove unneeded variables
-    if output_variable_names is not None:
+    if output_variable_names:
         variables, dg = filter_variables_and_graph(variables, output_variable_names, dg)
 
     # [4] Set calculation order of variables ('calc_order')
@@ -355,8 +409,7 @@ def start_single_core(settings, args):
     # Prepare model components
     log_message("Reading model components...", show_time=True)
     runplan, model_point_sets, variables = prepare_model_input(settings, args)
-    output_variable_names = settings["OUTPUT_VARIABLES"]
-    variables = resolve_calculation_order(variables, output_variable_names)
+    variables = resolve_calculation_order(variables, settings)
 
     # Log runplan version and number of model points
     if runplan is not None:
@@ -388,8 +441,7 @@ def start_multiprocessing(part, settings, args):
     # Prepare model components
     log_message("Reading model components...", show_time=True, print_and_save=one_core)
     runplan, model_point_sets, variables = prepare_model_input(settings, args)
-    output_variables = settings["OUTPUT_VARIABLES"]
-    variables = resolve_calculation_order(variables, output_variables)
+    variables = resolve_calculation_order(variables, settings)
 
     # Log runplan version and number of model points
     if runplan is not None:
@@ -583,9 +635,9 @@ def run(settings=None, path=None):
         pandas.DataFrame: The output of the modl.
     """
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    args = parse_arguments()
     settings_changes = log_settings_changes(settings)
     settings = get_settings(settings)
-    args = parse_arguments()
     log_run_info(timestamp, path, args, settings_changes, settings)
 
     # Run on single or multiple cores
