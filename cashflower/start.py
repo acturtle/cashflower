@@ -47,7 +47,44 @@ def create_model(model):
         print(f"Error: {e.filename} - {e.strerror}.")
 
 
+def check_settings(settings):
+    # Boolean (True/False)
+    # MULTIPROCESSING, SAVE_DIAGNOSTIC, SAVE_LOG, SAVE_OUTPUT
+    for setting_name in ["MULTIPROCESSING", "SAVE_DIAGNOSTIC", "SAVE_LOG", "SAVE_OUTPUT"]:
+        if not isinstance(settings[setting_name], bool):
+            raise CashflowModelError(f"The {setting_name} setting must be a boolean (True or False).")
+
+    # String
+    # ID_COLUMN
+    if not isinstance(settings["ID_COLUMN"], str):
+        raise CashflowModelError("The ID_COLUMN setting must be a string.")
+
+    # None or string
+    # GROUP_BY
+    if not (settings["GROUP_BY"] is None or isinstance(settings["GROUP_BY"], str)):
+        raise CashflowModelError("The GROUP_BY setting must be None or a string.")
+
+    # None or a list of strings
+    # OUTPUT_VARIABLES
+    setting = settings["OUTPUT_VARIABLES"]
+    if not (setting is None or (isinstance(setting, list) and all(isinstance(item, str) for item in setting))):
+        raise CashflowModelError("The OUTPUT_VARIABLES setting must be None or a list of strings.")
+
+    # None or non-negative integer
+    # NUM_STOCHASTIC_SCENARIOS
+    setting = settings["NUM_STOCHASTIC_SCENARIOS"]
+    if not (setting is None or (isinstance(setting, int) and setting >= 0)):
+        raise CashflowModelError("The NUM_STOCHASTIC_SCENARIOS setting must be None or a non-negative integer.")
+
+    # Non-negative integer
+    # T_MAX_CALCULATION, T_MAX_OUTPUT
+    for setting_name in ["T_MAX_CALCULATION", "T_MAX_OUTPUT"]:
+        if not (isinstance(settings[setting_name], int) and settings[setting_name] >= 0):
+            raise CashflowModelError(f"The {setting_name} setting must be a non-negative integer.")
+
+
 def log_settings_changes(settings=None):
+    """Returns a list of logs describing adjustments to the user's settings."""
     changes = []
 
     if settings is None:
@@ -585,6 +622,7 @@ def run(settings=None, path=None):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     settings_changes = log_settings_changes(settings)
     settings = get_settings(settings)
+    check_settings(settings)
     args = parse_arguments()
     log_run_info(timestamp, path, args, settings_changes, settings)
 
