@@ -1,5 +1,5 @@
 from cashflower import variable
-from input import assumption, main, runplan
+from input import main, runplan
 
 
 @variable()
