@@ -14,12 +14,11 @@ import shutil
 from .core import ArrayVariable, Model, ModelPointSet, Runplan, StochasticVariable, Variable
 from .error import CashflowModelError
 from .graph import create_directed_graph, filter_variables_and_graph, get_calls, get_predecessors, set_calc_direction
-from .utils import get_git_commit_info, get_object_by_name, log_message, save_log_to_file
+from .utils import get_git_commit_info, get_main_model_point_set, log_message, save_log_to_file
 
 
 DEFAULT_SETTINGS = {
         "GROUP_BY": None,
-        "ID_COLUMN": "id",
         "MULTIPROCESSING": False,
         "NUM_STOCHASTIC_SCENARIOS": None,
         "OUTPUT_VARIABLES": None,
@@ -75,36 +74,26 @@ def log_settings_changes(settings=None):
 
 
 def check_settings(settings):
-    # Boolean (True/False)
-    # MULTIPROCESSING, SAVE_DIAGNOSTIC, SAVE_LOG, SAVE_OUTPUT
+    # Boolean (True/False) - MULTIPROCESSING, SAVE_DIAGNOSTIC, SAVE_LOG, SAVE_OUTPUT
     for setting_name in ["MULTIPROCESSING", "SAVE_DIAGNOSTIC", "SAVE_LOG", "SAVE_OUTPUT"]:
         if not isinstance(settings[setting_name], bool):
             raise CashflowModelError(f"The {setting_name} setting must be a boolean (True or False).")
 
-    # String
-    # ID_COLUMN
-    if not isinstance(settings["ID_COLUMN"], str):
-        raise CashflowModelError("The ID_COLUMN setting must be a string.")
-
-    # None or string
-    # GROUP_BY
+    # None or string - GROUP_BY
     if not (settings["GROUP_BY"] is None or isinstance(settings["GROUP_BY"], str)):
         raise CashflowModelError("The GROUP_BY setting must be None or a string.")
 
-    # None or a list of strings
-    # OUTPUT_VARIABLES
+    # None or a list of strings - OUTPUT_VARIABLES
     setting = settings["OUTPUT_VARIABLES"]
     if not (setting is None or (isinstance(setting, list) and all(isinstance(item, str) for item in setting))):
         raise CashflowModelError("The OUTPUT_VARIABLES setting must be None or a list of strings.")
 
-    # None or non-negative integer
-    # NUM_STOCHASTIC_SCENARIOS
+    # None or non-negative integer - NUM_STOCHASTIC_SCENARIOS
     setting = settings["NUM_STOCHASTIC_SCENARIOS"]
     if not (setting is None or (isinstance(setting, int) and setting >= 0)):
         raise CashflowModelError("The NUM_STOCHASTIC_SCENARIOS setting must be None or a non-negative integer.")
 
-    # Non-negative integer
-    # T_MAX_CALCULATION, T_MAX_OUTPUT
+    # Non-negative integer - T_MAX_CALCULATION, T_MAX_OUTPUT
     for setting_name in ["T_MAX_CALCULATION", "T_MAX_OUTPUT"]:
         if not (isinstance(settings[setting_name], int) and settings[setting_name] >= 0):
             raise CashflowModelError(f"The {setting_name} setting must be a non-negative integer.")
@@ -170,23 +159,13 @@ def get_model_point_sets(input_members, settings, args):
     for name, model_point_set in model_point_set_members:
         model_point_set.name = name
         model_point_set.settings = settings
-        model_point_set.initialize()
         model_point_sets.append(model_point_set)
 
     # User does not have to create any model point set
     if len(model_point_set_members) == 0:
         dummy = ModelPointSet(data=pd.DataFrame({"id": [1]}))
-        dummy.name = "dummy"
         dummy.settings = settings
-        dummy.initialize()
         model_point_sets.append(dummy)
-
-
-
-    # TODO
-    # if args.id is not None:
-    #     chosen_id = str(args.id)
-    #     main.data = main.data.loc[chosen_id]
 
     return model_point_sets
 
@@ -244,18 +223,23 @@ def check_input(settings, model_point_sets, variables):
                 raise CashflowModelError(msg)
 
     # Exactly one model point set must have main = True
-
-    count_main_true = sum(1 for point_set in model_point_sets if point_set.main)
+    count_main_true = sum(1 for model_point_set in model_point_sets if model_point_set.main)
     if count_main_true != 1:
         msg = "Exactly one ModelPointSet must have 'main' set to True."
         raise CashflowModelError(msg)
 
-    # - If there are multiple mps, each one must have id_column to match them
+    # If there are multiple model point sets, id_column must be defined
     if len(model_point_sets) > 1:
         for model_point_set in model_point_sets:
             if model_point_set.id_column is None:
                 msg = "When multiple model point sets are provided, each must have an 'id_column' defined."
                 raise CashflowModelError(msg)
+
+    # ID column must be a column in data
+    for model_point_set in model_point_sets:
+        if model_point_set.id_column and model_point_set.id_column not in model_point_set.data.columns:
+            msg = f"\nModel point set '{model_point_set.name}' is missing the id column '{model_point_set.id_column}'."
+            raise CashflowModelError(msg)
 
     return None
 
@@ -433,7 +417,7 @@ def start_single_core(settings, args):
     # Log runplan version and number of model points
     if runplan is not None:
         log_message(f"Runplan version: {runplan.version}")
-    main = get_object_by_name(model_point_sets, "main")
+    main = get_main_model_point_set(model_point_sets)
     log_message(f"Number of model points: {len(main)}")
 
     # Run model on single core
@@ -465,7 +449,7 @@ def start_multiprocessing(part, settings, args):
     # Log runplan version and number of model points
     if runplan is not None:
         log_message(f"Runplan version: {runplan.version}", print_and_save=one_core)
-    main = get_object_by_name(model_point_sets, "main")
+    main = get_main_model_point_set(model_point_sets)
     log_message(f"Number of model points: {len(main)}", print_and_save=one_core)
     log_message(f"Multiprocessing on {cpu_count} cores", print_and_save=one_core)
     log_message(f"Calculation of ca. {len(main) // cpu_count} model points per core", print_and_save=one_core)

@@ -8,6 +8,65 @@ from datetime import datetime
 log_messages = []
 
 
+def get_git_commit_info():
+    """
+    Retrieves the current Git commit hash and checks if there are any local changes.
+
+    Returns:
+        str: The current Git commit hash, or the commit hash followed by " (with local changes)"
+        if there are any uncommitted changes. Returns None if the current directory is not a Git repository.
+    """
+    try:
+        subprocess.check_output(["git", "rev-parse", "--is-inside-work-tree"], stderr=subprocess.STDOUT, text=True)
+        commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        status_output = subprocess.check_output(["git", "status", "--porcelain"], text=True).strip()
+    except subprocess.CalledProcessError:
+        # Not a git repository
+        return None
+
+    if status_output:
+        return f"{commit_hash} (with local changes)"
+    else:
+        return f"{commit_hash}"
+
+
+def get_first_indexes(items):
+    """Get the list of indexes for the first occurrence of each item in the list.
+
+    Example:
+    ["A", "A", "B", "A", "C", "D"] --> [0, 2, 4, 5]
+    """
+    first_indexes = {}
+    for index, item in enumerate(items):
+        if item not in first_indexes:
+            first_indexes[item] = index
+    return list(first_indexes.values())
+
+
+def get_main_model_point_set(model_point_sets):
+    for model_point_set in model_point_sets:
+        if model_point_set.main:
+            return model_point_set
+    return None
+
+
+def get_object_by_name(objects, name):
+    """
+    Returns the first object in the list that has the given name.
+
+    Args:
+        objects (list): A list of objects.
+        name (str): The name to search for.
+
+    Returns:
+        object: The first object in the list that has the given name. If no object is found, returns None.
+    """
+    for obj in objects:
+        if obj.name == name:
+            return obj
+    return None
+
+
 def log_message(msg, show_time=False, print_and_save=True):
     """
     Log a message with the timestamp and add to global log messages to be saved later on.
@@ -81,23 +140,6 @@ def split_to_ranges(n, num_ranges):
     return output
 
 
-def get_object_by_name(objects, name):
-    """
-    Returns the first object in the list that has the given name.
-
-    Args:
-        objects (list): A list of objects.
-        name (str): The name to search for.
-
-    Returns:
-        object: The first object in the list that has the given name. If no object is found, returns None.
-    """
-    for obj in objects:
-        if obj.name == name:
-            return obj
-    return None
-
-
 def update_progressbar(total, progress):
     """
     Displays or updates a console progress bar.
@@ -119,38 +161,3 @@ def update_progressbar(total, progress):
         status)
     sys.stdout.write(text)
     sys.stdout.flush()
-
-
-def get_git_commit_info():
-    """
-    Retrieves the current Git commit hash and checks if there are any local changes.
-
-    Returns:
-        str: The current Git commit hash, or the commit hash followed by " (with local changes)"
-        if there are any uncommitted changes. Returns None if the current directory is not a Git repository.
-    """
-    try:
-        subprocess.check_output(["git", "rev-parse", "--is-inside-work-tree"], stderr=subprocess.STDOUT, text=True)
-        commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-        status_output = subprocess.check_output(["git", "status", "--porcelain"], text=True).strip()
-    except subprocess.CalledProcessError:
-        # Not a git repository
-        return None
-
-    if status_output:
-        return f"{commit_hash} (with local changes)"
-    else:
-        return f"{commit_hash}"
-
-
-def get_first_indexes(items):
-    """Get the list of indexes for the first occurrence of each item in the list.
-
-    Example:
-    ["A", "A", "B", "A", "C", "D"] --> [0, 2, 4, 5]
-    """
-    first_indexes = {}
-    for index, item in enumerate(items):
-        if item not in first_indexes:
-            first_indexes[item] = index
-    return list(first_indexes.values())
