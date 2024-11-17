@@ -8,6 +8,7 @@ import multiprocessing
 import networkx as nx
 import numpy as np
 import os
+import pandas as pd
 import shutil
 
 from .core import ArrayVariable, Model, ModelPointSet, Runplan, StochasticVariable, Variable
@@ -165,23 +166,27 @@ def get_model_point_sets(input_members, settings, args):
     """
     model_point_set_members = [member for member in input_members if isinstance(member[1], ModelPointSet)]
 
-    main = None
     model_point_sets = []
     for name, model_point_set in model_point_set_members:
         model_point_set.name = name
         model_point_set.settings = settings
         model_point_set.initialize()
         model_point_sets.append(model_point_set)
-        if name == "main":
-            main = model_point_set
 
-    if main is None:
-        raise CashflowModelError("\nA model must have a model point set named 'main'. "
-                                 "Please check your input.py script.")
+    # User does not have to create any model point set
+    if len(model_point_set_members) == 0:
+        dummy = ModelPointSet(data=pd.DataFrame({"id": [1]}))
+        dummy.name = "dummy"
+        dummy.settings = settings
+        dummy.initialize()
+        model_point_sets.append(dummy)
 
-    if args.id is not None:
-        chosen_id = str(args.id)
-        main.data = main.data.loc[chosen_id]
+
+
+    # TODO
+    # if args.id is not None:
+    #     chosen_id = str(args.id)
+    #     main.data = main.data.loc[chosen_id]
 
     return model_point_sets
 
@@ -226,8 +231,8 @@ def get_variables(model_members, settings):
     return variables
 
 
-def check_input(settings, variables):
-    # Ensure OUTPUT_VARIABLES contain only existing variables
+def check_input(settings, model_point_sets, variables):
+    # The OUTPUT_VARIABLES setting must contain only existing variables
     variable_names = [v.name for v in variables]
     output_variable_names = settings["OUTPUT_VARIABLES"]
 
@@ -238,10 +243,24 @@ def check_input(settings, variables):
                        f"Please check the OUTPUT_VARIABLES setting.")
                 raise CashflowModelError(msg)
 
+    # Exactly one model point set must have main = True
+
+    count_main_true = sum(1 for point_set in model_point_sets if point_set.main)
+    if count_main_true != 1:
+        msg = "Exactly one ModelPointSet must have 'main' set to True."
+        raise CashflowModelError(msg)
+
+    # - If there are multiple mps, each one must have id_column to match them
+    if len(model_point_sets) > 1:
+        for model_point_set in model_point_sets:
+            if model_point_set.id_column is None:
+                msg = "When multiple model point sets are provided, each must have an 'id_column' defined."
+                raise CashflowModelError(msg)
+
     return None
 
 
-def prepare_model_input(settings, args):
+def get_model_input(settings, args):
     """
     Prepare the input for the cash flow model.
 
@@ -269,7 +288,7 @@ def prepare_model_input(settings, args):
     variables = get_variables(model_members, settings)
 
     # Check consistency of the input
-    check_input(settings, variables)
+    check_input(settings, model_point_sets, variables)
 
     return runplan, model_point_sets, variables
 
@@ -408,7 +427,7 @@ def start_single_core(settings, args):
     """
     # Prepare model components
     log_message("Reading model components...", show_time=True)
-    runplan, model_point_sets, variables = prepare_model_input(settings, args)
+    runplan, model_point_sets, variables = get_model_input(settings, args)
     variables = resolve_calculation_order(variables, settings)
 
     # Log runplan version and number of model points
@@ -440,7 +459,7 @@ def start_multiprocessing(part, settings, args):
 
     # Prepare model components
     log_message("Reading model components...", show_time=True, print_and_save=one_core)
-    runplan, model_point_sets, variables = prepare_model_input(settings, args)
+    runplan, model_point_sets, variables = get_model_input(settings, args)
     variables = resolve_calculation_order(variables, settings)
 
     # Log runplan version and number of model points

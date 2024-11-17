@@ -29,6 +29,13 @@ def get_variable_type(v):
         return "default"
 
 
+def get_main_model_point_set(model_point_sets):
+    for model_point_set in model_point_sets:
+        if model_point_set.main:
+            return model_point_set
+    return None
+
+
 def check_arguments(func, array):
     """
     Check if the input function has the correct arguments.
@@ -310,10 +317,10 @@ class Runplan:
 class ModelPointSet:
     """Set of model points."""
 
-    def __init__(self, data, id_column=None, main=False, name=None, settings=None):
+    def __init__(self, data, main=True, id_column=None, name=None, settings=None):
         self.data = data
-        self.id_column = id_column
         self.main = main
+        self.id_column = id_column
         self.name = name
         self.settings = settings
         self._id = None
@@ -326,78 +333,32 @@ class ModelPointSet:
         return self.data.shape[0]
 
     def initialize(self):
-        """Additional initialization (beyond __init__) is required
-        since 'name' and 'settings' are not available during object creation."""
+        # Additional initialization (beyond __init__) is required
+        # since 'name' and 'settings' are not available during object creation.
         self.perform_checks()
-        # self.set_index()
-        self.id = self.data.iloc[0][self.settings["ID_COLUMN"]]
-        # self.id = self.data.index[0]
+        # TODO - is it needed ?
+        # self.id = self.data.iloc[0][self.settings["ID_COLUMN"]]
 
     @functools.lru_cache()
     def get(self, attribute, record_num=0):
-        # Note: Only the 'main' model point set is guaranteed to have all IDs;
+        # Only the 'main' model point set is guaranteed to have all IDs;
         # other model point sets may not have rows for every ID
-        if self.id is None:
+        if self._id is None:
             return None
 
         return self.model_point_data.iloc[record_num][attribute]
 
-    # TODO
-    def set_model_point_data(self, single, value):
-        # single model point set --> change row (value = row)
-        if single:
-            self.model_point_data = self.data.iloc[[value]]
-        # multiple model point sets --> value = id
-        else:
-            self.model_point_data = self.data[self.data[self.id_column].astype(str) == str(value)]
-
-    @property
-    def id(self):
-        """Get the current model point's ID."""
-        return self._id
-
-    @id.setter
-    def id(self, new_id):
-        """Set the model point's ID and update corresponding attributes."""
-        is_in_column = str(new_id) in self.data[self.id_column].astype(str).values
-
-        new_id = str(new_id)
-        if is_in_column:
-            self._id = new_id
-            # self.model_point_data = self.data.loc[[new_id]]
-            self.model_point_data = self.data[self.data[self.id_column].astype(str) == str(new_id)]
-        else:
-            self._id = None
-        self.get.cache_clear()
-
-    def set_id(self, new_id):
-        self.id = new_id
+    def set_model_point_data(self, model_point_id):
+        self.model_point_data = self.data[self.data[self.id_column].astype(str) == str(model_point_id)]
 
     def perform_checks(self):
-        # id_column_name = self.settings["ID_COLUMN"]
-
-        # Model point set must have ID_COLUMN
-        # if id_column_name not in self.data.columns:
-        #     raise CashflowModelError(f"\nModel point set '{self.name}' is missing the required column '{id_column_name}'.")
-
-        # ID must be unique in the 'main' model point set
-        # if self.name == "main":
-        #     if not self.data[id_column_name].is_unique:
-        #         raise CashflowModelError(f"\nThe 'main' model point set must have unique values in '{id_column_name}' column.")
-
         # ID column must be a column in data
         if self.id_column and self.id_column not in self.data.columns:
             raise CashflowModelError(f"\nModel point set '{self.name}' is missing the id column '{self.id_column}'.")
 
-        # ID must be unique in the 'main' model point set
-        if self.main and not self.data[self.id_column].is_unique:
+        # ID must be unique in the 'main' model point set (if there are multiple model point sets)
+        if (self.main and self.id_column) and not self.data[self.id_column].is_unique:
             raise CashflowModelError(f"\nThe 'main' model point set must have unique values in the '{self.id_column}' column.")
-
-    def set_index(self):
-        """Convert ID column to string and use it as index, while preserving the original ID column."""
-        id_column_name = self.settings["ID_COLUMN"]
-        self.data = self.data.set_index(self.data[id_column_name].astype(str))
-        # self.data.index = pd.Index(map(str, range(1, len(self.data) + 1)))
 
 
 class Model:
@@ -581,15 +542,13 @@ class Model:
          [v2_t0, v2_t1, v2_t2, ... v2_tm],
          ...
          [vn_t0, vn_t1, vn_t2, ... v2_tm]]"""
-        main = get_object_by_name(self.model_point_sets, "main")
+        # main = get_object_by_name(self.model_point_sets, "main")
+        main = get_main_model_point_set(self.model_point_sets)
 
         # Set model point's id
-        # if len(self.model_point_sets) > 1:
-
-
-        model_point_id = main.data.index[row]
+        model_point_id = main.data.iloc[row][main.id_column]
         for model_point_set in self.model_point_sets:
-            model_point_set.set_id(model_point_id)
+            model_point_set.set_model_point_data(model_point_id)
 
         # Perform calculations
         max_calc_order = self.variables[-1].calc_order
@@ -663,3 +622,5 @@ class Model:
             diagnostic = None
 
         return diagnostic
+
+
