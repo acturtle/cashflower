@@ -66,22 +66,6 @@ For example, to group results by :code:`product_code`, configure your settings a
 
 |
 
-To generate output for individual model points, set the :code:`GROUP_BY` to the 'id' column'.
-
-..  code-block:: python
-    :caption: settings.py
-
-    settings = {
-        ...
-        "GROUP_BY": "id",
-        ...
-    }
-
-
-In this case, each model point will have its own set of results.
-
-|
-
 Subset of columns
 ^^^^^^^^^^^^^^^^^
 

@@ -66,7 +66,7 @@ class TestGetModelPointSets(TestCase):
         main = ModelPointSet(data=pd.DataFrame({"id": [1]}))
         input_members_1 = [("main", main)]
         settings = get_settings()
-        model_point_sets = get_model_point_sets(input_members_1, settings, argparse.Namespace(**{'id': None}))
+        model_point_sets = get_model_point_sets(input_members_1, settings)
         assert model_point_sets == [main]
 
 

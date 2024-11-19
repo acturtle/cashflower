@@ -10,7 +10,7 @@ def survival_probability(t):
     - At t=0, the probability is 1 (certain survival).
     - For t > 0, survival probability decreases iteratively.
     """
-    mortality_rate = 0.01  # Constant mortality rate
+    mortality_rate = 0.01
     if t == 0:
         return 1
     return survival_probability(t - 1) * (1 - mortality_rate)

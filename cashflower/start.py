@@ -138,14 +138,13 @@ def get_runplan(input_members, args):
     return runplan
 
 
-def get_model_point_sets(input_members, settings, args):
+def get_model_point_sets(input_members, settings):
     """
     Get model point set objects from the input.py script.
 
     Args:
         input_members (list): List of tuples containing member names and their corresponding values.
         settings (object): Settings object containing configuration for the model point sets.
-        args (object): Arguments object containing command line arguments.
 
     Returns:
         list: A list of initialized ModelPointSet objects.
@@ -265,7 +264,7 @@ def get_model_input(settings, args):
     # input.py contains runplan and model point sets
     input_members = inspect.getmembers(input_module)
     runplan = get_runplan(input_members, args)
-    model_point_sets = get_model_point_sets(input_members, settings, args)
+    model_point_sets = get_model_point_sets(input_members, settings)
 
     # model.py contains model variables
     model_members = inspect.getmembers(model_module)

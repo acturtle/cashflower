@@ -23,7 +23,6 @@ The repository of the :code:`cashflower` package follows this structure:
     ├── dev_models/              # Fully-functioning models for development checks
     ├── docs/                    # Documentation files
     ├── tests/                   # Unit tests
-    ├── tutorials/               # Tutorials and guides
     ├── .gitignore               # Ignored files for version control
     ├── .readthedocs.yaml        # Configuration for ReadTheDocs platform
     ├── LICENSE                  # License information
