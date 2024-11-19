@@ -68,7 +68,7 @@ please visit our `GitHub repository <https://github.com/acturtle/cashflower>`_.
 
    user_guide
    advanced
-   tutorials
    developer_guide
    modules
    Discussions <https://github.com/acturtle/cashflower/discussions>
+   Acturtle <https://www.acturtle.com>

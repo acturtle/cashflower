@@ -33,14 +33,14 @@ Create model
 ^^^^^^^^^^^^
 
 Start your project with creating a new model. You can create multiple models for each product that you work on.
-Pass on the name when creating the model, e.g. :code:`wol`.
+Pass on the name when creating the model, e.g. :code:`my_model`.
 
 ..  code-block:: python
     :caption: python
 
     from cashflower import create_model
 
-    create_model("wol")
+    create_model("my_model")
 
 The :code:`create_model()` function creates an initial structure of the model.
 
@@ -59,10 +59,10 @@ The initial structure consists of the :code:`input.py`, :code:`model.py`, :code:
 Input
 ^^^^^
 
-In the :code:`input.py` script, you can define runplan, model point sets and assumptions.
+In the :code:`input.py` script, you can define runplan, model point sets and other assumptions.
 
 .. code-block:: python
-   :caption: wol/input.py
+   :caption: my_model/input.py
 
     import pandas as pd
 
@@ -74,13 +74,13 @@ In the :code:`input.py` script, you can define runplan, model point sets and ass
         "valuation_month": [12]
     }))
 
-    main = ModelPointSet(data=pd.read_csv("C:/my_data/policy.csv"))
+    policy = ModelPointSet(data=pd.read_csv("C:/my_data/policy.csv"))
 
     assumption = dict()
     assumption["interest_rates"] = pd.read_csv("C:/my_data/interest_rates.csv")
     assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv", index_col="age")
 
-Runplan bases on the :code:`Runplan` class, model point sets base on the :code:`ModelPointSet` class and assumptions have a form of a dictionary.
+Runplan bases on the :code:`Runplan` class and model point sets base on the :code:`ModelPointSet` class.
 
 |
 
@@ -90,14 +90,15 @@ Model
 The :code:`model.py` script contains the logic of the model. You can define model variables there.
 
 .. code-block:: python
-   :caption: wol/model.py
+   :caption: my_model/model.py
 
+    from input import policy, assumption
     from cashflower import variable
 
     @variable()
     def age(t):
         if t == 0:
-            return int(main.get("AGE"))
+            return int(policy.get("AGE"))
         elif t % 12 == 0:
             return age(t-1) + 1
         else:
@@ -109,7 +110,7 @@ The :code:`model.py` script contains the logic of the model. You can define mode
         if age(t) == age(t-1):
             return death_prob(t-1)
         elif age(t) <= 100:
-            sex = main.get("SEX")
+            sex = policy.get("SEX")
             yearly_rate = assumption["mortality"].loc[age(t)][sex]
             monthly_rate = (1 - (1 - yearly_rate)**(1/12))
             return monthly_rate
@@ -162,7 +163,6 @@ Market assumptions are, for example, interest rate curves.
 Assumptions are also product's parameters, such as fees or levels of guarantees.
 
 **Model** - actuarial model reminds a spider's web. There are many variables which dependent on each other.
-
 
 **Model variables** - functions that depend on the projection's period.
 
