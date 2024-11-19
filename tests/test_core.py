@@ -53,28 +53,9 @@ class TestModelPointSet(TestCase):
 
         main.name = "main"
         main.settings = get_settings()
-        main.initialize()
-        assert main.id == "1"
+        main.set_model_point_data(0)
         assert main.get("age") == 52
         assert repr(main) == "MPS: main"
-
-    def test_model_point_set_raises_error_when_no_id_col(self):
-        main = ModelPointSet(
-            data=pd.DataFrame({"age": [52, 47, 35]}),
-            name="policy",
-            settings=get_settings()
-        )
-        with pytest.raises(CashflowModelError):
-            main.initialize()
-
-    def test_model_point_set_raises_error_when_no_unique_keys(self):
-        main = ModelPointSet(
-            data=pd.DataFrame({"id": [1, 2, 2]}),
-            name="main",
-            settings=get_settings()
-        )
-        with pytest.raises(CashflowModelError):
-            main.initialize()
 
 
 class TestVariable(TestCase):

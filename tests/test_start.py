@@ -21,7 +21,6 @@ class TestLoadSettings(TestCase):
     def test_load_settings(self):
         default_settings = {
             "GROUP_BY": None,
-            "ID_COLUMN": "id",
             "MULTIPROCESSING": False,
             "NUM_STOCHASTIC_SCENARIOS": None,
             "OUTPUT_VARIABLES": None,
@@ -38,14 +37,12 @@ class TestLoadSettings(TestCase):
         assert settings == default_settings
 
         my_settings2 = {
-            "ID_COLUMN": "polnumber",
             "T_MAX_CALCULATION": 100,
             "OUTPUT_VARIABLES": ["a", "b", "c"],
         }
         settings = get_settings(my_settings2)
         assert settings == {
             "GROUP_BY": None,
-            "ID_COLUMN": "polnumber",
             "MULTIPROCESSING": False,
             "NUM_STOCHASTIC_SCENARIOS": None,
             "OUTPUT_VARIABLES": ["a", "b", "c"],
@@ -71,10 +68,6 @@ class TestGetModelPointSets(TestCase):
         settings = get_settings()
         model_point_sets = get_model_point_sets(input_members_1, settings, argparse.Namespace(**{'id': None}))
         assert model_point_sets == [main]
-
-        input_members_2 = [("foo", "foo"), ("bar", "bar")]
-        with pytest.raises(CashflowModelError):
-            get_model_point_sets(input_members_2, settings, argparse.Namespace(**{'id': None}))
 
 
 class TestGetVariables(TestCase):
