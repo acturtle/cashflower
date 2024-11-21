@@ -8,18 +8,6 @@ To calculate the model, execute the :code:`run.py` script:
 
     python run.py
 
-The model will automatically create an :code:`output` folder if it doesn't already exist.
-Inside this folder, the model will generate CSV files containing results and diagnostics,
-as well as a text file for the log:
-
-..  code-block::
-
-    .
-    └── output/
-        └── <timestamp>_diagnostic.csv
-        └── <timestamp>_log.txt
-        └── <timestamp>_output.csv
-
 |
 
 Run a specific version
@@ -50,6 +38,8 @@ of the :code:`Runplan` class:
 
 ..  code-block::
     :caption: model.py
+
+    from input import runplan
 
     @variable()
     def shocked_mortality_rate(t):

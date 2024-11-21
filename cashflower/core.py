@@ -325,6 +325,9 @@ class ModelPointSet:
         return self.data.shape[0]
 
     def get(self, attribute, record_num=0):
+        if self.model_point_data.empty:
+            return 0
+
         return self.model_point_data.iloc[record_num][attribute]
 
     def set_model_point_data(self, value):
@@ -599,5 +602,3 @@ class Model:
             diagnostic = None
 
         return diagnostic
-
-

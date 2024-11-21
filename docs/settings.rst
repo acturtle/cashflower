@@ -67,42 +67,39 @@ in your configuration file, :code:`settings.py`, as follows:
     :caption: settings.py
 
     settings = {
-        ...
+        # ...
         "GROUP_BY": "product_code",
-        ...
+        # ...
     }
 
 |
 
-Ensure that there is a corresponding column in your 'main' model point set, as shown in :code:`input.py`:
+Ensure that there is a corresponding column in your model point set, as shown in :code:`input.py`:
 
 ..  code-block:: python
     :caption: input.py
 
-    main = ModelPointSet(data=pd.DataFrame({
-        "id": [1, 2, 3],
+    policy = ModelPointSet(data=pd.DataFrame({
+        # ...
         "product_code": ["A", "B", "A"]
+        # ...
     }))
 
 |
 
-The resulting output will contain aggregated results grouped by the specified column, as demonstrated in the following CSV output:
+The resulting output will contain aggregated results grouped by the specified column, as demonstrated below:
 
 ..  code-block::
-    :caption: <timestamp>_output.csv
 
-    t,product_code,fund_value
-    0,A,24000
-    1,A,24048
-    2,A,24096.1
-    3,A,24144.29
-    0,B,3000
-    1,B,3006
-    2,B,3012.01
-    3,B,3018.03
-
-
-To get the results at the individual level, set the  :code:`GROUP_BY` to the 'id' column.
+    t    product_code    fund_value
+    0    A               24000
+    1    A               24048
+    2    A               24096.1
+    3    A               24144.29
+    0    B               3000
+    1    B               3006
+    2    B               3012.01
+    3    B               3018.03
 
 |
 
@@ -149,9 +146,9 @@ All variables are saved in the output.
     :caption: settings.py
 
     settings = {
-        ...
-        "OUTPUT_COLUMNS": None,
-        ...
+        # ...
+        "OUTPUT_VARIABLES": None,
+        # ...
     }
 
 If the model has 3 variables, all of them will be in the output.
@@ -173,7 +170,7 @@ If the model has 3 variables, all of them will be in the output.
     def c(t):
         return 3*t
 
-The result contains all columns.
+The result contains all variables.
 
 ..  code-block::
     :caption: output
@@ -189,18 +186,18 @@ The result contains all columns.
     3   3   6   9
 
 
-The user can choose a subset of columns.
+The user can choose a subset of variables.
 
 ..  code-block:: python
     :caption: settings.py
 
     settings = {
         ...
-        "OUTPUT_COLUMNS": ["a", "c"],
+        "OUTPUT_VARIABLES": ["a", "c"],
         ...
     }
 
-Only the chosen columns are in the output.
+Only the chosen variables are in the output.
 
 ..  code-block::
     :caption: output
@@ -313,18 +310,8 @@ SAVE_OUTPUT
 
 The :code:`SAVE_OUTPUT` setting is a boolean flag that determines whether the model should save its results to a file.
 
-By default, the setting is set to :code:`True`.
-
-..  code-block:: python
-    :caption: settings.py
-
-    settings = {
-        ...
-        "SAVE_OUTPUT": True,
-        ...
-    }
-
-When :code:`SAVE_OUTPUT` is set to :code:`True`, the model will save a file named :code:`<timestamp>_output.csv` in the output folder:
+By default, the setting is set to :code:`True`. When :code:`SAVE_OUTPUT` is set to :code:`True`,
+the model will save a file named :code:`<timestamp>_output.csv` in the output folder:
 
 ..  code-block::
 
@@ -356,18 +343,18 @@ The output variable contains a data frame with the results. In the example above
     └── results/
         └── my_awesome_results.csv
 
-You can leverage this feature to tailor the output to your specific needs or further process the results as required.
+You can use this feature to customise the output or process the results as needed.
 
 |
 
 T_MAX_CALCULATION
 -----------------
 
-The :code:`T_MAX_CALCULATION` is the maximal month of the calculation.
+The :code:`T_MAX_CALCULATION` is the maximal period of the calculation.
 
 The model will calculate results for all time periods from :code:`0` to :code:`T_MAX_CALCULATION`.
 
-By default, the setting is set to :code:`720` months (:code:`60` years).
+By default, the setting is set to :code:`720`.
 
 |
 
@@ -376,7 +363,7 @@ T_MAX_OUTPUT
 
 The :code:`T_MAX_OUTPUT` is the maximal month in the output file.
 
-By default, the model will save results for :code:`720` months.
+By default, the model will save results for :code:`720` periods.
 
 ..  code-block:: python
     :caption: settings.py

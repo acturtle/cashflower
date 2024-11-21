@@ -66,7 +66,9 @@ In the :code:`input.py` script, you can define runplan, model point sets and oth
 
     import pandas as pd
 
-    from cashflower import Runplan, ModelPointSet
+    from cashflower import ModelPointSet, Runplan
+
+    policy = ModelPointSet(data=pd.read_csv("C:/my_data/policy.csv"))
 
     runplan = Runplan(data=pd.DataFrame({
         "version": [1],
@@ -74,13 +76,12 @@ In the :code:`input.py` script, you can define runplan, model point sets and oth
         "valuation_month": [12]
     }))
 
-    policy = ModelPointSet(data=pd.read_csv("C:/my_data/policy.csv"))
+    assumption = {
+        "interest_rates": pd.read_csv("C:/my_data/interest_rates.csv"),
+        "mortality": pd.read_csv("C:/my_data/mortality.csv", index_col="age")
+    }
 
-    assumption = dict()
-    assumption["interest_rates"] = pd.read_csv("C:/my_data/interest_rates.csv")
-    assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv", index_col="age")
-
-Runplan bases on the :code:`Runplan` class and model point sets base on the :code:`ModelPointSet` class.
+Model point set bases on the :code:`ModelPointSet` class and runplan bases on the :code:`Runplan` class.
 
 |
 
@@ -129,7 +130,7 @@ To calculate the model, run :code:`run.py`.
 ..  code-block::
     :caption: terminal
 
-    cd wol
+    cd my_model
     python run.py
 
 This command will create the model's output.
@@ -174,7 +175,7 @@ Time
 ----
 
 Actuarial cash flow models try to predict the future. The results are put on a timeline with future dates.
-Time variable :code:`t` plays an import role.
+Time variable :code:`t` plays an import role. In actuarial reporting, it's usual to build monthly models.
 
 |
 
@@ -224,9 +225,6 @@ Moment in month
 
 By default, :code:`t` reflects the end of the month.
 If cash flows in different moments of the month, it can be reflected using discounting.
-
-.. TIP::
-   Use the right discounting if the cash flow does not happen at the end of the month.
 
 For example, there are premiums occurring **in the middle of** the month.
 

@@ -28,7 +28,7 @@ Time dependence
 
 Model variables produce results per model point and time.
 
-.. image:: https://acturtle.com/static/img/31/all.png
+.. image:: https://acturtle.com/static/img/docs/time-dependent-constant-variable.png
    :align: center
 
 Regarding time dependence, there are two types of variables:

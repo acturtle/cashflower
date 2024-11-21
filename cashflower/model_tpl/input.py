@@ -5,7 +5,7 @@ Define your model point sets and the runplan here.
 
 Example:
     ```
-    from cashflower import Runplan, ModelPointSet
+    from cashflower import ModelPointSet, Runplan
     import pandas as pd
 
     # Define a model point set with sample data

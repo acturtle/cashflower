@@ -29,9 +29,9 @@ You're just a few commands away from running your first cash flow model with cas
         $ pip install cashflower
         $ python
         >>> from cashflower import create_model
-        >>> create_model("mymodel")
+        >>> create_model("my_model")
         >>> quit()
-        $ cd mymodel
+        $ cd my_model
         $ python run.py
 
 Congratulations, you’ve just run your first cash flow model with cashflower!
@@ -71,4 +71,4 @@ please visit our `GitHub repository <https://github.com/acturtle/cashflower>`_.
    developer_guide
    modules
    Discussions <https://github.com/acturtle/cashflower/discussions>
-   Acturtle <https://www.acturtle.com>
+   Tutorials <https://acturtle.com/series/>

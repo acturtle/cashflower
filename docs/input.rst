@@ -17,7 +17,7 @@ Model point sets
 Model point sets contain model points. Model points represent objects for which the model is calculated.
 The model point can be, for example, a policyholder or a financial instrument.
 
-.. image:: https://acturtle.com/static/img/25/multiple_model_point_sets.png
+.. image:: https://acturtle.com/static/img/docs/model_point_sets.png
    :align: center
 
 |
@@ -47,8 +47,8 @@ The cash flow model will calculate results for each of the model points in the m
 
 |
 
-Create a model point set
-^^^^^^^^^^^^^^^^^^^^^^^^
+Create a model point set from a file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The data for the model point set might be stored in a csv file.
 
@@ -195,6 +195,59 @@ For example, to calculate the total value of fund value, use:
 
 |
 
+Runplan
+-------
+
+Runplan is a list of runs that the model should perform.
+
+..  code-block:: python
+    :caption: input.py
+
+    import pandas as pd
+    from cashflower import Runplan, ModelPointSet
+
+    runplan = Runplan(data=pd.DataFrame({
+        "version": [1, 2, 3],
+        "shock": [0, 0.05, -0.05]
+    }))
+
+You can use different run versions, to calculate different scenarios.
+
+To get data from runplan, use:
+
+..  code-block:: python
+
+    runplan.get("my-column")
+
+For example:
+
+..  code-block:: python
+    :caption: model.py
+
+    from input import main, runplan
+
+
+    @variable()
+    def mortality_rate(t):
+        ...
+
+    @variable()
+    def shocked_mortality_rate(t):
+        return mortality_rate(t) * (1 + runplan.get("shock"))
+
+To run the model with the chosen version, source the :code:`run.py` and add the version number.
+
+For example, to run the model with the version :code:`2` , use:
+
+..  code-block::
+    :caption: terminal
+
+    python run.py --version 2
+
+The model will take data from runplan for the version 2.
+
+|
+
 Assumptions
 -----------
 
@@ -306,53 +359,3 @@ If your data has multiple row label columns, provide the tuple of row labels.
 
 |
 
-Runplan
--------
-
-Runplan is a list of runs that the model should perform.
-
-..  code-block:: python
-    :caption: input.py
-
-    import pandas as pd
-    from cashflower import Runplan, ModelPointSet
-
-    runplan = Runplan(data=pd.DataFrame({
-        "version": [1, 2, 3],
-        "shock": [0, 0.05, -0.05]
-    }))
-
-You can use different run versions, to calculate different scenarios.
-
-To get data from runplan, use:
-
-..  code-block:: python
-
-    runplan.get("my-column")
-
-For example:
-
-..  code-block:: python
-    :caption: model.py
-
-    from input import main, runplan
-
-
-    @variable()
-    def mortality_rate(t):
-        ...
-
-    @variable()
-    def shocked_mortality_rate(t):
-        return mortality_rate(t) * (1 + runplan.get("shock"))
-
-To run the model with the chosen version, source the :code:`run.py` and add the version number.
-
-For example, to run the model with the version :code:`2` , use:
-
-..  code-block::
-    :caption: terminal
-
-    python run.py --version 2
-
-The model will take data from runplan for the version 2.

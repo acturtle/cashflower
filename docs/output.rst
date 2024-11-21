@@ -12,8 +12,10 @@ These files are organized within the :code:`output` folder, as shown below:
         └── <timestamp>_log.txt
         └── <timestamp>_output.csv
 
-The numerical results of the model variables are stored in the :code:`<timestamp>_output.csv` file. Users can review
-and manipulate the results from this file or utilize the :code:`output` dataframe returned by the :code:`run.py` script.
+
+The model will automatically create an :code:`output` folder if it doesn't already exist.
+Inside this folder, the model will generate a CSV file containing the output results.
+If specified, the model will also save a diagnostics file, which is also in CSV format, and a log file in text format.
 
 |
 
@@ -41,9 +43,9 @@ all model points.
    :caption: settings.py
 
    settings = {
-       ...
+       # ...
        "GROUP_BY": None,
-       ...
+       # ...
    }
 
 
@@ -51,7 +53,7 @@ In the aggregated output, results are summed across all model points, resulting 
 The number of rows in this output is determined by :code:`T_MAX_OUTPUT + 1`, where the :code:`+1` accounts for the projection starting at time period 0.
 
 You can also aggregate data by groups. To do this, specify the :code:`GROUP_BY` as the column name containing
-the grouping variable from your 'main' model point set.
+the grouping variable from your model point set.
 
 For example, to group results by :code:`product_code`, configure your settings as follows:
 
@@ -59,15 +61,18 @@ For example, to group results by :code:`product_code`, configure your settings a
    :caption: settings.py
 
    settings = {
-       ...
+       # ...
        "GROUP_BY": "product_code",
-       ...
+       # ...
    }
 
 |
 
-Subset of columns
-^^^^^^^^^^^^^^^^^
+Subset of variables
+^^^^^^^^^^^^^^^^^^^
+
+The :code:`OUTPUT_VARIABLES` setting takes a list of variables names to include in the output.
+By default, when this setting is an empty list, results for all model variables are generated.
 
 If you only require specific variables in the output, you can select them using the :code:`OUTPUT_VARIABLES` setting:
 
@@ -75,18 +80,25 @@ If you only require specific variables in the output, you can select them using 
     :caption: settings.py
 
     settings = {
-        ...
+        # ...
         "OUTPUT_VARIABLES": ["bel"],
-        ...
+        # ...
     }
 
 
+..  code-block::
+    :caption: output
+
+    t    bel
+    0    27000.0
+    1    27054.0
+    2    27108.11
+    3    27162.32
+    ...  ...
+    720  31413.12
+
 .. image:: https://acturtle.com/static/img/39/output_subset.png
    :align: center
-
-
-The :code:`OUTPUT_VARIABLES` setting takes a list of variables names to include in the output.
-By default, when this setting is an empty list, results for all model variables are generated.
 
 |
 
@@ -117,9 +129,9 @@ This prevents the model from saving the output in the default manner:
     :caption: settings.py
 
     settings = {
-        ...
+        # ...
         "SAVE_OUTPUT": False,
-        ...
+        # ...
     }
 
 2. Modify the :code:`run.py` script to handle custom output.
