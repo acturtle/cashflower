@@ -17,10 +17,6 @@ The table below summarizes available settings.
      - a string
      - :code:`None`
      - The column in the 'main' model point set to group aggregated results.
-   * - ID_COLUMN
-     - a string
-     - :code:`id`
-     - The column in the 'main' model point set containing identifiers of the model points.
    * - MULTIPROCESSING
      - :code:`True` / :code:`False`
      - :code:`False`
@@ -71,98 +67,39 @@ in your configuration file, :code:`settings.py`, as follows:
     :caption: settings.py
 
     settings = {
-        ...
+        # ...
         "GROUP_BY": "product_code",
-        ...
+        # ...
     }
 
 |
 
-Ensure that there is a corresponding column in your 'main' model point set, as shown in :code:`input.py`:
+Ensure that there is a corresponding column in your model point set, as shown in :code:`input.py`:
 
 ..  code-block:: python
     :caption: input.py
 
-    main = ModelPointSet(data=pd.DataFrame({
-        "id": [1, 2, 3],
+    policy = ModelPointSet(data=pd.DataFrame({
+        # ...
         "product_code": ["A", "B", "A"]
+        # ...
     }))
 
 |
 
-The resulting output will contain aggregated results grouped by the specified column, as demonstrated in the following CSV output:
+The resulting output will contain aggregated results grouped by the specified column, as demonstrated below:
 
 ..  code-block::
-    :caption: <timestamp>_output.csv
 
-    t,product_code,fund_value
-    0,A,24000
-    1,A,24048
-    2,A,24096.1
-    3,A,24144.29
-    0,B,3000
-    1,B,3006
-    2,B,3012.01
-    3,B,3018.03
-
-
-To get the results at the individual level, set the  :code:`GROUP_BY` to the 'id' column.
-
-|
-
-ID_COLUMN
----------
-
-Each model point must have a column with a key column used for identification.
-This column is also used to connect records in case of multiple model point.
-
-By default, the column must be named :code:`id`.
-The value can be changed using the :code:`ID_COLUMN` setting.
-Column names are case-sensitive. :code:`id` is something else than :code:`ID`.
-
-|
-
-The default value for the :code:`ID_COLUMN` setting is :code:`id`.
-
-..  code-block:: python
-    :caption: settings.py
-
-    settings = {
-        ...
-        "ID_COLUMN": "id",
-        ...
-    }
-
-The model point must have a column with this name.
-
-..  code-block:: python
-    :caption: input.py
-
-    from cashflower import ModelPointSet
-
-    main = ModelPointSet(data=pd.DataFrame({"id": [1, 2]}))
-
-|
-
-The key column might have other name.
-
-..  code-block:: python
-    :caption: settings.py
-
-    settings = {
-        ...
-        "ID_COLUMN": "policy_number",
-        ...
-    }
-
-The model point must have a column with this name.
-
-..  code-block:: python
-    :caption: input.py
-
-    from cashflower import ModelPointSet
-
-    main = ModelPointSet(data=pd.DataFrame({"policy_number": [1, 2]}))
+    t    product_code    fund_value
+    0    A               24000
+    1    A               24048
+    2    A               24096.1
+    3    A               24144.29
+    0    B               3000
+    1    B               3006
+    2    B               3012.01
+    3    B               3018.03
 
 |
 
@@ -196,22 +133,22 @@ For example, if :code:`NUM_STOCHASTIC_SCENARIOS` is set to :code:`5`, the model 
 
 |
 
-OUTPUT_COLUMNS
---------------
+OUTPUT_VARIABLES
+----------------
 
 By default, the model outputs all variables.
 If you do not need all of them, provide the list of variables that should be in the output.
 
-The default value of the :code:`OUTPUT_COLUMNS` setting is the empty list (:code:`[]`).
+The default value of the :code:`OUTPUT_VARIABLES` setting is :code:`None`.
 All variables are saved in the output.
 
 ..  code-block:: python
     :caption: settings.py
 
     settings = {
-        ...
-        "OUTPUT_COLUMNS": [],
-        ...
+        # ...
+        "OUTPUT_VARIABLES": None,
+        # ...
     }
 
 If the model has 3 variables, all of them will be in the output.
@@ -233,46 +170,47 @@ If the model has 3 variables, all of them will be in the output.
     def c(t):
         return 3*t
 
-The result contains all columns.
+The result contains all variables.
 
 ..  code-block::
-    :caption: <timestamp>_output.csv
+    :caption: output
 
-    t,a,b,c
-    0,0,0,0
-    1,1,2,3
-    2,2,4,6
-    3,3,6,9
-    0,0,0,0
-    1,1,2,3
-    2,2,4,6
-    3,3,6,9
+    t   a   b   c
+    0   0   0   0
+    1   1   2   3
+    2   2   4   6
+    3   3   6   9
+    0   0   0   0
+    1   1   2   3
+    2   2   4   6
+    3   3   6   9
 
-The user can choose a subset of columns.
+
+The user can choose a subset of variables.
 
 ..  code-block:: python
     :caption: settings.py
 
     settings = {
         ...
-        "OUTPUT_COLUMNS": ["a", "c"],
+        "OUTPUT_VARIABLES": ["a", "c"],
         ...
     }
 
-Only the chosen columns are in the output.
+Only the chosen variables are in the output.
 
 ..  code-block::
-    :caption: <timestamp>_output.csv
+    :caption: output
 
-    t,a,c
-    0,0,0
-    1,1,3
-    2,2,6
-    3,3,9
-    0,0,0
-    1,1,3
-    2,2,6
-    3,3,9
+    t   a   c
+    0   0   0
+    1   1   3
+    2   2   6
+    3   3   9
+    0   0   0
+    1   1   3
+    2   2   6
+    3   3   9
 
 |
 
@@ -298,12 +236,13 @@ When the :code:`SAVE_DIAGNOSTIC` setting is set to :code:`True`, the model saves
 The diagnostic file contains various pieces of information about the model's variables, such as:
 
 ..  code-block::
-    :caption: <timestamp>_diagnostic.csv
+    :caption: diagnostic
 
-    variable,calc_order,cycle,calc_direction,type,runtime
-    a,1,False,irrelevant,default,5.4
-    c,2,False,backward,constant,2.7
-    b,3,False,forward,array,7.1
+    variable   calc_order   cycle   calc_direction   type      runtime
+    a          1            False   irrelevant       default   5.4
+    c          2            False   backward         constant  2.7
+    b          3            False   forward          array     7.1
+
 
 This file can be valuable for gaining insights into the model's behavior, identifying variables that require the most
 processing time, and optimizing them for better performance.
@@ -347,10 +286,9 @@ Here is an example of the content of the log file (:code:`<timestamp>_log.txt`):
 
                Run settings:
                - GROUP_BY: None
-               - ID_COLUMN: id
                - MULTIPROCESSING: False
                - NUM_STOCHASTIC_SCENARIOS: None
-               - OUTPUT_COLUMNS: []
+               - OUTPUT_VARIABLES: []
                - SAVE_DIAGNOSTIC: True
                - SAVE_LOG: True
                - SAVE_OUTPUT: True
@@ -372,18 +310,8 @@ SAVE_OUTPUT
 
 The :code:`SAVE_OUTPUT` setting is a boolean flag that determines whether the model should save its results to a file.
 
-By default, the setting is set to :code:`True`.
-
-..  code-block:: python
-    :caption: settings.py
-
-    settings = {
-        ...
-        "SAVE_OUTPUT": True,
-        ...
-    }
-
-When :code:`SAVE_OUTPUT` is set to :code:`True`, the model will save a file named :code:`<timestamp>_output.csv` in the output folder:
+By default, the setting is set to :code:`True`. When :code:`SAVE_OUTPUT` is set to :code:`True`,
+the model will save a file named :code:`<timestamp>_output.csv` in the output folder:
 
 ..  code-block::
 
@@ -415,18 +343,18 @@ The output variable contains a data frame with the results. In the example above
     └── results/
         └── my_awesome_results.csv
 
-You can leverage this feature to tailor the output to your specific needs or further process the results as required.
+You can use this feature to customise the output or process the results as needed.
 
 |
 
 T_MAX_CALCULATION
 -----------------
 
-The :code:`T_MAX_CALCULATION` is the maximal month of the calculation.
+The :code:`T_MAX_CALCULATION` is the maximal period of the calculation.
 
 The model will calculate results for all time periods from :code:`0` to :code:`T_MAX_CALCULATION`.
 
-By default, the setting is set to :code:`720` months (:code:`60` years).
+By default, the setting is set to :code:`720`.
 
 |
 
@@ -435,7 +363,7 @@ T_MAX_OUTPUT
 
 The :code:`T_MAX_OUTPUT` is the maximal month in the output file.
 
-By default, the model will save results for :code:`720` months.
+By default, the model will save results for :code:`720` periods.
 
 ..  code-block:: python
     :caption: settings.py
@@ -460,13 +388,13 @@ If the setting gets changed, then the number of rows in the output file will cha
 The file saves only results for the first 3 months.
 
 ..  code-block::
-    :caption: <timestamp>_output.csv
+    :caption: output
 
-    t,fund_value
-    0,27000.0
-    1,27054.0
-    2,27108.11
-    3,27162.32
+    t   fund_value
+    0   27000.0
+    1   27054.0
+    2   27108.11
+    3   27162.32
 
 :code:`T_MAX_OUTPUT` can't be greater than :code:`T_MAX_CALCULATION`.
 Model will set :code:`T_MAX_OUTPUT` to :code:`min(T_MAX_OUTPUT, T_MAX_CALCULATION)`.

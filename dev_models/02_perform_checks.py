@@ -162,6 +162,7 @@ def check_all():
         "dev_model_22": {},
         "dev_model_23": {},
         "dev_model_24": {"extra_checks": check_dev_model_24},
+        "dev_model_25": {},
     }
     for model_name, settings in models.items():
         run_checks(model_name, **settings)

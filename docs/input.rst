@@ -6,8 +6,10 @@ Input for the cash flow model is defined in the :code:`input.py` script.
 There are three types of the model's inputs:
 
 * model point sets,
-* assumptions,
-* runplan.
+* runplan,
+* other assumptions.
+
+|
 
 Model point sets
 ----------------
@@ -15,7 +17,7 @@ Model point sets
 Model point sets contain model points. Model points represent objects for which the model is calculated.
 The model point can be, for example, a policyholder or a financial instrument.
 
-.. image:: https://acturtle.com/static/img/25/multiple_model_point_sets.png
+.. image:: https://acturtle.com/static/img/docs/model_point_sets.png
    :align: center
 
 |
@@ -35,15 +37,18 @@ The model point set is defined using the :code:`ModelPointSet` class.
 
     from cashflower import ModelPointSet
 
-    main = ModelPointSet(data=pd.DataFrame({"id": [1, 2, 3]}))
+    my_model_point_set = ModelPointSet(data=pd.DataFrame({
+        "age": [27, 65, 38],
+        "sex": ["F", "M", "M"]
+    }))
 
 
 The cash flow model will calculate results for each of the model points in the model point set.
 
 |
 
-Create a model point set
-^^^^^^^^^^^^^^^^^^^^^^^^
+Create a model point set from a file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The data for the model point set might be stored in a csv file.
 
@@ -57,55 +62,77 @@ The data for the model point set might be stored in a csv file.
 
 
 To create a model point set, use :code:`ModelPointSet` class and pass a data frame in the :code:`data` parameter.
-The primary model point set must be called :code:`main`.
 
 ..  code-block:: python
     :caption: input.py
 
     from cashflower import ModelPointSet
 
-    main = ModelPointSet(data=pd.read_csv("data-policy.csv"))
+    policy = ModelPointSet(data=pd.read_csv("data-policy.csv"))
 
 
-A model can have multiple model point sets but at least one of them must be assigned to a variable :code:`main`.
-The :code:`main` model point set must have unique keys.
-
-By default, the identifiers of model points are stored in the column named :code:`id`.
-The column name can be changed using the :code:`ID_COLUMN` setting in the :code:`settings.py` script.
+A model can have multiple model point sets.
 
 |
 
 Multiple model point sets
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The model can have multiple model point sets. The :code:`main` model point set must have one record per model point.
-The other model point sets might have multiple records for each model point.
+The model can include  multiple model point sets.
 
-For example, the policyholder holds multiple funds. Each fund has its own record.
+In this case, you need to specify which model point sets are secondary by setting :code:`main` to :code:`False`.
+Exactly one model point set should have :code:`main` set to :code:`True`.
+The model will loop over the model points of this primary model point set.
+
+Additionally, if multiple model point sets are used, you must set the :code:`id_column` parameter.
+This parameter specifies the column in the data used to link records between the model point sets.
+
+For example, the policyholder may hold multiple funds, and each fund has its own record.
+
+Policy data:
 
 ..  code-block::
-    :caption: data-fund.csv
+    :caption: policy_data
 
-    id,fund_code,fund_value
-    X149,10,15000
-    A192,10,3000
-    A192,12,9000
-    D32,8,12500
-    D32,14,12500
+    id     age    sex   premium
+    X149   45     F     100
+    A192   57     M     130
+    D32    18     F     50
+
+Fund data:
+
+..  code-block::
+    :caption: fund_data
+
+    id     fund_code   fund_value
+    X149   10          15000
+    A192   10          3000
+    A192   12          9000
+    D32    8           12500
+    D32    14          12500
 
 Policyholder X149 has one fund and policyholders A192 and D32 have two funds each.
+The :code:`id` column allows for linking the corresponding records.
 
-Data on these funds are stored in the :code:`fund` model point set.
+Data on these funds is stored in the :code:`fund` model point set.
 
 ..  code-block:: python
     :caption: input.py
 
     from cashflower import ModelPointSet
 
-    main = ModelPointSet(data=pd.read_csv("data-policy.csv"))
-    fund = ModelPointSet(data=pd.read_csv("data-fund.csv"))
+    policy = ModelPointSet(
+        data=policy_data,
+        id_column="id"
+    )
 
-Model point sets link with each other by the :code:`id` column.
+    fund = ModelPointSet(
+        data=fund_data,
+        main="False",
+        id_column="id"
+    )
+
+Model point sets are linked by the :code:`id` column.
 
 |
 
@@ -116,7 +143,7 @@ To read a value from a model point, use the :code:`get()` method of the :code:`M
 
 ..  code-block:: python
 
-        main.get("age")
+        policy.get("age")
 
 |
 
@@ -126,13 +153,13 @@ The model will read the value of the model point which is currently calculated.
     :caption: model.py
 
     from cashflower import variable
-    from input import assumption, main
+    from input import assumption, policy
 
 
     @variable()
     def mortality_rate():
-        age = main.get("age")
-        sex = main.get("sex")
+        age = policy.get("age")
+        sex = policy.get("sex")
         return assumption["mortality"].loc[age, sex]["rate"]
 
 |
@@ -140,9 +167,8 @@ The model will read the value of the model point which is currently calculated.
 Get multiple records
 ^^^^^^^^^^^^^^^^^^^^
 
-The :code:`main` model point set must have a unique row per model point but the other model point sets don't.
-
-If a model point contains multiple records, you can access a specific one using the record_num parameter. For example:
+If a model point contains multiple records, you can access a specific one using the :code:`record_num` parameter.
+For example:
 
 ..  code-block:: python
 
@@ -167,6 +193,60 @@ For example, to calculate the total value of fund value, use:
             total_value += fund.get("fund_value", i)
         return total_value
 
+|
+
+Runplan
+-------
+
+Runplan is a list of runs that the model should perform.
+
+..  code-block:: python
+    :caption: input.py
+
+    import pandas as pd
+    from cashflower import Runplan, ModelPointSet
+
+    runplan = Runplan(data=pd.DataFrame({
+        "version": [1, 2, 3],
+        "shock": [0, 0.05, -0.05]
+    }))
+
+You can use different run versions, to calculate different scenarios.
+
+To get data from runplan, use:
+
+..  code-block:: python
+
+    runplan.get("my-column")
+
+For example:
+
+..  code-block:: python
+    :caption: model.py
+
+    from input import main, runplan
+
+
+    @variable()
+    def mortality_rate(t):
+        ...
+
+    @variable()
+    def shocked_mortality_rate(t):
+        return mortality_rate(t) * (1 + runplan.get("shock"))
+
+To run the model with the chosen version, source the :code:`run.py` and add the version number.
+
+For example, to run the model with the version :code:`2` , use:
+
+..  code-block::
+    :caption: terminal
+
+    python run.py --version 2
+
+The model will take data from runplan for the version 2.
+
+|
 
 Assumptions
 -----------
@@ -219,6 +299,8 @@ Assumptions may be e.g. single numerical values, strings or may be stored in a t
     4,0.01610
     5,0.01687
     [...]
+
+|
 
 CSV Reader
 ^^^^^^^^^^
@@ -275,53 +357,5 @@ If your data has multiple row label columns, provide the tuple of row labels.
     value = int(reader2.get_value(("2", "1"), "2"))
     # value is 5
 
-Runplan
--------
+|
 
-Runplan is a list of runs that the model should perform.
-
-..  code-block:: python
-    :caption: input.py
-
-    import pandas as pd
-    from cashflower import Runplan, ModelPointSet
-
-    runplan = Runplan(data=pd.DataFrame({
-        "version": [1, 2, 3],
-        "shock": [0, 0.05, -0.05]
-    }))
-
-You can use different run versions, to calculate different scenarios.
-
-To get data from runplan, use:
-
-..  code-block:: python
-
-    runplan.get("my-column")
-
-For example:
-
-..  code-block:: python
-    :caption: model.py
-
-    from input import main, runplan
-
-
-    @variable()
-    def mortality_rate(t):
-        ...
-
-    @variable()
-    def shocked_mortality_rate(t):
-        return mortality_rate(t) * (1+runplan.get("shock"))
-
-To run the model with the chosen version, source the :code:`run.py` and add the version number.
-
-For example, to run the model with the version :code:`2` , use:
-
-..  code-block::
-    :caption: terminal
-
-    python run.py 2
-
-The model will take data from runplan for the version 2.

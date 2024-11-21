@@ -1,9 +1,22 @@
-import pandas as pd
-from cashflower import Runplan, ModelPointSet
+"""
+Input for the cash flow model.
 
+Define your model point sets and the runplan here.
 
-runplan = Runplan(data=pd.DataFrame({"version": [1]}))
+Example:
+    ```
+    from cashflower import ModelPointSet, Runplan
+    import pandas as pd
 
-main = ModelPointSet(data=pd.DataFrame({"id": [1]}))
+    # Define a model point set with sample data
+    policy = ModelPointSet(data=pd.DataFrame({
+        "premium": [100, 500, 200]
+    }))
 
-assumption = dict()
+    # Define the runplan with multiple scenarios
+    runplan = Runplan(data=pd.DataFrame({
+        "version": [1, 2],
+        "stress": [0, 0.5]
+    }))
+    ```
+"""

@@ -1,7 +1,5 @@
 settings = {
     "GROUP_BY": "group",
-    "ID_COLUMN": "id",
-    "MULTIPROCESSING": True,
     "NUM_STOCHASTIC_SCENARIOS": None,
     "OUTPUT_VARIABLES": None,
     "SAVE_DIAGNOSTIC": False,

@@ -39,27 +39,16 @@ my_model/
     settings.py
 ```
 
-## Input
-
-*my_model/input.py*
-```python
-runplan = Runplan(data=pd.DataFrame({"version": [1]}))
-
-main = ModelPointSet(data=pd.DataFrame({"id": [1]}))
-```
-
 ## Model
 
 *my_model/model.py*
 ```python
 @variable()
-def projection_year(t):
+def survival_probability(t):
+    mortality_rate = 0.01
     if t == 0:
-        return 0
-    elif t % 12 == 1:
-        return projection_year(t - 1) + 1
-    else:
-        return projection_year(t - 1)
+        return 1
+    return survival_probability(t - 1) * (1 - mortality_rate)
 ```
 
 ## Calculate
@@ -70,8 +59,6 @@ python run.py
 ```
 
 # Contribution
-
-The cashflower package is open-source. Everyone can use it and contribute to its development.
 
 GitHub repository:
 
