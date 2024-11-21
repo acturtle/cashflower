@@ -43,4 +43,5 @@ ensuring that they do not clutter the version control system.
 * `22` - strongly connected components ("interconnected" cycles)
 * `23` - dependent variables and subset in the output (`OUTPUT_VARIABLES`)
 * `24` - `"OUTPUT_VARIABLES": ["one", "two", "three"]`
+* `25` - two model point sets
 * `99` - "special" model for testing memory limits

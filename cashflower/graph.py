@@ -74,7 +74,7 @@ def get_calls(variable, variables, argument_t_only=False):
         - This function uses the ast module to parse the source code of the given variable and find the calls.
         - The function also checks for incorrect arguments and raises an error if found.
 
-    Debug: print("\n", ast.dump(ast_tree, indent=2))
+    Debug: print(ast.dump(ast_tree, indent=2))
     """
     call_names = []
     variable_names = [variable.name for variable in variables]

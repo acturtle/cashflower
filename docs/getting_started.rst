@@ -33,14 +33,14 @@ Create model
 ^^^^^^^^^^^^
 
 Start your project with creating a new model. You can create multiple models for each product that you work on.
-Pass on the name when creating the model, e.g. :code:`wol`.
+Pass on the name when creating the model, e.g. :code:`my_model`.
 
 ..  code-block:: python
     :caption: python
 
     from cashflower import create_model
 
-    create_model("wol")
+    create_model("my_model")
 
 The :code:`create_model()` function creates an initial structure of the model.
 
@@ -59,14 +59,16 @@ The initial structure consists of the :code:`input.py`, :code:`model.py`, :code:
 Input
 ^^^^^
 
-In the :code:`input.py` script, you can define runplan, model point sets and assumptions.
+In the :code:`input.py` script, you can define runplan, model point sets and other assumptions.
 
 .. code-block:: python
-   :caption: wol/input.py
+   :caption: my_model/input.py
 
     import pandas as pd
 
-    from cashflower import Runplan, ModelPointSet
+    from cashflower import ModelPointSet, Runplan
+
+    policy = ModelPointSet(data=pd.read_csv("C:/my_data/policy.csv"))
 
     runplan = Runplan(data=pd.DataFrame({
         "version": [1],
@@ -74,13 +76,12 @@ In the :code:`input.py` script, you can define runplan, model point sets and ass
         "valuation_month": [12]
     }))
 
-    main = ModelPointSet(data=pd.read_csv("C:/my_data/policy.csv"))
+    assumption = {
+        "interest_rates": pd.read_csv("C:/my_data/interest_rates.csv"),
+        "mortality": pd.read_csv("C:/my_data/mortality.csv", index_col="age")
+    }
 
-    assumption = dict()
-    assumption["interest_rates"] = pd.read_csv("C:/my_data/interest_rates.csv")
-    assumption["mortality"] = pd.read_csv("C:/my_data/mortality.csv", index_col="age")
-
-Runplan bases on the :code:`Runplan` class, model point sets base on the :code:`ModelPointSet` class and assumptions have a form of a dictionary.
+Model point set bases on the :code:`ModelPointSet` class and runplan bases on the :code:`Runplan` class.
 
 |
 
@@ -90,14 +91,15 @@ Model
 The :code:`model.py` script contains the logic of the model. You can define model variables there.
 
 .. code-block:: python
-   :caption: wol/model.py
+   :caption: my_model/model.py
 
+    from input import policy, assumption
     from cashflower import variable
 
     @variable()
     def age(t):
         if t == 0:
-            return int(main.get("AGE"))
+            return int(policy.get("AGE"))
         elif t % 12 == 0:
             return age(t-1) + 1
         else:
@@ -109,7 +111,7 @@ The :code:`model.py` script contains the logic of the model. You can define mode
         if age(t) == age(t-1):
             return death_prob(t-1)
         elif age(t) <= 100:
-            sex = main.get("SEX")
+            sex = policy.get("SEX")
             yearly_rate = assumption["mortality"].loc[age(t)][sex]
             monthly_rate = (1 - (1 - yearly_rate)**(1/12))
             return monthly_rate
@@ -128,7 +130,7 @@ To calculate the model, run :code:`run.py`.
 ..  code-block::
     :caption: terminal
 
-    cd wol
+    cd my_model
     python run.py
 
 This command will create the model's output.
@@ -163,7 +165,6 @@ Assumptions are also product's parameters, such as fees or levels of guarantees.
 
 **Model** - actuarial model reminds a spider's web. There are many variables which dependent on each other.
 
-
 **Model variables** - functions that depend on the projection's period.
 
 **Results** - the output of the calculation logic.
@@ -174,7 +175,7 @@ Time
 ----
 
 Actuarial cash flow models try to predict the future. The results are put on a timeline with future dates.
-Time variable :code:`t` plays an import role.
+Time variable :code:`t` plays an import role. In actuarial reporting, it's usual to build monthly models.
 
 |
 
@@ -224,9 +225,6 @@ Moment in month
 
 By default, :code:`t` reflects the end of the month.
 If cash flows in different moments of the month, it can be reflected using discounting.
-
-.. TIP::
-   Use the right discounting if the cash flow does not happen at the end of the month.
 
 For example, there are premiums occurring **in the middle of** the month.
 

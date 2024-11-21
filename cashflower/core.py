@@ -6,7 +6,7 @@ import pandas as pd
 import psutil
 
 from .error import CashflowModelError
-from .utils import get_first_indexes, get_object_by_name, log_message, split_to_ranges, update_progressbar
+from .utils import get_first_indexes, get_main_model_point_set, get_object_by_name, log_message, split_to_ranges, update_progressbar
 
 
 def get_variable_type(v):
@@ -310,11 +310,12 @@ class Runplan:
 class ModelPointSet:
     """Set of model points."""
 
-    def __init__(self, data, name=None, settings=None):
+    def __init__(self, data, main=True, id_column=None, name=None, settings=None):
         self.data = data
+        self.main = main
+        self.id_column = id_column
         self.name = name
         self.settings = settings
-        self._id = None
         self.model_point_data = None
 
     def __repr__(self):
@@ -323,57 +324,19 @@ class ModelPointSet:
     def __len__(self):
         return self.data.shape[0]
 
-    def initialize(self):
-        """Additional initialization (beyond __init__) is required
-        since 'name' and 'settings' are not available during object creation."""
-        self.perform_checks()
-        self.set_index()
-        self.id = self.data.iloc[0][self.settings["ID_COLUMN"]]
-
-    @functools.lru_cache()
     def get(self, attribute, record_num=0):
-        # Note: Only the 'main' model point set is guaranteed to have all IDs;
-        # other model point sets may not have rows for every ID
-        if self.id is None:
-            return None
+        if self.model_point_data.empty:
+            return 0
 
         return self.model_point_data.iloc[record_num][attribute]
 
-    @property
-    def id(self):
-        """Get the current model point's ID."""
-        return self._id
-
-    @id.setter
-    def id(self, new_id):
-        """Set the model point's ID and update corresponding attributes."""
-        new_id = str(new_id)
-        if new_id in self.data.index:
-            self._id = new_id
-            self.model_point_data = self.data.loc[[new_id]]
+    def set_model_point_data(self, value):
+        # With ID_COLUMN -> value = model_point_id
+        if self.id_column:
+            self.model_point_data = self.data[self.data[self.id_column].astype(str) == str(value)]
+        # No ID_COLUMN -> value = row
         else:
-            self._id = None
-        self.get.cache_clear()
-
-    def set_id(self, new_id):
-        self.id = new_id
-
-    def perform_checks(self):
-        id_column_name = self.settings["ID_COLUMN"]
-
-        # Model point set must have ID_COLUMN
-        if id_column_name not in self.data.columns:
-            raise CashflowModelError(f"\nModel point set '{self.name}' is missing the required column '{id_column_name}'.")
-
-        # ID must be unique in the 'main' model point set
-        if self.name == "main":
-            if not self.data[id_column_name].is_unique:
-                raise CashflowModelError(f"\nThe 'main' model point set must have unique values in '{id_column_name}' column.")
-
-    def set_index(self):
-        """Convert ID column to string and use it as index, while preserving the original ID column."""
-        id_column_name = self.settings["ID_COLUMN"]
-        self.data = self.data.set_index(self.data[id_column_name].astype(str))
+            self.model_point_data = self.data.iloc[[value]]
 
 
 class Model:
@@ -409,7 +372,7 @@ class Model:
         return output, diagnostic
 
     def get_calculation_range(self, part):
-        main = get_object_by_name(self.model_point_sets, "main")
+        main = get_main_model_point_set(self.model_point_sets)
         range_start, range_end = 0, len(main)
         if self.settings["MULTIPROCESSING"]:
             main_ranges = split_to_ranges(len(main), multiprocessing.cpu_count())
@@ -456,7 +419,7 @@ class Model:
     def perform_calculations(self, range_start, range_end, one_core, output_variable_names):
         max_output = self.settings["T_MAX_OUTPUT"] + 1
         group_by = self.settings["GROUP_BY"]
-        main = get_object_by_name(self.model_point_sets, "main")
+        main = get_main_model_point_set(self.model_point_sets)
         calculate_model_point_partial = functools.partial(
             self.calculate_model_point, one_core=one_core, progressbar_max=range_end
         )
@@ -557,12 +520,15 @@ class Model:
          [v2_t0, v2_t1, v2_t2, ... v2_tm],
          ...
          [vn_t0, vn_t1, vn_t2, ... v2_tm]]"""
-        main = get_object_by_name(self.model_point_sets, "main")
+        main = get_main_model_point_set(self.model_point_sets)
 
         # Set model point's id
-        model_point_id = main.data.index[row]
-        for model_point_set in self.model_point_sets:
-            model_point_set.set_id(model_point_id)
+        if len(self.model_point_sets) > 1:
+            model_point_id = main.data.iloc[row][main.id_column]
+            for model_point_set in self.model_point_sets:
+                model_point_set.set_model_point_data(model_point_id)
+        else:
+            main.set_model_point_data(row)
 
         # Perform calculations
         max_calc_order = self.variables[-1].calc_order
