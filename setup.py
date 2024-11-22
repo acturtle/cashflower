@@ -39,6 +39,7 @@ setup(
         'Cheat sheet': 'https://www.acturtle.com/static/pdf/cheat_sheet.pdf',
     },
     python_requires='>=3.9',
+    setup_requires=["numpy"],
     url="https://github.com/acturtle/cashflower",
     version="0.9.1",
 )
