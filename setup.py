@@ -19,12 +19,11 @@ setup(
     description="Framework for actuarial cash flow models",
     ext_modules=cythonize(extensions, compiler_directives={"language_level": "3"}),
     include_package_data=True,
-    setup_requires=["numpy"],
     install_requires=[
         'pandas',
         'psutil',
         'networkx',
-        'numpy>=2.0.1'
+        'numpy==1.21.1'
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",
