@@ -6,12 +6,6 @@
 
 Cashflower is an open-source Python framework for actuarial cash flow models.
 
-# Prerequisites
-
-Python version >=3.9
-
-# Usage
-
 ## Installation
 
 *terminal*
@@ -43,6 +37,8 @@ my_model/
 
 *my_model/model.py*
 ```python
+from cashflower import variable
+
 @variable()
 def survival_probability(t):
     mortality_rate = 0.01

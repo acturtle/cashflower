@@ -21,7 +21,7 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-          python -m pip install --upgrade pip setuptools Cython numpy==1.21.1 --no-cache-dir
+          python -m pip install --upgrade pip setuptools Cython numpy
 
       - name: Build Cython extensions
         run: |
@@ -40,7 +40,7 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-          python -m pip install --upgrade pip setuptools Cython numpy==1.21.1
+          python -m pip install --upgrade pip setuptools Cython numpy
 
       - name: Build source distribution
         run: |
@@ -66,7 +66,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install Cython
-          python -m pip install numpy==1.21.1
+          python -m pip install numpy
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.18.0
