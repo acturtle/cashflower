@@ -19,12 +19,11 @@ setup(
     description="Framework for actuarial cash flow models",
     ext_modules=cythonize(extensions, compiler_directives={"language_level": "3"}),
     include_package_data=True,
-    setup_requires=["numpy"],
     install_requires=[
         'pandas',
         'psutil',
         'networkx',
-        'numpy>=2.0.1'
+        'numpy'
     ],
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -39,7 +38,7 @@ setup(
         'Documentation': 'https://cashflower.acturtle.com',
         'Cheat sheet': 'https://www.acturtle.com/static/pdf/cheat_sheet.pdf',
     },
-    python_requires='>=3.9',
+    python_requires='>=3.11',
     url="https://github.com/acturtle/cashflower",
     version="0.9.1",
 )
