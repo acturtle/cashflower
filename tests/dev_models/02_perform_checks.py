@@ -110,7 +110,7 @@ def check_dev_model_12():
     print("OK")
 
     # Change directory back
-    os.chdir("..")
+    os.chdir("../..")
     print("\n")
 
 
