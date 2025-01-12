@@ -3,7 +3,7 @@ Run
 
 To calculate the model, execute the :code:`run.py` script:
 
-..  code-block::
+..  code-block:: bash
     :caption: terminal
 
     python run.py
@@ -16,7 +16,7 @@ Run a specific version
 To run the model with a specific version from the runplan, use the :code:`--version` flag.
 For instance, to run version 2, use the following command:
 
-..  code-block::
+..  code-block:: bash
     :caption: terminal
 
     python run.py --version 2
@@ -25,7 +25,7 @@ This command will execute the model using data for the 2nd version specified in 
 
 Here's an example of a runplan in the model:
 
-..  code-block::
+..  code-block:: python
     :caption: input.py
 
     runplan = Runplan(data=pd.DataFrame({
@@ -36,7 +36,7 @@ Here's an example of a runplan in the model:
 To retrieve values from the runplan within the model's variables, you can use the :code:`get` method
 of the :code:`Runplan` class:
 
-..  code-block::
+..  code-block:: python
     :caption: model.py
 
     from input import runplan

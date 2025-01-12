@@ -10,14 +10,14 @@ Building the package
 
 2. Install the required Python packages:
 
-..  code-block::
+..  code-block:: bash
     :caption: terminal
 
     pip install -r requirements.txt
 
 3. Build the package by running:
 
-..  code-block::
+..  code-block:: bash
     :caption: terminal
 
     python setup.py build_ext
@@ -29,7 +29,7 @@ Building the package
 
 4. Install the package locally in editable mode for testing:
 
-..  code-block::
+..  code-block:: bash
     :caption: terminal
 
     pip install -e .
@@ -41,7 +41,7 @@ Building the documentation
 
 1. Build the documentation:
 
-..  code-block::
+..  code-block:: bash
     :caption: terminal
 
     cd docs
@@ -50,7 +50,7 @@ Building the documentation
 
 2. View the documentation by opening the following file in your browser:
 
-..  code-block::
+..  code-block:: text
 
     docs/_build/html/index.html
 
@@ -66,7 +66,7 @@ Uploading to PyPI
 
 2. Update the version number in :code:`setup.py`:
 
-..  code-block::
+..  code-block:: python
 
     setup(
         ...
@@ -81,7 +81,7 @@ Uploading to PyPI
 
 If the job fails, debug the issue, delete the tag, and try again.
 
-..  code-block::
+..  code-block:: bash
     :caption: terminal
 
     git push origin --delete vX.Y.Z

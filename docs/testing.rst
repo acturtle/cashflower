@@ -8,7 +8,7 @@ During the development of the "cashflower" package, three types of tests should 
    Unit tests evaluate individual functionalities of the package. These tests are stored in the :code:`tests` folder.
    To execute unit tests, use the following command:
 
-   .. code-block::
+   .. code-block:: bash
 
       pytest
 
@@ -35,7 +35,7 @@ During the development of the "cashflower" package, three types of tests should 
 
    To run static tests, use the following command:
 
-   .. code-block::
+   .. code-block:: bash
 
       ruff cashflower
 

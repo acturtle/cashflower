@@ -4,7 +4,7 @@ Output
 The cash flow model generates three types of output files: output, diagnostic, and log.
 These files are organized within the :code:`output` folder, as shown below:
 
-..  code-block::
+..  code-block:: text
 
     .
     └── output/
@@ -86,7 +86,7 @@ If you only require specific variables in the output, you can select them using 
     }
 
 
-..  code-block::
+..  code-block:: text
     :caption: output
 
     t    bel

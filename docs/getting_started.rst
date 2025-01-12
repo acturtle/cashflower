@@ -22,7 +22,7 @@ Installation
 
 Cashflower is available on python Package Index (PyPI). You can install it with the :code:`pip` tool.
 
-..  code-block::
+..  code-block:: bash
     :caption: terminal
 
     pip install cashflower
@@ -44,7 +44,7 @@ Pass on the name when creating the model, e.g. :code:`my_model`.
 
 The :code:`create_model()` function creates an initial structure of the model.
 
-..  code-block::
+..  code-block:: text
 
     .
     ├── input.py
@@ -127,7 +127,7 @@ Calculate
 
 To calculate the model, run :code:`run.py`.
 
-..  code-block::
+..  code-block:: bash
     :caption: terminal
 
     cd my_model
