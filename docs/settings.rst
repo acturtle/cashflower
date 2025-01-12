@@ -275,7 +275,7 @@ and tracking the model's behavior.
 
 Here is an example of the content of the log file (:code:`<timestamp>_log.txt`):
 
-..  code-block:: python
+..  code-block:: text
     :caption: <timestamp>_log.txt
 
     14:40:08 | Model: 'example'
