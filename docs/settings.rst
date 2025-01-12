@@ -109,7 +109,7 @@ MULTIPROCESSING
 By default, the model is evaluated for each model point one after another in a linear process.
 If the computer has multiple cores, it's possible to perform calculations in parallel.
 
-.. image:: https://acturtle.com/static/img/28/multiprocessing.png
+.. image:: https://acturtle.com/static/img/docs/multiprocessing.webp
    :align: center
 
 If :code:`MULTIPROCESSING` is turned on, the model will split all model points into several parts (as many as the number of cores).

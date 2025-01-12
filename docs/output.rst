@@ -97,9 +97,6 @@ If you only require specific variables in the output, you can select them using 
     ...  ...
     720  31413.12
 
-.. image:: https://acturtle.com/static/img/39/output_subset.png
-   :align: center
-
 |
 
 Default vs. custom output
