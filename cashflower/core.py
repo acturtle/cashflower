@@ -76,6 +76,9 @@ def check_arguments(func, array):
 
 def variable(array=False, aggregation_type="sum"):
     """A decorator that transforms a function into an object of class Variable."""
+    if callable(array):
+        raise CashflowModelError("The @variable decorator must be used with parentheses, e.g., @variable().")
+
     def wrapper(func):
         check_arguments(func, array)
 
