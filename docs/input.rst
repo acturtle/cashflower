@@ -52,7 +52,7 @@ Create a model point set from a file
 
 The data for the model point set might be stored in a csv file.
 
-..  code-block::
+..  code-block:: text
     :caption: data-policy.csv
 
     id,age,sex,premium
@@ -91,7 +91,7 @@ For example, the policyholder may hold multiple funds, and each fund has its own
 
 Policy data:
 
-..  code-block::
+..  code-block:: text
     :caption: policy_data
 
     id     age    sex   premium
@@ -101,7 +101,7 @@ Policy data:
 
 Fund data:
 
-..  code-block::
+..  code-block:: text
     :caption: fund_data
 
     id     fund_code   fund_value
@@ -239,7 +239,7 @@ To run the model with the chosen version, source the :code:`run.py` and add the 
 
 For example, to run the model with the version :code:`2` , use:
 
-..  code-block::
+..  code-block:: bash
     :caption: terminal
 
     python run.py --version 2
@@ -277,7 +277,7 @@ Assumptions for life insurance can include:
 
 Assumptions may be e.g. single numerical values, strings or may be stored in a tabular form.
 
-..  code-block::
+..  code-block:: text
     :caption: mortality.csv
 
     AGE,MALE,FEMALE
@@ -289,7 +289,7 @@ Assumptions may be e.g. single numerical values, strings or may be stored in a t
     5,0.000100,0.000080
     [...]
 
-..  code-block::
+..  code-block:: text
     :caption: interest_rates.csv
 
     T,VALUE
@@ -314,7 +314,7 @@ The class always returns strings, so it's up to the user to perform necessary co
 
 To create an instance of :code:`CSVReader` provide the path to the file.
 
-..  code-block::
+..  code-block:: python
 
     reader1 = CSVReader("data1.csv")
 
@@ -328,7 +328,7 @@ To get value from the file, use the :code:`get_value` method.
 
 For example:
 
-..  code-block::
+..  code-block:: text
     :caption: data1.csv
 
     RowX,Col1,Col2,Col3
@@ -336,14 +336,14 @@ For example:
     Row2,4.4,5.5,6.6
     Row3,7.7,8.8,9.9
 
-..  code-block::
+..  code-block:: python
 
     value = float(reader1.get_value("Row2", "Col3"))
     # value is 6.6
 
 If your data has multiple row label columns, provide the tuple of row labels.
 
-..  code-block::
+..  code-block:: text
     :caption: data2.csv
 
     X,Y,1,2,3
@@ -352,7 +352,7 @@ If your data has multiple row label columns, provide the tuple of row labels.
     2,1,3,5,2
     2,2,3,9,6
 
-..  code-block::
+..  code-block:: python
 
     value = int(reader2.get_value(("2", "1"), "2"))
     # value is 5

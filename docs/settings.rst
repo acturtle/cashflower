@@ -89,7 +89,7 @@ Ensure that there is a corresponding column in your model point set, as shown in
 
 The resulting output will contain aggregated results grouped by the specified column, as demonstrated below:
 
-..  code-block::
+..  code-block:: text
 
     t    product_code    fund_value
     0    A               24000
@@ -109,7 +109,7 @@ MULTIPROCESSING
 By default, the model is evaluated for each model point one after another in a linear process.
 If the computer has multiple cores, it's possible to perform calculations in parallel.
 
-.. image:: https://acturtle.com/static/img/28/multiprocessing.png
+.. image:: https://acturtle.com/static/img/docs/multiprocessing.webp
    :align: center
 
 If :code:`MULTIPROCESSING` is turned on, the model will split all model points into several parts (as many as the number of cores).
@@ -172,7 +172,7 @@ If the model has 3 variables, all of them will be in the output.
 
 The result contains all variables.
 
-..  code-block::
+..  code-block:: text
     :caption: output
 
     t   a   b   c
@@ -199,7 +199,7 @@ The user can choose a subset of variables.
 
 Only the chosen variables are in the output.
 
-..  code-block::
+..  code-block:: text
     :caption: output
 
     t   a   c
@@ -225,7 +225,7 @@ By default, the setting is set to :code:`False`, so the diagnostic file is not c
 
 When the :code:`SAVE_DIAGNOSTIC` setting is set to :code:`True`, the model saves a file named :code:`<timestamp>_diagnostic.csv` in the output folder:
 
-..  code-block::
+..  code-block:: text
 
     .
     └── output/
@@ -235,7 +235,7 @@ When the :code:`SAVE_DIAGNOSTIC` setting is set to :code:`True`, the model saves
 
 The diagnostic file contains various pieces of information about the model's variables, such as:
 
-..  code-block::
+..  code-block:: text
     :caption: diagnostic
 
     variable   calc_order   cycle   calc_direction   type      runtime
@@ -260,7 +260,7 @@ By default, the setting is set to :code:`False`, so the log is not saved.
 
 When :code:`SAVE_LOG` is set to :code:`True`, the model will save a file named :code:`<timestamp>_log.txt` in the output folder:
 
-..  code-block::
+..  code-block:: text
 
     .
     └── output/
@@ -275,7 +275,7 @@ and tracking the model's behavior.
 
 Here is an example of the content of the log file (:code:`<timestamp>_log.txt`):
 
-..  code-block:: python
+..  code-block:: text
     :caption: <timestamp>_log.txt
 
     14:40:08 | Model: 'example'
@@ -313,7 +313,7 @@ The :code:`SAVE_OUTPUT` setting is a boolean flag that determines whether the mo
 By default, the setting is set to :code:`True`. When :code:`SAVE_OUTPUT` is set to :code:`True`,
 the model will save a file named :code:`<timestamp>_output.csv` in the output folder:
 
-..  code-block::
+..  code-block:: text
 
     .
     └── output/
@@ -337,7 +337,7 @@ To create custom output files, you can utilize the :code:`output` variable in th
 The output variable contains a data frame with the results. In the example above, it will create a CSV file named
 :code:`my_awesome_results.csv` in the :code:`results` folder:
 
-..  code-block::
+..  code-block:: text
 
     .
     └── results/
@@ -387,7 +387,7 @@ If the setting gets changed, then the number of rows in the output file will cha
 
 The file saves only results for the first 3 months.
 
-..  code-block::
+..  code-block:: text
     :caption: output
 
     t   fund_value

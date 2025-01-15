@@ -3,7 +3,7 @@ Package overview
 
 The repository of the :code:`cashflower` package follows this structure:
 
-.. code-block::
+.. code-block:: text
 
     .
     ├── .github/

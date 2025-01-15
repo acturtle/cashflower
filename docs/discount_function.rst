@@ -37,7 +37,7 @@ The :code:`discount()` function's calculation is equivalent to the following rec
         if t == settings["T_MAX_CALCULATION"]:
             return cash_flow(t)
         else:
-            return cash_flow(t) + present_value(t+1) * cash_flow(t+1)
+            return cash_flow(t) + present_value(t+1) * discount_rate(t+1)
 
 Using the :code:`discount()` function significantly improves the calculation time.
 

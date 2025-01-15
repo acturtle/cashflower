@@ -1,6 +1,6 @@
 # Outputs of dev_models and tutorials
 tutorials/**/output/
-dev_models/**/output/
+tests/dev_models/**/output/
 example/
 
 # Pycharm and static testing

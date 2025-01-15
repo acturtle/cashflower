@@ -22,7 +22,7 @@ Installation
 
 Cashflower is available on python Package Index (PyPI). You can install it with the :code:`pip` tool.
 
-..  code-block::
+..  code-block:: bash
     :caption: terminal
 
     pip install cashflower
@@ -44,7 +44,7 @@ Pass on the name when creating the model, e.g. :code:`my_model`.
 
 The :code:`create_model()` function creates an initial structure of the model.
 
-..  code-block::
+..  code-block:: text
 
     .
     ├── input.py
@@ -127,7 +127,7 @@ Calculate
 
 To calculate the model, run :code:`run.py`.
 
-..  code-block::
+..  code-block:: bash
     :caption: terminal
 
     cd my_model
@@ -149,7 +149,7 @@ The main components of an actuarial model are:
     * model variables,
     * results.
 
-.. image:: https://acturtle.com/static/img/17/cash-flow-model-overview.webp
+.. image:: https://acturtle.com/static/img/docs/cash-flow-model-overview.webp
 
 **Runplan** - runplan is a list of runs that we want to perform with the model.
 
@@ -191,7 +191,7 @@ The :code:`t` variable reflects certain **point** in time. If the projections ar
     * :code:`t=3` is 2022-03-31,
     * ...
 
-.. image:: https://acturtle.com/static/img/20/timeline.webp
+.. image:: https://acturtle.com/static/img/docs/timeline-with-dates.webp
 
 |
 
@@ -216,7 +216,7 @@ t      rate
 
 The rate is applied to a third period.
 
-.. image:: https://acturtle.com/static/img/20/timeline-with-periods.webp
+.. image:: https://acturtle.com/static/img/docs/timeline-with-periods.webp
 
 |
 

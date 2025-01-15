@@ -9,7 +9,7 @@ cashflower
 
 Cashflower is an open-source Python framework for actuarial cash flow models.
 
-.. image:: https://acturtle.com/static/img/logo/turtle.png
+.. image:: https://acturtle.com/static/img/assets/turtle.svg
    :width: 240px
    :align: center
 
@@ -23,16 +23,16 @@ Quick start
 
 You're just a few commands away from running your first cash flow model with cashflower:
 
-..  code-block::
+..  code-block:: bash
     :caption: terminal
 
-        $ pip install cashflower
-        $ python
-        >>> from cashflower import create_model
-        >>> create_model("my_model")
-        >>> quit()
-        $ cd my_model
-        $ python run.py
+    $ pip install cashflower
+    $ python
+    >>> from cashflower import create_model
+    >>> create_model("my_model")
+    >>> quit()
+    $ cd my_model
+    $ python run.py
 
 Congratulations, you’ve just run your first cash flow model with cashflower!
 

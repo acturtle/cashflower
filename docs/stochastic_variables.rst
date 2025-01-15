@@ -85,7 +85,7 @@ There are 3 scenarios of how the fund value will change.
 In the first scenario, the fund value increases by 10% each period.
 The fund value for the first 5 periods amounts to:
 
-..  code-block::
+..  code-block:: text
 
      t  fund_return
      0      1000.00
@@ -102,7 +102,7 @@ The fund value for the first 5 periods amounts to:
 
 In the second scenario, the fund return amounts to 5%.
 
-..  code-block::
+..  code-block:: text
 
      t  fund_return
      0      1000.00
@@ -119,7 +119,7 @@ In the second scenario, the fund return amounts to 5%.
 
 In the third scenario, the value of the fund return is 1%.
 
-..  code-block::
+..  code-block:: text
 
      t  fund_return
      0      1000.00
@@ -136,7 +136,7 @@ In the third scenario, the value of the fund return is 1%.
 
 The stochastic variable calculates results across these scenarios, averaging them:
 
-..  code-block::
+..  code-block:: text
 
      0      (1000.00 + 1000.00 + 1000.00) / 3
      1      (1100.00 + 1050.00 + 1010.00) / 3
@@ -148,7 +148,7 @@ The stochastic variable calculates results across these scenarios, averaging the
 
 The resulting output is:
 
-..  code-block::
+..  code-block:: text
 
      t  fund_value
      0     1000.00
