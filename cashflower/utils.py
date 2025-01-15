@@ -31,10 +31,12 @@ def get_git_commit_info():
 
 
 def get_first_indexes(items):
-    """Get the list of indexes for the first occurrence of each item in the list.
+    """
+    Get the list of indexes for the first occurrence of each item in the list.
 
     Example:
-    ["A", "A", "B", "A", "C", "D"] --> [0, 2, 4, 5]
+        # >>> get_first_indexes(["A", "A", "B", "A", "C", "D"])
+        [0, 2, 4, 5]
     """
     first_indexes = {}
     for index, item in enumerate(items):
@@ -44,6 +46,15 @@ def get_first_indexes(items):
 
 
 def get_main_model_point_set(model_point_sets):
+    """
+    Iterates through a list of model point sets and returns the first one that is marked as 'main'.
+
+    Parameters:
+        model_point_sets (list): A list of model point set objects.
+
+    Returns:
+        object: The first model point set object with the 'main' attribute set to True, or None if no such object is found.
+    """
     for model_point_set in model_point_sets:
         if model_point_set.main:
             return model_point_set
@@ -54,7 +65,7 @@ def get_object_by_name(objects, name):
     """
     Returns the first object in the list that has the given name.
 
-    Args:
+    Parameters:
         objects (list): A list of objects.
         name (str): The name to search for.
 
@@ -96,10 +107,10 @@ def save_log_to_file(timestamp):
     The file is created in the "output" directory and its name is the timestamp followed by "_log.txt".
 
     Parameters:
-    timestamp (str): The timestamp to use in the filename.
+        timestamp (str): The timestamp to use in the filename.
 
     Returns:
-    None
+        None
     """
     try:
         filename = f"{timestamp}_log.txt"
@@ -115,7 +126,7 @@ def split_to_ranges(n, num_ranges):
     Split a number into a specified number of ranges. The ranges are of equal size, except for the last one
     which may be larger if n is not evenly divisible by num_ranges. The remaining elements are added to the last range.
 
-    Args:
+    Parameters:
         n (int): The number to split.
         num_ranges (int): The number of ranges to split into.
 
@@ -144,7 +155,7 @@ def update_progressbar(total, progress):
     """
     Displays or updates a console progress bar.
 
-    Args:
+    Parameters:
         total (int): The total number of steps in the process.
         progress (int): The current step in the process.
 
