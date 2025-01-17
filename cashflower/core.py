@@ -17,7 +17,7 @@ def get_variable_type(v):
         v (object): The variable to check.
 
     Returns:
-        str: The type of the variable. Possible values are "constant", "array", "stochastic", and "default".
+        str: The type of the variable. Possible values are "constant", "array", "stochastic", "array_stochastic", and "default".
     """
     if isinstance(v, ConstantVariable):
         return "constant"
@@ -25,6 +25,8 @@ def get_variable_type(v):
         return "array"
     elif isinstance(v, StochasticVariable):
         return "stochastic"
+    elif isinstance(v, ArrayStochasticVariable):
+        return "array_stochastic"
     else:
         return "default"
 
@@ -67,9 +69,9 @@ def check_arguments(func, array):
             raise CashflowModelError(msg)
 
     # Array variables should not have any parameters
-    if array and not func.__code__.co_argcount == 0:
-        msg = f"Error in '{func.__name__}': Array variables cannot have parameters."
-        raise CashflowModelError(msg)
+    # if array and not func.__code__.co_argcount == 0:
+    #     msg = f"Error in '{func.__name__}': Array variables cannot have parameters."
+    #     raise CashflowModelError(msg)
 
     return None
 
@@ -83,7 +85,9 @@ def variable(array=False, aggregation_type="sum"):
         check_arguments(func, array)
 
         # Create a variable
-        if array:
+        if array and func.__code__.co_argcount == 2:
+            v = ArrayStochasticVariable(func, aggregation_type)
+        elif array:
             v = ArrayVariable(func, aggregation_type)
         elif func.__code__.co_argcount == 0:
             v = ConstantVariable(func, aggregation_type)
@@ -252,6 +256,30 @@ class StochasticVariable(Variable):
                 self.result_stoch[:, t] = [self.func(t, stoch) for stoch in range(1, stoch_scenarios_count + 1)]
         else:
             raise CashflowModelError(f"\n\nIncorrect calculation direction '{self.calc_direction}'.")
+
+    def average_result_stoch(self):
+        self.result = np.mean(self.result_stoch, axis=0)
+
+
+class ArrayStochasticVariable(Variable):
+    """Array Stochastic variable.
+
+    @variable(array=True)
+    def my_var(t, stoch):
+        ...
+    """
+    def __init__(self, func, aggregation_type):
+        Variable.__init__(self, func, aggregation_type)
+        self.result_stoch = None
+
+    def __repr__(self):
+        return f"ASV: {self.func.__name__}"
+
+    def calculate(self):
+        stoch_scenarios_count, array_size, t_max = self.result_stoch.shape
+        for stoch in range(1, stoch_scenarios_count + 1):
+            func_with_stoch = functools.partial(self.func, stoch=stoch)
+            self.result_stoch[stoch-1, :] = np.array(self.func_with_stoch(stoch), dtype=np.float64)
 
     def average_result_stoch(self):
         self.result = np.mean(self.result_stoch, axis=0)
