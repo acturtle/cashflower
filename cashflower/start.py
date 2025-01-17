@@ -568,7 +568,7 @@ def save_results(timestamp, output, diagnostic, settings):
         diagnostic.to_csv(filepath, index=False)
 
     if settings["SAVE_LOG"]:
-        filepath = f"output/{timestamp}_log.txt"
+        filepath = f"output/{timestamp}.log"
         log_message(f"Saving log file: {filepath}", show_time=True)
         save_log_to_file(timestamp)
 
@@ -637,26 +637,33 @@ def run(settings=None, path=None):
         pandas.DataFrame: The output of the modl.
     """
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    args = parse_arguments()
-    settings_changes = log_settings_changes(settings)
-    settings = get_settings(settings)
-    log_run_info(timestamp, path, args, settings_changes, settings)
+    output = None
+    diagnostic = None
 
-    # Run on single or multiple cores
-    if not settings["MULTIPROCESSING"]:
-        output, diagnostic = start_single_core(settings, args=args)
-    else:
-        output, diagnostic = run_multi_core(settings, args)
+    try:
+        args = parse_arguments()
+        settings_changes = log_settings_changes(settings)
+        settings = get_settings(settings)
+        log_run_info(timestamp, path, args, settings_changes, settings)
 
-    # Add time column
-    values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output.shape[0] / (settings["T_MAX_OUTPUT"]+1))
-    output.insert(0, "t", values)
+        # Run on single or multiple cores
+        if not settings["MULTIPROCESSING"]:
+            output, diagnostic = start_single_core(settings, args=args)
+        else:
+            output, diagnostic = run_multi_core(settings, args)
 
-    log_message("Finished.", show_time=True)
-    log_message("")
+        # Add time column
+        values = [*range(settings["T_MAX_OUTPUT"]+1)] * int(output.shape[0] / (settings["T_MAX_OUTPUT"]+1))
+        output.insert(0, "t", values)
 
-    # Save to csv files
-    save_results(timestamp, output, diagnostic, settings)
+        log_message("Finished.", show_time=True)
+        log_message("")
+    except Exception as e:
+        log_message(f"An error occurred: {str(e)}", show_time=True)
+        raise
+    finally:
+        # Save to files
+        save_results(timestamp, output, diagnostic, settings)
 
     print(f"{'-' * 72}\n")
     return output

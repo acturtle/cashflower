@@ -104,7 +104,7 @@ def save_log_to_file(timestamp):
     """
     Save the log messages to a file and then clear the log.
 
-    The file is created in the "output" directory and its name is the timestamp followed by "_log.txt".
+    The file is created in the "output" directory and its name is the timestamp with .log extension.
 
     Parameters:
         timestamp (str): The timestamp to use in the filename.
@@ -113,7 +113,7 @@ def save_log_to_file(timestamp):
         None
     """
     try:
-        filename = f"{timestamp}_log.txt"
+        filename = f"{timestamp}.log"
         filepath = os.path.join("output", filename)
         with open(filepath, "w") as file:
             file.write('\n'.join(log_messages))
