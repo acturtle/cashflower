@@ -8,8 +8,8 @@ These files are organized within the :code:`output` folder, as shown below:
 
     .
     └── output/
+        └── <timestamp>.log
         └── <timestamp>_diagnostic.csv
-        └── <timestamp>_.log
         └── <timestamp>_output.csv
 
 

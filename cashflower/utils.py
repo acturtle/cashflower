@@ -113,7 +113,7 @@ def save_log_to_file(timestamp):
         None
     """
     try:
-        filename = f"{timestamp}_log.txt"
+        filename = f"{timestamp}.log"
         filepath = os.path.join("output", filename)
         with open(filepath, "w") as file:
             file.write('\n'.join(log_messages))
