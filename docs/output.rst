@@ -9,7 +9,7 @@ These files are organized within the :code:`output` folder, as shown below:
     .
     └── output/
         └── <timestamp>_diagnostic.csv
-        └── <timestamp>_log.txt
+        └── <timestamp>_.log
         └── <timestamp>_output.csv
 
 
