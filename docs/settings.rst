@@ -258,13 +258,13 @@ The :code:`SAVE_LOG` setting is a boolean flag that controls whether the model s
 
 By default, the setting is set to :code:`False`, so the log is not saved.
 
-When :code:`SAVE_LOG` is set to :code:`True`, the model will save a file named :code:`<timestamp>_log.txt` in the output folder:
+When :code:`SAVE_LOG` is set to :code:`True`, the model will save a file named :code:`<timestamp>.log` in the output folder:
 
 ..  code-block:: text
 
     .
     └── output/
-        └── <timestamp>_log.txt
+        └── <timestamp>.log
 
 
 |
@@ -273,10 +273,10 @@ The log file contains saved log messages that are printed to the console during 
 It provides a record of key events and settings, which can be valuable for troubleshooting
 and tracking the model's behavior.
 
-Here is an example of the content of the log file (:code:`<timestamp>_log.txt`):
+Here is an example of the content of the log file (:code:`<timestamp>.log`):
 
 ..  code-block:: text
-    :caption: <timestamp>_log.txt
+    :caption: <timestamp>.log
 
     14:40:08 | Model: 'example'
                Path: C:\Users\john_doe\example
