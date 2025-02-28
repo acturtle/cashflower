@@ -1,0 +1,6 @@
+variable,calc_order,calc_direction,cycle,cycle_order,variable_type,aggregation_type,runtime
+monthly_interest_rate,1,0,False,0,constant,sum,0.0010020732879638672
+payment,2,0,False,0,constant,sum,0.0010159015655517578
+interest,3,1,True,1,default,sum,0.0009943644205729167
+principal,3,1,True,2,default,sum,0.0009943644205729167
+balance,3,1,True,3,default,sum,0.0009943644205729167

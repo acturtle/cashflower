@@ -1,0 +1,26 @@
+20:25:29 | Model: 'dev_model_09'
+           Path: C:\Users\admin\Desktop\Projects\cashflower\tests\dev_models\dev_model_09
+           Timestamp: 20250111_202529
+           User: 'admin'
+           Git commit: d44fd760131aa66f4e7687c643c664fdda6a048d
+           
+           Run settings:
+           - GROUP_BY: None
+           - MULTIPROCESSING: False
+           - NUM_STOCHASTIC_SCENARIOS: None
+           - OUTPUT_VARIABLES: None
+           - SAVE_DIAGNOSTIC: False
+           - SAVE_LOG: True
+           - SAVE_OUTPUT: True
+           - T_MAX_CALCULATION: 720
+           - T_MAX_OUTPUT: 720
+           
+20:25:29 | Reading model components...
+           Runplan version: 1
+           Number of model points: 1
+20:25:29 | Starting calculations...
+20:25:29 | Preparing output...
+20:25:29 | Finished.
+           
+20:25:29 | Saving output file: output/20250111_202529_output.csv
+20:25:29 | Saving log file: output/20250111_202529_log.txt

@@ -1,0 +1,7 @@
+variable,calc_order,calc_direction,cycle,cycle_order,variable_type,aggregation_type,runtime
+a,1,0,False,0,constant,sum,0.0
+b,2,0,False,0,constant,sum,0.0
+d,3,1,True,1,default,sum,0.000998377799987793
+c,3,1,True,2,default,sum,0.000998377799987793
+e,4,0,False,0,default,sum,0.0009992122650146484
+f,5,0,False,0,default,sum,0.0
