@@ -47,9 +47,11 @@ jobs:
           source venv/bin/activate
           python setup.py sdist
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          path: dist/*.tar.gz
+          name: my-artifact
+          path: ./dist/*.tar.gz
 
   build_wheels:
     needs: make_sdist
@@ -73,8 +75,10 @@ jobs:
         with:
           platforms: "auto"
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
+          name: my-artifact-${{ matrix.os }}
           path: ./wheelhouse/*.whl
 
   publish-to-pypi:
@@ -85,7 +89,8 @@ jobs:
       - name: Download all the dists
         uses: actions/download-artifact@v4
         with:
-          name: artifact
+          pattern: my-artifact*
+          merge-multiple: true
           path: dist
 
       - name: Publish distribution to PyPI
