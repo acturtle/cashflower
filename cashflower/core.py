@@ -327,6 +327,7 @@ class ModelPointSet:
     def __len__(self):
         return self.data.shape[0]
 
+    @functools.lru_cache()
     def get(self, attribute, record_num=0):
         if self.model_point_data.empty:
             return 0
@@ -334,6 +335,8 @@ class ModelPointSet:
         return self.model_point_data.iloc[record_num][attribute]
 
     def set_model_point_data(self, value):
+        self.get.cache_clear()
+
         # With ID_COLUMN -> value = model_point_id
         if self.id_column:
             self.model_point_data = self.data[self.data[self.id_column].astype(str) == str(value)]
