@@ -110,7 +110,7 @@ def check_dev_model_12():
     print("OK")
 
     # Change directory back
-    os.chdir("../..")
+    os.chdir("..")
     print("\n")
 
 
@@ -135,6 +135,24 @@ def check_dev_model_24():
     print("Check: First row is 0, 1, 2, 3.", end=" ")
     assert last_output.iloc[0].tolist() == [0, 1, 2, 3]
     print("OK")
+
+
+def check_dev_model_26():
+    os.chdir("dev_model_26")
+
+    # Run model and save information
+    subprocess.run("python run.py --chunk 2 3", shell=True, check=True)
+    output_files = [f for f in os.listdir("output") if f.endswith("output.csv")]
+    last_output_file = output_files[-1]
+
+    print("\nCheck: The second chunk out of three gets executed.", end=" ")
+    last_output = pd.read_csv(f"output/{last_output_file}")
+    assert last_output.shape[0] == 3
+    print("OK")
+
+    # Change directory back
+    os.chdir("..")
+    print("\n")
 
 
 def check_all():
@@ -171,6 +189,7 @@ def check_all():
     # Models handled differently
     check_dev_model_00()  # test `create_model`
     check_dev_model_12()  # run with `python run.py --version 2`
+    check_dev_model_26()  # run with `python run.py --chunk 2 3`
 
 
 if __name__ == "__main__":
