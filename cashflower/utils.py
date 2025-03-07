@@ -121,32 +121,32 @@ def save_log_to_file(timestamp):
         log_messages.clear()
 
 
-def split_to_ranges(n, num_ranges):
+def split_to_chunks(n, num_chunks):
     """
-    Split a number into a specified number of ranges. The ranges are of equal size, except for the last one
+    Split a number into a specified number of chunks. The ranges are of equal size, except for the last one
     which may be larger if n is not evenly divisible by num_ranges. The remaining elements are added to the last range.
 
     Parameters:
         n (int): The number to split.
-        num_ranges (int): The number of ranges to split into.
+        num_chunks (int): The number of chunks to split into.
 
     Returns:
         list: A list of tuples, where each tuple represents a range.
 
     Example:
-        # >>> split_to_ranges(20, 3)
+        # >>> split_to_chunks(20, 3)
         [(0, 6), (6, 12), (12, 20)]
     """
-    if n < num_ranges:
+    if n < num_chunks:
         return [(0, n)]
 
-    range_size = n // num_ranges
-    remainder = n - num_ranges * range_size
+    range_size = n // num_chunks
+    remainder = n - num_chunks * range_size
 
     output = []
-    for i in range(num_ranges):
+    for i in range(num_chunks):
         start = range_size * i
-        end = range_size * (i + 1) + (remainder if i == num_ranges - 1 else 0)
+        end = range_size * (i + 1) + (remainder if i == num_chunks - 1 else 0)
         output.append((start, end))
     return output
 

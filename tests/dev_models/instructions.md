@@ -30,7 +30,7 @@ ensuring that they do not clutter the version control system.
 * `09` - `SAVE_OUTPUT = True`
 * `10` - variable that is calculated backward (`discounted_premium(t+1)`)
 * `11` - variables forming a cycle (real estate mortgage)
-* `12` - runplan
+* `12` - runplan (`python run.py --version 2`)
 * `13` - array variable (`@variable(array=True)`)
 * `14` - cython function `discount()`
 * `15` - results aggregated by groups (`GROUP_BY = 'product_code'`)
@@ -44,4 +44,5 @@ ensuring that they do not clutter the version control system.
 * `23` - dependent variables and subset in the output (`OUTPUT_VARIABLES`)
 * `24` - `"OUTPUT_VARIABLES": ["one", "two", "three"]`
 * `25` - two model point sets
+* `26` - a chunk (`python run.py --chunk 2 3`)
 * `99` - "special" model for testing memory limits

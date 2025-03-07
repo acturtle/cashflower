@@ -14,7 +14,7 @@ import shutil
 from .core import ArrayVariable, Model, ModelPointSet, Runplan, StochasticVariable, Variable
 from .error import CashflowModelError
 from .graph import create_directed_graph, filter_variables_and_graph, get_calls, get_predecessors, set_calc_direction
-from .utils import get_git_commit_info, get_main_model_point_set, log_message, save_log_to_file, split_to_ranges
+from .utils import get_git_commit_info, get_main_model_point_set, log_message, save_log_to_file, split_to_chunks
 
 
 DEFAULT_SETTINGS = {
@@ -247,12 +247,12 @@ def apply_command_line_arguments(args, runplan, model_point_sets):
 
     # --chunk
     if args.chunk is not None:
-        main = [mps for mps in model_point_sets if mps.main][0]
+        main = get_main_model_point_set(model_point_sets)
         num_model_points = len(main)
         part, total = args.chunk
         assert 1 <= part <= total, f"Invalid chunk: part {part} of {total}"
-        model_points_range = split_to_ranges(num_model_points, total)[part-1]
-        main.data = main.data.iloc[model_points_range[0]:model_points_range[1]]
+        chunk_range = split_to_chunks(num_model_points, total)[part - 1]
+        main.data = main.data.iloc[chunk_range[0]:chunk_range[1]]
 
     return runplan, model_point_sets
 
