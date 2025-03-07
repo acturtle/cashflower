@@ -6,7 +6,7 @@ import pandas as pd
 import psutil
 
 from .error import CashflowModelError
-from .utils import get_first_indexes, get_main_model_point_set, get_object_by_name, log_message, split_to_ranges, update_progressbar
+from .utils import get_first_indexes, get_main_model_point_set, get_object_by_name, log_message, split_to_chunks, update_progressbar
 
 
 def get_variable_type(v):
@@ -381,7 +381,7 @@ class Model:
         main = get_main_model_point_set(self.model_point_sets)
         range_start, range_end = 0, len(main)
         if self.settings["MULTIPROCESSING"]:
-            main_ranges = split_to_ranges(len(main), multiprocessing.cpu_count())
+            main_ranges = split_to_chunks(len(main), multiprocessing.cpu_count())
             # Number of model points is lower than the number of CPUs, only calculate on the 1st core
             if part >= len(main_ranges):
                 return None
