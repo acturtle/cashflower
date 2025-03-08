@@ -3,8 +3,8 @@ from unittest import TestCase
 from cashflower.utils import get_first_indexes, get_object_by_name, log_message, split_to_chunks, update_progressbar
 
 
-class TestSplitToRanges(TestCase):
-    def test_split_to_ranges(self):
+class TestSplitToChunks(TestCase):
+    def test_split_to_chunks(self):
         assert split_to_chunks(20, 3) == [(0, 6), (6, 12), (12, 20)]
         assert split_to_chunks(2, 3) == [(0, 2)]
 
