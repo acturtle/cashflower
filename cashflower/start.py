@@ -575,12 +575,12 @@ def save_results(timestamp, output, diagnostic, settings):
     if not os.path.exists("output"):
         os.makedirs("output")
 
-    if settings["SAVE_OUTPUT"]:
+    if settings["SAVE_OUTPUT"] and output is not None:
         filepath = f"output/{timestamp}_output.csv"
         log_message(f"Saving output file: {filepath}", show_time=True)
         output.to_csv(filepath, index=False)
 
-    if settings["SAVE_DIAGNOSTIC"]:
+    if settings["SAVE_DIAGNOSTIC"] and diagnostic is not None:
         filepath = f"output/{timestamp}_diagnostic.csv"
         log_message(f"Saving diagnostic file: {filepath}", show_time=True)
         diagnostic.to_csv(filepath, index=False)
