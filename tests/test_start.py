@@ -58,7 +58,7 @@ class TestGetRunplan(TestCase):
     def test_get_runplan(self):
         runplan = Runplan(data=pd.DataFrame({"version": [1]}))
         input_members = [("foo", "foo"), ("runplan", runplan), ("bar", "bar")]
-        assert get_runplan(input_members, args=argparse.Namespace(**{'version': None})) == runplan
+        assert get_runplan(input_members) == runplan
 
 
 class TestGetModelPointSets(TestCase):

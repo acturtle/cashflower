@@ -40,5 +40,5 @@ setup(
     },
     python_requires='>=3.11',
     url="https://github.com/acturtle/cashflower",
-    version="0.9.5",
+    version="0.9.6",
 )
