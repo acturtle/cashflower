@@ -115,7 +115,7 @@ def get_settings(settings=None):
     return updated_settings
 
 
-def get_runplan(input_members, args):
+def get_runplan(input_members):
     """
     Get runplan object from input.py script. Assign version if provided in the CLI command.
 
@@ -277,7 +277,7 @@ def get_model_input(settings, args):
 
     # input.py contains runplan and model point sets
     input_members = inspect.getmembers(input_module)
-    runplan = get_runplan(input_members, args)
+    runplan = get_runplan(input_members)
     model_point_sets = get_model_point_sets(input_members, settings)
 
     # model.py contains model variables
@@ -526,7 +526,9 @@ def parse_arguments():
     parser.add_argument("--chunk", nargs=2, type=int, metavar=("PART", "TOTAL"),
                         help="Select PART out of TOTAL chunks of model points")
 
-    return parser.parse_args()
+    args, unknown = parser.parse_known_args()
+
+    return args, unknown
 
 
 def run_multi_core(settings, args):
@@ -659,7 +661,7 @@ def run(settings=None, path=None):
     diagnostic = None
 
     try:
-        args = parse_arguments()
+        args, _ = parse_arguments()
         settings_changes = log_settings_changes(settings)
         settings = get_settings(settings)
         log_run_info(timestamp, path, args, settings_changes, settings)
