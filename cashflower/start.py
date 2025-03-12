@@ -14,7 +14,7 @@ import shutil
 from .core import ArrayVariable, Model, ModelPointSet, Runplan, StochasticVariable, Variable
 from .error import CashflowModelError
 from .graph import create_directed_graph, filter_variables_and_graph, get_calls, get_predecessors, set_calc_direction
-from .utils import get_git_commit_info, get_main_model_point_set, log_message, save_log_to_file, split_to_chunks
+from .utils import get_git_commit_info, get_main_model_point_set, log_message, log_messages, save_log_to_file, split_to_chunks
 
 
 DEFAULT_SETTINGS = {
@@ -552,11 +552,8 @@ def run_multi_core(settings, args):
     output = merge_part_outputs(part_outputs, settings)
 
     # Merge runtimes
-    if settings["SAVE_DIAGNOSTIC"]:
-        part_diagnostic = [part[1] for part in parts]
-        diagnostic = merge_part_diagnostic(part_diagnostic)
-    else:
-        diagnostic = None
+    part_diagnostic = [part[1] for part in parts]
+    diagnostic = merge_part_diagnostic(part_diagnostic)
 
     return output, diagnostic
 
@@ -686,4 +683,4 @@ def run(settings=None, path=None):
         save_results(timestamp, output, diagnostic, settings)
 
     print(f"{'-' * 72}\n")
-    return output
+    return output, diagnostic, log_messages

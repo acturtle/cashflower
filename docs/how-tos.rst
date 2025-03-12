@@ -34,7 +34,7 @@ Print all rows and columns of the :code:`output` data frame with 2 decimal place
     pd.set_option('display.width', 1000)
 
     if __name__ == "__main__":
-        output = run(settings=settings, path=os.path.dirname(__file__))
+        output, diagnostic, log = run(settings=settings, path=os.path.dirname(__file__))
         print(output.to_string(index=False))
 
 |
