@@ -593,18 +593,14 @@ class Model:
             v.runtime += avg_runtime
 
     def create_diagnostic_data(self):
-        if self.settings["SAVE_DIAGNOSTIC"]:
-            diagnostic = pd.DataFrame({
-                "variable": [v.name for v in self.variables],
-                "calc_order": [v.calc_order for v in self.variables],
-                "calc_direction": [v.calc_direction for v in self.variables],
-                "cycle": [v.cycle for v in self.variables],
-                "cycle_order": [v.cycle_order for v in self.variables],
-                "variable_type": [get_variable_type(v) for v in self.variables],
-                "aggregation_type": [v.aggregation_type for v in self.variables],
-                "runtime": [v.runtime for v in self.variables]
-            })
-        else:
-            diagnostic = None
-
+        diagnostic = pd.DataFrame({
+            "variable": [v.name for v in self.variables],
+            "calc_order": [v.calc_order for v in self.variables],
+            "calc_direction": [v.calc_direction for v in self.variables],
+            "cycle": [v.cycle for v in self.variables],
+            "cycle_order": [v.cycle_order for v in self.variables],
+            "variable_type": [get_variable_type(v) for v in self.variables],
+            "aggregation_type": [v.aggregation_type for v in self.variables],
+            "runtime": [v.runtime for v in self.variables]
+        })
         return diagnostic
