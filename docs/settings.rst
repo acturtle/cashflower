@@ -331,7 +331,7 @@ To create custom output files, you can utilize the :code:`output` variable in th
     :caption: run.py
 
     if __name__ == "__main__":
-        output = run(settings, sys.argv)
+        output, _, _ = run(settings)
         output.to_csv(f"results/my_awesome_results.csv")
 
 The output variable contains a data frame with the results. In the example above, it will create a CSV file named
