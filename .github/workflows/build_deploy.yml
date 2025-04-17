@@ -59,7 +59,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-20.04, windows-2019, macos-13 ]
+        os: [ ubuntu-22.04, windows-2019, macos-13 ]
 
     steps:
       - uses: actions/checkout@v4
@@ -72,8 +72,6 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.18.0
-        with:
-          platforms: "auto"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
