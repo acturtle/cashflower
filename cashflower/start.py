@@ -10,6 +10,7 @@ import numpy as np
 import os
 import pandas as pd
 import shutil
+import types
 
 from .core import ArrayVariable, Model, ModelPointSet, Runplan, StochasticVariable, Variable
 from .error import CashflowModelError
@@ -206,7 +207,17 @@ def get_variables(model_members, settings):
     return variables
 
 
-def check_input(settings, model_point_sets, variables):
+def check_input(model_members, settings, model_point_sets, variables):
+    # Model variables must be defined in `model.py`
+    for m in model_members:
+        if isinstance(m[1], types.ModuleType):
+            for attr_name in dir(m[1]):
+                module_var = getattr(m[1], attr_name)
+                if isinstance(module_var, Variable):
+                    msg = (f"\n\nIt looks like you're trying to use variables from '{m[1].__name__}'. \n"
+                           f"Please import them with 'from {m[1].__name__} import *' to continue.")
+                    raise CashflowModelError(msg)
+
     # The OUTPUT_VARIABLES setting must contain only existing variables
     variable_names = [v.name for v in variables]
     output_variable_names = settings["OUTPUT_VARIABLES"]
@@ -285,7 +296,7 @@ def get_model_input(settings, args):
     variables = get_variables(model_members, settings)
 
     # Check consistency of the input
-    check_input(settings, model_point_sets, variables)
+    check_input(model_members, settings, model_point_sets, variables)
 
     # Apply command line arguments
     runplan, model_point_sets = apply_command_line_arguments(args, runplan, model_point_sets)
