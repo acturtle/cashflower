@@ -113,3 +113,12 @@ Description:
 * The function requires two parameters: :code:`t` and :code:`stoch`, returning a numeric value.
 * It can be called for a specific period and stochastic scenario (e.g., :code:`t=5` and :code:`stoch=2`) to return a single float.
 * It belongs to the :code:`StochasticVariable` class.
+
+
+Variable Types:
+_______________
+
+All variables defined within the model must be numeric. This was done for two main reason:
+
+* Technical Reason: the use of numeric variables and the exploitation of NumPy structures makes the execution faster.
+* Practical Reason: all non-numeric information can be added in a post-processing step, keeping calculations clean.
