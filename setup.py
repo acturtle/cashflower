@@ -23,7 +23,7 @@ extensions = cythonize(
 
 setup(
     name="cashflower",
-    version="0.10.2",
+    version="0.10.3",
 
     author="Zuzanna Chmielewska",
     description="Framework for actuarial cash flow models",
