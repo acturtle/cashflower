@@ -1,7 +1,5 @@
 [build-system]
 requires = [
-    "meson-python==0.13.1",
-    "meson==1.2.1",
     "setuptools == 68.2.2",
     "wheel >= 0.34.2",
     "Cython",
