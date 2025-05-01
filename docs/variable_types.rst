@@ -120,7 +120,5 @@ Description:
 
 All variables used in the model must be numeric. This is for two main reasons:
 
-* Performance – using numeric variables allows us to take advantage of NumPy’s optimized number types and operations,
-which makes the model run faster.
-* Organization – keeping the model focused on numbers and adding text (like names, categories, or descriptions)
-later helps keep things tidy and well-structured.
+* Performance – using numeric variables allows us to take advantage of NumPy’s optimized number types and operations, which makes the model run faster.
+* Organization – keeping the model focused on numbers and adding text (like names, categories, or descriptions) later helps keep things tidy and well-structured.
