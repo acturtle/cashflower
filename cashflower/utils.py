@@ -14,14 +14,15 @@ def get_git_commit_info():
 
     Returns:
         str: The current Git commit hash, or the commit hash followed by " (with local changes)"
-        if there are any uncommitted changes. Returns None if the current directory is not a Git repository.
+        if there are any uncommitted changes.
+        Returns None if the current directory is not a Git repository or if Git not installed.
     """
     try:
         subprocess.check_output(["git", "rev-parse", "--is-inside-work-tree"], stderr=subprocess.STDOUT, text=True)
         commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
         status_output = subprocess.check_output(["git", "status", "--porcelain"], text=True).strip()
-    except subprocess.CalledProcessError:
-        # Not a git repository
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # Not a git repository or git is not installed
         return None
 
     if status_output:
