@@ -1,4 +1,5 @@
 import functools
+import inspect
 import time
 import multiprocessing
 import numpy as np
@@ -29,47 +30,49 @@ def get_variable_type(v):
 
 def check_arguments(func, array):
     """
-    Check if the input function has the correct arguments.
+    Validate function signature for model variables.
 
-    The function should have at most two parameters, 't' and 'stoch'. If the function has two parameters,
-    the first one should be named 't' and the second one should be named 'stoch'.
-    If the function has only one parameter, it should be named 't'. Additionally, if the input 'array' is True,
-    the function should not have any parameters.
-
-    Parameters:
-        func (function): The function to check.
-        array (bool): Whether the function is an array variable.
+    Args:
+        func (callable): Function to validate
+        array (bool): True if this is an array variable (should have no parameters)
 
     Raises:
-        CashflowModelError: If the function does not meet the required criteria.
+        CashflowModelError: If function signature is invalid
+
+    Valid signatures:
+        - Array variables: no parameters
+        - Constant variables: no parameters
+        - Regular variables: single parameter 't'
+        - Stochastic variables: parameters 't' and 'stoch'
     """
-    # Variable has at most 2 parameters ("t" and "stoch")
-    if func.__code__.co_argcount > 2:
-        msg = f"Error in '{func.__name__}': The model variable should have at most two parameters ('t' and 'stoch')."
-        raise CashflowModelError(msg)
+    params = list(inspect.signature(func).parameters.keys())
+    num_params = len(params)
 
-    # The first parameter must be named "t" and second "stoch"
-    if func.__code__.co_argcount == 2:
-        if not func.__code__.co_varnames[0] == 't':
-            msg = f"Error in '{func.__name__}': The first parameter should be named 't'."
-            raise CashflowModelError(msg)
+    # Array variables must have no parameters
+    if array:
+        if num_params != 0:
+            raise CashflowModelError(
+                f"Error in '{func.__name__}': Array variables cannot have parameters."
+            )
+        return
 
-        if not func.__code__.co_varnames[1] == 'stoch':
-            msg = f"Error in '{func.__name__}': The second parameter should be named 'stoch'."
-            raise CashflowModelError(msg)
+    # Non-array: Enforce at most 2 parameters
+    if num_params > 2:
+        raise CashflowModelError(
+            f"Error in '{func.__name__}': Model variables can have at most two parameters ('t' and 'stoch')."
+        )
 
-    # The only parameter must be named "t"
-    if func.__code__.co_argcount == 1:
-        if not func.__code__.co_varnames[0] == 't':
-            msg = f"Error in '{func.__name__}': The parameter should be named 't'."
-            raise CashflowModelError(msg)
-
-    # Array variables should not have any parameters
-    if array and not func.__code__.co_argcount == 0:
-        msg = f"Error in '{func.__name__}': Array variables cannot have parameters."
-        raise CashflowModelError(msg)
-
-    return None
+    # Check parameter names for 1 or 2 params
+    if num_params == 2:
+        if params != ['t', 'stoch']:
+            raise CashflowModelError(
+                f"Error in '{func.__name__}': Expected parameters 't' and 'stoch', but got {params}."
+            )
+    elif num_params == 1:
+        if params[0] != 't':
+            raise CashflowModelError(
+                f"Error in '{func.__name__}': Expected single parameter 't', but got '{params[0]}'."
+            )
 
 
 def variable(array=False, aggregation_type="sum"):

@@ -4,6 +4,7 @@ from unittest import TestCase
 
 from cashflower.core import *
 from cashflower.start import get_settings
+from cashflower.error import CashflowModelError
 
 
 class TestGetVariableType(TestCase):
@@ -21,6 +22,44 @@ class TestGetVariableType(TestCase):
         assert get_variable_type(cv) == "constant"
         assert get_variable_type(av) == "array"
         assert get_variable_type(sv) == "stochastic"
+
+
+class TestCheckArguments(TestCase):
+    def test_check_arguments_with_correct_setting(self):
+        def foo():
+            return 1
+
+        check_arguments(foo, array=False)
+        check_arguments(foo, array=True)
+
+        def bar(t):
+            return t
+
+        check_arguments(bar, array=False)
+
+        def baz(t, stoch):
+            return t + stoch
+
+        check_arguments(baz, array=False)
+
+    def test_check_arguments_with_incorrect_setting(self):
+        def foo(a):
+            return a
+
+        with self.assertRaises(CashflowModelError):
+            check_arguments(foo, array=False)
+
+        def bar(t):
+            return t
+
+        with self.assertRaises(CashflowModelError):
+            check_arguments(bar, array=True)
+
+        def baz(a, b, c):
+            return a + b + c
+
+        with self.assertRaises(CashflowModelError):
+            check_arguments(baz, array=True)
 
 
 class TestVariableDecorator(TestCase):
