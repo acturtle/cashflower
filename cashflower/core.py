@@ -19,14 +19,12 @@ def get_variable_type(v):
     Returns:
         str: The type of the variable. Possible values are "constant", "array", "stochastic", and "default".
     """
-    if isinstance(v, ConstantVariable):
-        return "constant"
-    elif isinstance(v, ArrayVariable):
-        return "array"
-    elif isinstance(v, StochasticVariable):
-        return "stochastic"
-    else:
-        return "default"
+    type_map = {
+        ConstantVariable: "constant",
+        ArrayVariable: "array",
+        StochasticVariable: "stochastic"
+    }
+    return type_map.get(type(v), "default")
 
 
 def check_arguments(func, array):

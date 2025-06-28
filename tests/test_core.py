@@ -1,11 +1,26 @@
-import numpy as np
-import pandas as pd
 import pytest
 
 from unittest import TestCase
 
-from cashflower.core import CashflowModelError, ModelPointSet, Runplan, variable, Variable
+from cashflower.core import *
 from cashflower.start import get_settings
+
+
+class TestGetVariableType(TestCase):
+    def test_get_variable_type(self):
+
+        def foo(t):
+            return t
+
+        v = Variable(func=foo, aggregation_type="sum")
+        cv = ConstantVariable(func=foo, aggregation_type="sum")
+        av = ArrayVariable(func=foo, aggregation_type="sum")
+        sv = StochasticVariable(func=foo, aggregation_type="sum")
+
+        assert get_variable_type(v) == "default"
+        assert get_variable_type(cv) == "constant"
+        assert get_variable_type(av) == "array"
+        assert get_variable_type(sv) == "stochastic"
 
 
 class TestVariableDecorator(TestCase):
