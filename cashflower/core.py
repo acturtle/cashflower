@@ -287,6 +287,9 @@ class Runplan:
         """Get a value from the runplan for the current version."""
         return self.data.at[self.version, attribute]
 
+    def __getitem__(self, attribute):
+        return self.get(attribute)
+
     @property
     def version(self):
         return self._version
@@ -344,6 +347,9 @@ class ModelPointSet:
             return 0
 
         return self.model_point_data.iloc[record_num][attribute]
+
+    def __getitem__(self, attribute):
+        return self.get(attribute)
 
     def set_model_point_data(self, value):
         self.get.cache_clear()

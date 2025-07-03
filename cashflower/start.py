@@ -19,15 +19,15 @@ from .utils import get_git_commit_info, get_main_model_point_set, log_message, l
 
 
 DEFAULT_SETTINGS = {
-        "GROUP_BY": None,
-        "MULTIPROCESSING": False,
-        "NUM_STOCHASTIC_SCENARIOS": None,
-        "OUTPUT_VARIABLES": None,
-        "SAVE_DIAGNOSTIC": False,
-        "SAVE_LOG": False,
-        "SAVE_OUTPUT": True,
-        "T_MAX_CALCULATION": 720,
-        "T_MAX_OUTPUT": 720,
+    "GROUP_BY": None,
+    "MULTIPROCESSING": False,
+    "NUM_STOCHASTIC_SCENARIOS": None,
+    "OUTPUT_VARIABLES": None,
+    "SAVE_DIAGNOSTIC": False,
+    "SAVE_LOG": False,
+    "SAVE_OUTPUT": True,
+    "T_MAX_CALCULATION": 720,
+    "T_MAX_OUTPUT": 720,
 }
 
 

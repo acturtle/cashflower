@@ -76,7 +76,7 @@ def get_calls(variable, variables, argument_t_only=False):
 
     Debug: print(ast.dump(ast_tree, indent=2))
     """
-    call_names = []
+    call_names = set()
     variable_names = [variable.name for variable in variables]
     ast_tree = ast.parse(inspect.getsource(variable.func))
 
@@ -88,11 +88,11 @@ def get_calls(variable, variables, argument_t_only=False):
                     raise_error_if_incorrect_argument(node, variable)
                     # Add variable regardless of its argument
                     if argument_t_only is False:
-                        call_names.append(node.func.id)
+                        call_names.add(node.func.id)
                     # Add variable only if it calls "t"
                     else:
                         if isinstance(node.args[0], ast.Name):
-                            call_names.append(node.func.id)
+                            call_names.add(node.func.id)
 
     calls = [get_object_by_name(variables, call_name) for call_name in call_names if call_name != variable.name]
     return calls
