@@ -76,24 +76,45 @@ def check_arguments(func, array):
 
 
 def variable(array=False, aggregation_type="sum"):
-    """A decorator that transforms a function into an object of class Variable."""
+    """
+    Decorator to transform a function into a Variable object.
+
+    Usage:
+        @variable()
+        def my_var(t):
+            ...
+
+        @variable(array=True)
+        def my_array():
+            ...
+
+    Args:
+        array (bool): If True, creates an ArrayVariable (no parameters allowed).
+        aggregation_type (str): Aggregation method ("sum" by default).
+
+    Raises:
+        CashflowModelError: If used without parentheses, e.g., @variable.
+    """
     if callable(array):
         raise CashflowModelError("The @variable decorator must be used with parentheses, e.g., @variable().")
 
     def wrapper(func):
         check_arguments(func, array)
 
-        # Create a variable
+        sig = inspect.signature(func)
+        params = list(sig.parameters.keys())
+
         if array:
             v = ArrayVariable(func, aggregation_type)
-        elif func.__code__.co_argcount == 0:
+        elif len(params) == 0:
             v = ConstantVariable(func, aggregation_type)
-        elif func.__code__.co_argcount == 2:
+        elif len(params) == 2:
             v = StochasticVariable(func, aggregation_type)
         else:
             v = Variable(func, aggregation_type)
 
         return v
+
     return wrapper
 
 
@@ -119,7 +140,7 @@ class Variable:
     def __init__(self, func, aggregation_type):
         self.func = func
         self.aggregation_type = aggregation_type
-        self.name = None
+        self.name = func.__name__
         self.calc_direction = None
         self.calc_order = None
         self.cycle = False
@@ -137,23 +158,12 @@ class Variable:
         if t is None:
             return self.result
 
-        # Python allows negative indexing, which would wrap around to the end of the list.
-        # To prevent this and ensure t is within the valid range, we explicitly check for t < 0.
-        if t < 0:
+        if t < 0 or t >= self.result.shape[0]:
             msg = (f"\n\nVariable '{self.name}' has been called for period '{t}' "
                    f"which is outside of the calculation range.")
             raise CashflowModelError(msg)
 
-        # Easier to ask forgiveness
-        try:
-            return self.result[t]
-        except IndexError as e:
-            if t > len(self.result):
-                msg = (f"\n\nVariable '{self.name}' has been called for period '{t}' "
-                       f"which is outside of the calculation range.")
-                raise CashflowModelError(msg)
-            else:
-                print(str(e))
+        return self.result[t]
 
     def calculate_t(self, t):
         """For cycle calculations"""

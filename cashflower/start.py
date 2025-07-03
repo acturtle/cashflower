@@ -185,11 +185,10 @@ def get_variables(model_members, settings):
     variables = []
 
     for name, variable in variable_members:
-        # Set name
-        if name == "t":
+        # Check names
+        if name == "t" or name == "stoch":
             msg = f"\nA variable can not be named '{name}' because it is a system variable. Please rename it."
             raise CashflowModelError(msg)
-        variable.name = name
 
         # Initiate empty results
         variable.result = np.empty(settings["T_MAX_CALCULATION"]+1)

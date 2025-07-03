@@ -71,6 +71,41 @@ class TestVariableDecorator(TestCase):
 
         assert isinstance(foo, Variable)
 
+    def test_decorator_must_be_called_with_parentheses(self):
+        def foo():
+            return 1
+
+        with self.assertRaises(CashflowModelError):
+            variable(foo)
+
+    def test_zero_arg_function_becomes_constant_variable(self):
+        @variable()
+        def foo():
+            return 1
+
+        self.assertIsInstance(foo, ConstantVariable)
+
+    def test_zero_arg_array_function_becomes_array_variable(self):
+        @variable(array=True)
+        def foo():
+            return [1, 2, 3]
+
+        self.assertIsInstance(foo, ArrayVariable)
+
+    def test_one_arg_function_becomes_generic_variable(self):
+        @variable()
+        def foo(t):
+            return t
+
+        self.assertIsInstance(foo, Variable)
+
+    def test_two_arg_function_becomes_stochastic_variable(self):
+        @variable()
+        def foo(t, stoch):
+            return t * stoch
+
+        self.assertIsInstance(foo, StochasticVariable)
+
 
 class TestRunplan(TestCase):
     def test_runplan(self):
@@ -118,11 +153,8 @@ class TestVariable(TestCase):
         def foo(t):
             return t
 
-        foo.name = "foo"
         foo.result = np.empty(720)
-
         foo.calculate_t(10)
-
         assert foo(10) == 10
 
         with pytest.raises(CashflowModelError):
