@@ -4,8 +4,51 @@ import networkx as nx
 
 from collections import deque
 
+from .core import ArrayVariable
 from .error import CashflowModelError
 from .utils import get_object_by_name
+
+
+def get_calls(variable, variables, argument_t_only=False):
+    """
+    Returns a list of variables that are called by the given variable.
+
+    Parameters:
+        variable (Variable): The variable to check for calls.
+        variables (list): A list of all variables.
+        argument_t_only (bool): If True, only variables called with "t" will be returned (used for cycles).
+
+    Returns:
+        list: A list of variables that are called by the given variable.
+
+    Notes:
+        - If argument_t_only is True, only variables called with "t" will be returned.
+          For example, if a variable is called with "t-1", it will not be included in the list.
+        - This function uses the ast module to parse the source code of the given variable and find the calls.
+        - The function also checks for incorrect arguments and raises an error if found.
+
+    Debug: print(ast.dump(ast_tree, indent=2))
+    """
+    call_names = set()
+    variable_names = [variable.name for variable in variables]
+    ast_tree = ast.parse(inspect.getsource(variable.func))
+
+    for node in ast.walk(ast_tree):
+        # Variable calls other variable directly (e.g. projection_year(t))
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name):
+                if node.func.id in variable_names:
+                    raise_error_if_incorrect_argument(node, variable)
+                    # Add variable regardless of its argument
+                    if argument_t_only is False:
+                        call_names.add(node.func.id)
+                    # Add variable only if it calls "t"
+                    else:
+                        if isinstance(node.args[0], ast.Name):
+                            call_names.add(node.func.id)
+
+    calls = [get_object_by_name(variables, call_name) for call_name in call_names if call_name != variable.name]
+    return calls
 
 
 def create_directed_graph(variables, calls):
@@ -54,48 +97,6 @@ def filter_variables_and_graph(variables, output_variable_names, dg):
     dg.remove_nodes_from(unneeded_variables)
     variables = list(needed_variables)
     return variables, dg
-
-
-def get_calls(variable, variables, argument_t_only=False):
-    """
-    Returns a list of variables that are called by the given variable.
-
-    Parameters:
-        variable (Variable): The variable to check for calls.
-        variables (list): A list of all variables.
-        argument_t_only (bool): If True, only variables called with "t" will be returned. Defaults to False.
-
-    Returns:
-        list: A list of variables that are called by the given variable.
-
-    Notes:
-        - If argument_t_only is True, only variables called with "t" will be returned.
-          For example, if a variable is called with "t-1", it will not be included in the list.
-        - This function uses the ast module to parse the source code of the given variable and find the calls.
-        - The function also checks for incorrect arguments and raises an error if found.
-
-    Debug: print(ast.dump(ast_tree, indent=2))
-    """
-    call_names = set()
-    variable_names = [variable.name for variable in variables]
-    ast_tree = ast.parse(inspect.getsource(variable.func))
-
-    for node in ast.walk(ast_tree):
-        # Variable calls other variable directly (e.g. projection_year(t))
-        if isinstance(node, ast.Call):
-            if isinstance(node.func, ast.Name):
-                if node.func.id in variable_names:
-                    raise_error_if_incorrect_argument(node, variable)
-                    # Add variable regardless of its argument
-                    if argument_t_only is False:
-                        call_names.add(node.func.id)
-                    # Add variable only if it calls "t"
-                    else:
-                        if isinstance(node.args[0], ast.Name):
-                            call_names.add(node.func.id)
-
-    calls = [get_object_by_name(variables, call_name) for call_name in call_names if call_name != variable.name]
-    return calls
 
 
 def parse_ast_tree(variable, variable_names):
@@ -271,3 +272,125 @@ def set_calc_direction(variables):
         for variable in calc_order_variables:
             variable.calc_direction = calc_direction
     return variables
+
+
+def process_acyclic_nodes(dg):
+    """
+    Process nodes that have no predecessors (acyclic case).
+
+    Args:
+        dg: Directed graph of variable dependencies
+
+    Returns:
+        tuple: (nodes_without_predecessors, has_acyclic_nodes)
+    """
+    nodes_without_predecessors = [n for n in dg.nodes if len(list(dg.predecessors(n))) == 0]
+    has_acyclic_nodes = len(nodes_without_predecessors) > 0
+    return nodes_without_predecessors, has_acyclic_nodes
+
+
+def find_source_cycles(dg):
+    """
+    Find cycles that don't have external predecessors (source cycles).
+
+    Args:
+        dg: Directed graph of variable dependencies
+
+    Returns:
+        list: List of cycles that can be processed (have no external dependencies)
+    """
+    cycles = list(nx.simple_cycles(dg))
+    cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], dg)) == len(c)]
+
+    # If no simple cycles without predecessors, look for strongly connected components
+    if len(cycles_without_predecessors) == 0:
+        cycles_without_predecessors = find_source_strongly_connected_components(dg)
+
+    return cycles_without_predecessors
+
+
+def find_source_strongly_connected_components(dg):
+    """
+    Find strongly connected components that have no incoming edges from outside.
+
+    Args:
+        dg: Directed graph of variable dependencies
+
+    Returns:
+        list: List of source strongly connected components
+    """
+    sccs = list(nx.strongly_connected_components(dg))
+    source_sccs = []
+
+    for scc in sccs:
+        has_incoming_edge = False
+        for node in scc:
+            for edge in dg.in_edges(node):
+                if edge[0] not in scc:
+                    has_incoming_edge = True
+                    break
+            if has_incoming_edge:
+                break
+
+        if not has_incoming_edge:
+            source_sccs.append(sorted(list(scc)))
+
+    return source_sccs
+
+
+def check_for_array_variables_in_cycle(cycle):
+    for variable in cycle:
+        if isinstance(variable, ArrayVariable):
+            msg = (f"Variable '{variable.name}' is part of a cycle so it can't be modelled as an array variable."
+                   f"\nCycle: {cycle}"
+                   f"\nPlease remove 'array=True' from the decorator and recode the variable.")
+            raise CashflowModelError(msg)
+
+
+def set_cycle_order(dg_cycle):
+    cycle_order = 0
+    while dg_cycle.nodes:
+        cycle_nodes_without_predecessors = [cn for cn in dg_cycle.nodes if len(list(dg_cycle.predecessors(cn))) == 0]
+        if len(cycle_nodes_without_predecessors) > 0:
+            for node in cycle_nodes_without_predecessors:
+                cycle_order += 1
+                node.cycle_order = cycle_order
+            dg_cycle.remove_nodes_from(cycle_nodes_without_predecessors)
+        else:
+            cycle_variable_nodes = [node.name for node in dg_cycle.nodes]
+            msg = (f"Circular relationship without time step difference is not allowed. "
+                   f"Please review variables: {cycle_variable_nodes}."
+                   f"\nIf circular relationship without time step difference is necessary in your project, "
+                   f"please raise it on: github.com/acturtle/cashflower")
+            raise CashflowModelError(msg)
+
+
+def process_cycle(cycle, calc_order):
+    """
+    Process a single cycle of variables by setting their calculation order.
+
+    Args:
+        cycle: List of variables that form a cycle
+        calc_order: Current calculation order counter
+
+    Returns:
+        int: Updated calculation order counter
+    """
+    # Ensure that there are no ArrayVariables in cycles
+    check_for_array_variables_in_cycle(cycle)
+
+    # Set the calculation order within the cycle ('cycle_order')
+    calls_t = {}  # dictionary of called functions but only for the same time period ("t")
+    for variable in cycle:
+        calls_t[variable] = get_calls(variable, cycle, argument_t_only=True)
+
+    dg_cycle = create_directed_graph(cycle, calls_t)
+    set_cycle_order(dg_cycle)
+
+    # All the variables from a cycle have the same 'calc_order' value
+    calc_order += 1
+    for node in cycle:
+        node.calc_order = calc_order
+        node.cycle = True
+
+    return calc_order
