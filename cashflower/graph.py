@@ -51,7 +51,7 @@ def get_calls(variable, variables, argument_t_only=False):
     return calls
 
 
-def create_directed_graph(variables, calls):
+def create_directed_graph(variables):
     """
     Create a directed graph based on a list of variables and a dictionary of calls.
 
@@ -62,6 +62,10 @@ def create_directed_graph(variables, calls):
     Returns:
         nx.DiGraph: A directed graph representing the calls between variables.
     """
+    calls = {}
+    for variable in variables:
+        calls[variable] = get_calls(variable, variables)
+
     dg = nx.DiGraph()
     for variable in variables:
         dg.add_node(variable)
@@ -384,7 +388,7 @@ def process_cycle(cycle, calc_order):
     for variable in cycle:
         calls_t[variable] = get_calls(variable, cycle, argument_t_only=True)
 
-    dg_cycle = create_directed_graph(cycle, calls_t)
+    dg_cycle = create_directed_graph(cycle)
     set_cycle_order(dg_cycle)
 
     # All the variables from a cycle have the same 'calc_order' value

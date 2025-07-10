@@ -11,11 +11,12 @@ import pandas as pd
 import shutil
 import types
 
-from .core import ArrayVariable, Model, ModelPointSet, Runplan, StochasticVariable, Variable
+from .core import Model, ModelPointSet, Runplan, StochasticVariable, Variable
 from .error import CashflowModelError
-from .graph import (create_directed_graph, filter_variables_and_graph, get_calls, set_calc_direction,
-                    process_acyclic_nodes, find_source_cycles, process_cycle)
+from .graph import (create_directed_graph, filter_variables_and_graph, set_calc_direction, process_acyclic_nodes,
+                    find_source_cycles, process_cycle)
 from .utils import get_git_commit_info, get_main_model_point_set, log_message, log_messages, save_log_to_file, split_to_chunks
+from .visualization import show_graph
 
 
 DEFAULT_SETTINGS = {
@@ -48,7 +49,7 @@ def create_model(model):
         print(f"Error: {e.filename} - {e.strerror}.")
 
 
-def log_settings_changes(settings=None):
+def get_settings_changes_log(settings=None):
     """Returns a list of logs describing adjustments to the user's settings."""
     changes = []
 
@@ -321,32 +322,26 @@ def determine_calculation_order(variables, settings):
     """
     output_variable_names = settings["OUTPUT_VARIABLES"]
 
-    # [1] Dictionary of called functions (key = variable; value = other variables called by it)
-    calls = {}
-    for variable in variables:
-        calls[variable] = get_calls(variable, variables)
+    # [1] Create directed graph for all variables
+    dg = create_directed_graph(variables)
 
-    # [2] Create directed graph for all variables
-    dg = create_directed_graph(variables, calls)
-
-    # [3] User has chosen output columns so remove unneeded variables
+    # [2] User has chosen output columns so remove unneeded variables
     if output_variable_names:
         variables, dg = filter_variables_and_graph(variables, output_variable_names, dg)
 
-    # [4] Set calculation order of variables ('calc_order')
+    # [3] Set calculation order of variables ('calc_order')
     calc_order = 0
     while dg.nodes:
-
         nodes_without_predecessors, has_acyclic_nodes = process_acyclic_nodes(dg)
 
+        # [3A] Acyclic
         if has_acyclic_nodes:
-            # [4A] Process acyclic nodes first if possible
             for node in nodes_without_predecessors:
                 calc_order += 1
                 node.calc_order = calc_order
             dg.remove_nodes_from(nodes_without_predecessors)
 
-        # [4b] Cyclic - there is a cyclic relationship between variables
+        # [3B] Cyclic
         else:
             # CASE B: Cyclic dependencies - find and process cycles
             cycles_without_predecessors = find_source_cycles(dg)
@@ -356,10 +351,10 @@ def determine_calculation_order(variables, settings):
                 calc_order = process_cycle(cycle, calc_order)
                 dg.remove_nodes_from(cycle)
 
-    # [5] Sort variables for calculation order
+    # [4] Sort variables for calculation order
     variables = sorted(variables, key=lambda x: (x.calc_order, x.cycle_order, x.name))
 
-    # [6] Set calculation direction of calculation ('calc_direction' attribute)
+    # [5] Set calculation direction of calculation ('calc_direction' attribute)
     variables = set_calc_direction(variables)
 
     return variables
@@ -476,6 +471,8 @@ def parse_arguments():
     parser.add_argument("--version", "-v", type=int, help="Run a specific version")
     parser.add_argument("--chunk", nargs=2, type=int, metavar=("PART", "TOTAL"),
                         help="Select PART out of TOTAL chunks of model points")
+    parser.add_argument("--graph", "-g", action="store_true",
+                        help="Show interactive graph visualization of variable dependencies")
 
     args, unknown = parser.parse_known_args()
 
@@ -604,15 +601,27 @@ def run(settings=None, path=None):
     Returns:
         pandas.DataFrame: The output of the modl.
     """
+    user_settings = settings
+    settings = get_settings(user_settings)
+
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     output = None
     diagnostic = None
 
     try:
         args, _ = parse_arguments()
-        settings_changes = log_settings_changes(settings)
-        settings = get_settings(settings)
-        log_run_info(timestamp, path, args, settings_changes, settings)
+
+        # Handle graph visualization
+        if args.graph:
+            runplan, model_point_sets, variables = get_model_input(settings, args)
+            dg = create_directed_graph(variables)
+
+            print(f"Visualizing {len(variables)} variables...")
+            show_graph(dg)
+            return None, None, []
+
+        settings_changes_log = get_settings_changes_log(settings)
+        log_run_info(timestamp, path, args, settings_changes_log, settings)
 
         # Run on single or multiple cores
         if not settings["MULTIPROCESSING"]:
@@ -635,5 +644,3 @@ def run(settings=None, path=None):
 
     print(f"{'-' * 72}\n")
     return output, diagnostic, log_messages
-
-
