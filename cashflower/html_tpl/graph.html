@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cashflow Model - Variable Dependencies</title>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="https://unpkg.com/dagre-d3@0.6.4/dist/dagre-d3.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 20px;
+            height: 90vh;
+        }
+
+        .graph-container {
+            flex: 1;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: auto;
+            position: relative;
+        }
+
+        .graph-container svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .code-panel {
+            width: 400px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .code-header {
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            background-color: #f8f9fa;
+            border-radius: 5px 5px 0 0;
+        }
+
+        .code-content {
+            flex: 1;
+            overflow: auto;
+            padding: 0;
+        }
+
+        .code-content pre {
+            margin: 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: none;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .node rect {
+            stroke: #333;
+            fill: #fff;
+            stroke-width: 1.5px;
+            cursor: pointer;
+        }
+
+        .node rect:hover {
+            fill: #e3f2fd;
+            stroke: #1976d2;
+            stroke-width: 2px;
+        }
+
+        .node.selected rect {
+            fill: #bbdefb;
+            stroke: #1976d2;
+            stroke-width: 2px;
+        }
+
+        .edgePath path {
+            stroke: #333;
+            fill: none;
+            stroke-width: 1.5px;
+        }
+
+        .instructions {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #e3f2fd;
+            border-radius: 5px;
+            border-left: 4px solid #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="instructions">
+        <strong>Instructions:</strong> Click on any variable node to view its source code. Use mouse wheel to zoom, drag to pan.
+    </div>
+
+    <div class="main-container">
+        <div class="graph-container">
+            <svg id="svg-canvas"></svg>
+        </div>
+
+        <div class="code-panel">
+            <div class="code-header">
+                <h3 id="variable-name">Select a variable to view its code</h3>
+            </div>
+            <div class="code-content">
+                <pre id="variable-code">Click on a variable node in the graph to see its source code here.</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Store node data for easy access
+        var nodeData = {};
+        var selectedNode = null;
+
+        // Create a new directed graph
+        var g = new dagreD3.graphlib.Graph()
+            .setGraph({})
+            .setDefaultEdgeLabel(function() { return {}; });
+
+        // Add nodes
+        var nodes = {{NODES_DATA}};
+        nodes.forEach(function(node) {
+            g.setNode(node.id, { label: node.label });
+            nodeData[node.id] = node;
+        });
+
+        // Add edges
+        var edges = {{EDGES_DATA}};
+        edges.forEach(function(edge) {
+            g.setEdge(edge.source, edge.target);
+        });
+
+        // Create the renderer
+        var render = new dagreD3.render();
+
+        // Set up an SVG group so that we can translate the final graph.
+        var svg = d3.select("#svg-canvas");
+        var svgGroup = svg.append("g");
+
+        // Run the renderer
+        render(svgGroup, g);
+
+        // Add click handlers to nodes
+        svgGroup.selectAll(".node")
+            .on("click", function(d) {
+                // Remove previous selection
+                svgGroup.selectAll(".node").classed("selected", false);
+
+                // Add selection to current node
+                d3.select(this).classed("selected", true);
+
+                // Update code panel
+                var nodeInfo = nodeData[d];
+                if (nodeInfo) {
+                    document.getElementById("variable-name").textContent = nodeInfo.label;
+                    document.getElementById("variable-code").textContent = nodeInfo.source;
+                    selectedNode = d;
+                }
+            });
+
+        // Set up zoom support
+        var zoom = d3.zoom()
+            .scaleExtent([0.1, 3])
+            .on("zoom", function() {
+                svgGroup.attr("transform", d3.event.transform);
+            });
+
+        svg.call(zoom);
+
+        // Initial centering
+        var initialScale = 0.8;
+        var svgWidth = svg.node().getBoundingClientRect().width;
+        var svgHeight = svg.node().getBoundingClientRect().height;
+        var graphWidth = g.graph().width;
+        var graphHeight = g.graph().height;
+
+        var translateX = (svgWidth - graphWidth * initialScale) / 2;
+        var translateY = (svgHeight - graphHeight * initialScale) / 2;
+
+        svg.call(zoom.transform, d3.zoomIdentity
+            .translate(translateX, translateY)
+            .scale(initialScale));
+    </script>
+</body>
+</html>

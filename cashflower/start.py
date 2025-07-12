@@ -5,29 +5,30 @@ import getpass
 import importlib
 import inspect
 import multiprocessing
-import networkx as nx
 import numpy as np
 import os
 import pandas as pd
 import shutil
 import types
 
-from .core import ArrayVariable, Model, ModelPointSet, Runplan, StochasticVariable, Variable
+from .core import Model, ModelPointSet, Runplan, StochasticVariable, Variable
 from .error import CashflowModelError
-from .graph import create_directed_graph, filter_variables_and_graph, get_calls, get_predecessors, set_calc_direction
+from .graph import (create_directed_graph, filter_variables_and_graph, set_calc_direction, process_acyclic_nodes,
+                    find_source_cycles, process_cycle)
 from .utils import get_git_commit_info, get_main_model_point_set, log_message, log_messages, save_log_to_file, split_to_chunks
+from .visualize import show_graph
 
 
 DEFAULT_SETTINGS = {
-        "GROUP_BY": None,
-        "MULTIPROCESSING": False,
-        "NUM_STOCHASTIC_SCENARIOS": None,
-        "OUTPUT_VARIABLES": None,
-        "SAVE_DIAGNOSTIC": False,
-        "SAVE_LOG": False,
-        "SAVE_OUTPUT": True,
-        "T_MAX_CALCULATION": 720,
-        "T_MAX_OUTPUT": 720,
+    "GROUP_BY": None,
+    "MULTIPROCESSING": False,
+    "NUM_STOCHASTIC_SCENARIOS": None,
+    "OUTPUT_VARIABLES": None,
+    "SAVE_DIAGNOSTIC": False,
+    "SAVE_LOG": False,
+    "SAVE_OUTPUT": True,
+    "T_MAX_CALCULATION": 720,
+    "T_MAX_OUTPUT": 720,
 }
 
 
@@ -48,7 +49,7 @@ def create_model(model):
         print(f"Error: {e.filename} - {e.strerror}.")
 
 
-def log_settings_changes(settings=None):
+def get_settings_changes_log(settings=None):
     """Returns a list of logs describing adjustments to the user's settings."""
     changes = []
 
@@ -185,11 +186,10 @@ def get_variables(model_members, settings):
     variables = []
 
     for name, variable in variable_members:
-        # Set name
-        if name == "t":
+        # Check names
+        if name == "t" or name == "stoch":
             msg = f"\nA variable can not be named '{name}' because it is a system variable. Please rename it."
             raise CashflowModelError(msg)
-        variable.name = name
 
         # Initiate empty results
         variable.result = np.empty(settings["T_MAX_CALCULATION"]+1)
@@ -304,34 +304,7 @@ def get_model_input(settings, args):
     return runplan, model_point_sets, variables
 
 
-def check_for_array_variables_in_cycle(cycle):
-    for variable in cycle:
-        if isinstance(variable, ArrayVariable):
-            msg = (f"Variable '{variable.name}' is part of a cycle so it can't be modelled as an array variable."
-                   f"\nCycle: {cycle}"
-                   f"\nPlease remove 'array=True' from the decorator and recode the variable.")
-            raise CashflowModelError(msg)
-
-
-def set_cycle_order(dg_cycle):
-    cycle_order = 0
-    while dg_cycle.nodes:
-        cycle_nodes_without_predecessors = [cn for cn in dg_cycle.nodes if len(list(dg_cycle.predecessors(cn))) == 0]
-        if len(cycle_nodes_without_predecessors) > 0:
-            for node in cycle_nodes_without_predecessors:
-                cycle_order += 1
-                node.cycle_order = cycle_order
-            dg_cycle.remove_nodes_from(cycle_nodes_without_predecessors)
-        else:
-            cycle_variable_nodes = [node.name for node in dg_cycle.nodes]
-            msg = (f"Circular relationship without time step difference is not allowed. "
-                   f"Please review variables: {cycle_variable_nodes}."
-                   f"\nIf circular relationship without time step difference is necessary in your project, "
-                   f"please raise it on: github.com/acturtle/cashflower")
-            raise CashflowModelError(msg)
-
-
-def resolve_calculation_order(variables, settings):
+def determine_calculation_order(variables, settings):
     """
     Determines a safe execution order for variables to avoid recursion errors.
 
@@ -349,77 +322,39 @@ def resolve_calculation_order(variables, settings):
     """
     output_variable_names = settings["OUTPUT_VARIABLES"]
 
-    # [1] Dictionary of called functions (key = variable; value = other variables called by it)
-    calls = {}
-    for variable in variables:
-        calls[variable] = get_calls(variable, variables)
+    # [1] Create directed graph for all variables
+    dg = create_directed_graph(variables)
 
-    # [2] Create directed graph for all variables
-    dg = create_directed_graph(variables, calls)
-
-    # [3] User has chosen output columns so remove unneeded variables
+    # [2] User has chosen output columns so remove unneeded variables
     if output_variable_names:
         variables, dg = filter_variables_and_graph(variables, output_variable_names, dg)
 
-    # [4] Set calculation order of variables ('calc_order')
+    # [3] Set calculation order of variables ('calc_order')
     calc_order = 0
     while dg.nodes:
-        nodes_without_predecessors = [n for n in dg.nodes if len(list(dg.predecessors(n))) == 0]
+        nodes_without_predecessors, has_acyclic_nodes = process_acyclic_nodes(dg)
 
-        # [4a] Acyclic - there are variables without any predecessors
-        if len(nodes_without_predecessors) > 0:
+        # [3A] Acyclic
+        if has_acyclic_nodes:
             for node in nodes_without_predecessors:
                 calc_order += 1
                 node.calc_order = calc_order
             dg.remove_nodes_from(nodes_without_predecessors)
 
-        # [4b] Cyclic - there is a cyclic relationship between variables
+        # [3B] Cyclic
         else:
-            cycles = list(nx.simple_cycles(dg))
+            # CASE B: Cyclic dependencies - find and process cycles
+            cycles_without_predecessors = find_source_cycles(dg)
 
-            cycles_without_predecessors = [c for c in cycles if len(get_predecessors(c[0], dg)) == len(c)]
-
-            # Graph contains strongly connected components (SCC)
-            if len(cycles_without_predecessors) == 0:
-                # Find strongly connected components
-                sccs = list(nx.strongly_connected_components(dg))
-
-                # Find source SCC
-                for scc in sccs:
-                    has_incoming_edge = False
-                    for node in scc:
-                        for edge in dg.in_edges(node):
-                            if edge[0] not in scc:
-                                has_incoming_edge = True
-                                break
-                        if has_incoming_edge:
-                            break
-                    if not has_incoming_edge:
-                        scc = sorted(list(scc))
-                        cycles_without_predecessors = [scc]
-
+            # Process each cycle found
             for cycle in cycles_without_predecessors:
-                # Ensure that there are no ArrayVariables in cycles
-                check_for_array_variables_in_cycle(cycle)
-
-                # Set the calculation order within the cycle ('cycle_order')
-                calls_t = {}  # dictionary of called functions but only for the same time period ("t")
-                for variable in cycle:
-                    calls_t[variable] = get_calls(variable, cycle, argument_t_only=True)
-                dg_cycle = create_directed_graph(cycle, calls_t)
-                set_cycle_order(dg_cycle)
-
-                # All the variables from a cycle have the same 'calc_order' value
-                calc_order += 1
-                for node in cycle:
-                    node.calc_order = calc_order
-                    node.cycle = True
+                calc_order = process_cycle(cycle, calc_order)
                 dg.remove_nodes_from(cycle)
 
-    # [5] Sort variables for calculation order
+    # [4] Sort variables for calculation order
     variables = sorted(variables, key=lambda x: (x.calc_order, x.cycle_order, x.name))
 
-    # [6] Set calculation direction of calculation ('calc_direction' attribute)
+    # [5] Set calculation direction of calculation ('calc_direction' attribute)
     variables = set_calc_direction(variables)
 
     return variables
@@ -439,7 +374,7 @@ def start_single_core(settings, args):
     # Prepare model components
     log_message("Reading model components...", show_time=True)
     runplan, model_point_sets, variables = get_model_input(settings, args)
-    variables = resolve_calculation_order(variables, settings)
+    variables = determine_calculation_order(variables, settings)
 
     # Log runplan version and number of model points
     if runplan is not None:
@@ -471,7 +406,7 @@ def start_multiprocessing(part, settings, args):
     # Prepare model components
     log_message("Reading model components...", show_time=True, print_and_save=one_core)
     runplan, model_point_sets, variables = get_model_input(settings, args)
-    variables = resolve_calculation_order(variables, settings)
+    variables = determine_calculation_order(variables, settings)
 
     # Log runplan version and number of model points
     if runplan is not None:
@@ -536,6 +471,8 @@ def parse_arguments():
     parser.add_argument("--version", "-v", type=int, help="Run a specific version")
     parser.add_argument("--chunk", nargs=2, type=int, metavar=("PART", "TOTAL"),
                         help="Select PART out of TOTAL chunks of model points")
+    parser.add_argument("--graph", "-g", action="store_true",
+                        help="Show interactive graph visualization of variable dependencies")
 
     args, unknown = parser.parse_known_args()
 
@@ -664,15 +601,27 @@ def run(settings=None, path=None):
     Returns:
         pandas.DataFrame: The output of the modl.
     """
+    user_settings = settings
+    settings = get_settings(user_settings)
+
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     output = None
     diagnostic = None
 
     try:
         args, _ = parse_arguments()
-        settings_changes = log_settings_changes(settings)
-        settings = get_settings(settings)
-        log_run_info(timestamp, path, args, settings_changes, settings)
+
+        # Handle graph visualization
+        if args.graph:
+            runplan, model_point_sets, variables = get_model_input(settings, args)
+            dg = create_directed_graph(variables)
+
+            print(f"Visualizing {len(variables)} variables...")
+            show_graph(dg)
+            return None, None, []
+
+        settings_changes_log = get_settings_changes_log(settings)
+        log_run_info(timestamp, path, args, settings_changes_log, settings)
 
         # Run on single or multiple cores
         if not settings["MULTIPROCESSING"]:
