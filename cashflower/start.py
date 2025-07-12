@@ -16,7 +16,7 @@ from .error import CashflowModelError
 from .graph import (create_directed_graph, filter_variables_and_graph, set_calc_direction, process_acyclic_nodes,
                     find_source_cycles, process_cycle)
 from .utils import get_git_commit_info, get_main_model_point_set, log_message, log_messages, save_log_to_file, split_to_chunks
-from .visualization import show_graph
+from .visualize import show_graph
 
 
 DEFAULT_SETTINGS = {

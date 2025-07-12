@@ -4,5 +4,5 @@ from .graph import *
 from .reader import *
 from .start import *
 from .utils import *
-from .visualization import show_graph
+from .visualize import show_graph
 from cashflower.cython.discount import *
