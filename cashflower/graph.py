@@ -51,7 +51,7 @@ def get_calls(variable, variables, argument_t_only=False):
     return calls
 
 
-def create_directed_graph(variables):
+def create_directed_graph(variables, argument_t_only=False):
     """
     Create a directed graph based on a list of variables and a dictionary of calls.
 
@@ -64,7 +64,7 @@ def create_directed_graph(variables):
     """
     calls = {}
     for variable in variables:
-        calls[variable] = get_calls(variable, variables)
+        calls[variable] = get_calls(variable, variables, argument_t_only)
 
     dg = nx.DiGraph()
     for variable in variables:
@@ -362,10 +362,8 @@ def set_cycle_order(dg_cycle):
             dg_cycle.remove_nodes_from(cycle_nodes_without_predecessors)
         else:
             cycle_variable_nodes = [node.name for node in dg_cycle.nodes]
-            msg = (f"Circular relationship without time step difference is not allowed. "
-                   f"Please review variables: {cycle_variable_nodes}."
-                   f"\nIf circular relationship without time step difference is necessary in your project, "
-                   f"please raise it on: github.com/acturtle/cashflower")
+            msg = (f"\nCircular relationship without time step difference is not allowed."
+                   f"\nPlease review variables: {cycle_variable_nodes}.")
             raise CashflowModelError(msg)
 
 
@@ -384,11 +382,7 @@ def process_cycle(cycle, calc_order):
     check_for_array_variables_in_cycle(cycle)
 
     # Set the calculation order within the cycle ('cycle_order')
-    calls_t = {}  # dictionary of called functions but only for the same time period ("t")
-    for variable in cycle:
-        calls_t[variable] = get_calls(variable, cycle, argument_t_only=True)
-
-    dg_cycle = create_directed_graph(cycle)
+    dg_cycle = create_directed_graph(cycle, argument_t_only=True)
     set_cycle_order(dg_cycle)
 
     # All the variables from a cycle have the same 'calc_order' value

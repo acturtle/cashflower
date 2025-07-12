@@ -24,7 +24,7 @@ def show_graph(dg):
     # Open the file in the default web browser
     webbrowser.open(f'file://{os.path.abspath(temp_file)}')
 
-    print(f"Graph visualization opened in your default browser.")
+    print("Graph visualization opened in your default browser.")
     print(f"Temporary file: {temp_file}")
 
 
