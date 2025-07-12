@@ -1,4 +1,5 @@
 import functools
+import inspect
 import time
 import multiprocessing
 import numpy as np
@@ -19,80 +20,101 @@ def get_variable_type(v):
     Returns:
         str: The type of the variable. Possible values are "constant", "array", "stochastic", and "default".
     """
-    if isinstance(v, ConstantVariable):
-        return "constant"
-    elif isinstance(v, ArrayVariable):
-        return "array"
-    elif isinstance(v, StochasticVariable):
-        return "stochastic"
-    else:
-        return "default"
+    type_map = {
+        ConstantVariable: "constant",
+        ArrayVariable: "array",
+        StochasticVariable: "stochastic"
+    }
+    return type_map.get(type(v), "default")
 
 
 def check_arguments(func, array):
     """
-    Check if the input function has the correct arguments.
+    Validate function signature for model variables.
 
-    The function should have at most two parameters, 't' and 'stoch'. If the function has two parameters,
-    the first one should be named 't' and the second one should be named 'stoch'.
-    If the function has only one parameter, it should be named 't'. Additionally, if the input 'array' is True,
-    the function should not have any parameters.
-
-    Parameters:
-        func (function): The function to check.
-        array (bool): Whether the function is an array variable.
+    Args:
+        func (callable): Function to validate
+        array (bool): True if this is an array variable (should have no parameters)
 
     Raises:
-        CashflowModelError: If the function does not meet the required criteria.
+        CashflowModelError: If function signature is invalid
+
+    Valid signatures:
+        - Array variables: no parameters
+        - Constant variables: no parameters
+        - Regular variables: single parameter 't'
+        - Stochastic variables: parameters 't' and 'stoch'
     """
-    # Variable has at most 2 parameters ("t" and "stoch")
-    if func.__code__.co_argcount > 2:
-        msg = f"Error in '{func.__name__}': The model variable should have at most two parameters ('t' and 'stoch')."
-        raise CashflowModelError(msg)
+    params = list(inspect.signature(func).parameters.keys())
+    num_params = len(params)
 
-    # The first parameter must be named "t" and second "stoch"
-    if func.__code__.co_argcount == 2:
-        if not func.__code__.co_varnames[0] == 't':
-            msg = f"Error in '{func.__name__}': The first parameter should be named 't'."
-            raise CashflowModelError(msg)
+    # Array variables must have no parameters
+    if array:
+        if num_params != 0:
+            raise CashflowModelError(
+                f"Error in '{func.__name__}': Array variables cannot have parameters."
+            )
+        return
 
-        if not func.__code__.co_varnames[1] == 'stoch':
-            msg = f"Error in '{func.__name__}': The second parameter should be named 'stoch'."
-            raise CashflowModelError(msg)
+    # Non-array: Enforce at most 2 parameters
+    if num_params > 2:
+        raise CashflowModelError(
+            f"Error in '{func.__name__}': Model variables can have at most two parameters ('t' and 'stoch')."
+        )
 
-    # The only parameter must be named "t"
-    if func.__code__.co_argcount == 1:
-        if not func.__code__.co_varnames[0] == 't':
-            msg = f"Error in '{func.__name__}': The parameter should be named 't'."
-            raise CashflowModelError(msg)
-
-    # Array variables should not have any parameters
-    if array and not func.__code__.co_argcount == 0:
-        msg = f"Error in '{func.__name__}': Array variables cannot have parameters."
-        raise CashflowModelError(msg)
-
-    return None
+    # Check parameter names for 1 or 2 params
+    if num_params == 2:
+        if params != ['t', 'stoch']:
+            raise CashflowModelError(
+                f"Error in '{func.__name__}': Expected parameters 't' and 'stoch', but got {params}."
+            )
+    elif num_params == 1:
+        if params[0] != 't':
+            raise CashflowModelError(
+                f"Error in '{func.__name__}': Expected single parameter 't', but got '{params[0]}'."
+            )
 
 
 def variable(array=False, aggregation_type="sum"):
-    """A decorator that transforms a function into an object of class Variable."""
+    """
+    Decorator to transform a function into a Variable object.
+
+    Usage:
+        @variable()
+        def my_var(t):
+            ...
+
+        @variable(array=True)
+        def my_array():
+            ...
+
+    Args:
+        array (bool): If True, creates an ArrayVariable (no parameters allowed).
+        aggregation_type (str): Aggregation method ("sum" by default).
+
+    Raises:
+        CashflowModelError: If used without parentheses, e.g., @variable.
+    """
     if callable(array):
         raise CashflowModelError("The @variable decorator must be used with parentheses, e.g., @variable().")
 
     def wrapper(func):
         check_arguments(func, array)
 
-        # Create a variable
+        sig = inspect.signature(func)
+        params = list(sig.parameters.keys())
+
         if array:
             v = ArrayVariable(func, aggregation_type)
-        elif func.__code__.co_argcount == 0:
+        elif len(params) == 0:
             v = ConstantVariable(func, aggregation_type)
-        elif func.__code__.co_argcount == 2:
+        elif len(params) == 2:
             v = StochasticVariable(func, aggregation_type)
         else:
             v = Variable(func, aggregation_type)
 
         return v
+
     return wrapper
 
 
@@ -118,7 +140,7 @@ class Variable:
     def __init__(self, func, aggregation_type):
         self.func = func
         self.aggregation_type = aggregation_type
-        self.name = None
+        self.name = func.__name__
         self.calc_direction = None
         self.calc_order = None
         self.cycle = False
@@ -136,23 +158,12 @@ class Variable:
         if t is None:
             return self.result
 
-        # Python allows negative indexing, which would wrap around to the end of the list.
-        # To prevent this and ensure t is within the valid range, we explicitly check for t < 0.
-        if t < 0:
+        if t < 0 or t >= self.result.shape[0]:
             msg = (f"\n\nVariable '{self.name}' has been called for period '{t}' "
                    f"which is outside of the calculation range.")
             raise CashflowModelError(msg)
 
-        # Easier to ask forgiveness
-        try:
-            return self.result[t]
-        except IndexError as e:
-            if t > len(self.result):
-                msg = (f"\n\nVariable '{self.name}' has been called for period '{t}' "
-                       f"which is outside of the calculation range.")
-                raise CashflowModelError(msg)
-            else:
-                print(str(e))
+        return self.result[t]
 
     def calculate_t(self, t):
         """For cycle calculations"""
@@ -276,6 +287,9 @@ class Runplan:
         """Get a value from the runplan for the current version."""
         return self.data.at[self.version, attribute]
 
+    def __getitem__(self, attribute):
+        return self.get(attribute)
+
     @property
     def version(self):
         return self._version
@@ -333,6 +347,9 @@ class ModelPointSet:
             return 0
 
         return self.model_point_data.iloc[record_num][attribute]
+
+    def __getitem__(self, attribute):
+        return self.get(attribute)
 
     def set_model_point_data(self, value):
         self.get.cache_clear()
