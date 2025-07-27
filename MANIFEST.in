@@ -1,3 +1,4 @@
 include LICENSE
 include README.md
 graft cashflower/model_tpl
+graft cashflower/html_tpl
