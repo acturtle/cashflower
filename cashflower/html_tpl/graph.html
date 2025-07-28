@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Cashflow Model - Variable Dependencies</title>
+    <title>Graph view</title>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://unpkg.com/dagre-d3@0.6.4/dist/dagre-d3.min.js"></script>
     <style>
@@ -9,7 +9,6 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #f5f5f5;
         }
 
         .main-container {
@@ -20,7 +19,7 @@
 
         .graph-container {
             flex: 1;
-            background: white;
+            background: #f5f5f5;
             border: 1px solid #ddd;
             border-radius: 5px;
             overflow: auto;
@@ -90,21 +89,9 @@
             fill: none;
             stroke-width: 1.5px;
         }
-
-        .instructions {
-            margin-bottom: 20px;
-            padding: 10px;
-            background-color: #e3f2fd;
-            border-radius: 5px;
-            border-left: 4px solid #1976d2;
-        }
     </style>
 </head>
 <body>
-    <div class="instructions">
-        <strong>Instructions:</strong> Click on any variable node to view its source code. Use mouse wheel to zoom, drag to pan.
-    </div>
-
     <div class="main-container">
         <div class="graph-container">
             <svg id="svg-canvas"></svg>
