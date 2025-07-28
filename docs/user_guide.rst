@@ -12,3 +12,4 @@ User guide
    settings
    run
    output
+   graph_view
