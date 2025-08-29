@@ -1,75 +1,238 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>Graph View | cashflower</title>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://unpkg.com/dagre-d3@0.6.4/dist/dagre-d3.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        /* General */
+        :root {
+            --font-color: #24292f;
+            --code-bg-color: #efefef;
+            --divider-color: #e0e0e0;
+            --divider-hover-color: #bfc6cd;
+            --tabs-color: #ecebf0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            font-family: system-ui, Arial;
             margin: 0;
-            padding: 20px;
+            color: var(--font-color);
             background-color: #f5f5f5;
         }
 
-        .main-container {
-            display: flex;
-            gap: 20px;
-            height: 90vh;
+        /* Google Fonts icons */
+        .material-symbols-rounded {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-size: 24px;
+            line-height: 1;
         }
 
-        .graph-container {
-            flex: 1;
-            background: white;
+        .icon-16 { font-size: 16px; }
+
+        /* Header */
+        .header {
+            background-color: #fff;
             border: 1px solid #ddd;
             border-radius: 5px;
-            overflow: auto;
-            position: relative;
+            margin: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 16px;
         }
 
-        .graph-container svg {
+        .header__title {
+            font-weight: 600;
+            font-size: 24px;
+            line-height: 24px;
+        }
+
+        .header__path {
+            font-family: monospace;
+            font-size: 16px;
+            line-height: 16px;
+            background-color: var(--code-bg-color);
+            border: 1px solid #eee;
+            border-radius: 4px;
+            padding: 2px 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Main */
+        .main {
+            height: calc(100vh - 136px);
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 12px;
+            display: flex;
+        }
+
+        .graph {
+            width: 75%;
+            min-width: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #ddd;
+        }
+
+        #svg-canvas {
             width: 100%;
             height: 100%;
         }
 
-        .code-panel {
-            width: 400px;
-            background: white;
+        .divider {
+            width: 3px;
+            cursor: col-resize;
+            background: var(--divider-color);
+            border-radius: 4px;
+        }
+
+        .divider:hover {
+            background: var(--divider-hover-color);
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Pill tabs */
+        .tabs {
+            align-self: center;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px;
+            margin: 12px;
+            background-color: var(--tabs-color);
+            border-radius: 9999px;
+        }
+
+        .tab {
+            border: 1px solid transparent;
+            background: transparent;
+            padding: 8px 14px;
+            border-radius: 9999px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font: inherit;
+            transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+        }
+
+        .tab:hover {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        .tab.is-active {
+            background: #fff;
+        }
+
+        .tab-panels {
+            align-self: stretch;
+        }
+
+        .tab-panel {
+            display: none;
             border: 1px solid #ddd;
-            border-radius: 5px;
+            border-radius: 12px;
+            padding: 12px;
+            margin: 12px;
+        }
+
+        .tab-panel.is-active {
             display: flex;
             flex-direction: column;
         }
 
-        .code-header {
-            padding: 15px;
-            border-bottom: 1px solid #ddd;
-            background-color: #f8f9fa;
-            border-radius: 5px 5px 0 0;
+        .variable-name {
+            font-family: monospace;
+            font-size: larger;
+            font-weight: 600;
         }
 
-        .code-content {
-            flex: 1;
-            overflow: auto;
-            padding: 0;
+        /* Panel code */
+        .variable-code {
+            background-color: var(--code-bg-color);
+            padding: 12px;
+            margin-top: 12px;
         }
 
-        .code-content pre {
+        /* Panel relations */
+        .relation-label {
+            display: flex;
+            align-items: center;
+            margin-top: 24px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .relation-list {
+            list-style: none;
             margin: 0;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border: none;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.4;
-            white-space: pre-wrap;
-            word-wrap: break-word;
+            padding-left: 0;
         }
 
+        .relation-list li {
+            margin-top: 4px;
+        }
+
+        .relation-list a {
+            text-decoration: none;
+            font-family: monospace;
+            color: inherit;
+            background-color: var(--code-bg-color);
+            display: block;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .relation-list a:hover {
+            background: #ddd;
+        }
+
+        /* Panel results */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            padding: 8px;
+            background: #f7f7f7;
+        }
+
+        tbody td {
+            border-bottom: 1px solid #eee;
+            padding: 8px;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* D3 graph */
         .node rect {
             stroke: #333;
             fill: #fff;
-            stroke-width: 1.5px;
+            stroke-width: 1px;
             cursor: pointer;
         }
 
@@ -88,107 +251,221 @@
         .edgePath path {
             stroke: #333;
             fill: none;
-            stroke-width: 1.5px;
-        }
-
-        .instructions {
-            margin-bottom: 20px;
-            padding: 10px;
-            background-color: #e3f2fd;
-            border-radius: 5px;
-            border-left: 4px solid #1976d2;
+            stroke-width: 1px;
         }
     </style>
 </head>
 <body>
-    <div class="main-container">
-        <div class="graph-container">
+    <header class="header">
+        <span class="header__title">Graph View</span>
+
+        <span class="header__path">
+            <span class="material-symbols-rounded icon-16">folder</span>{{MODEL_PATH}}
+        </span>
+    </header>
+
+    <main class="main">
+        <div class="graph">
             <svg id="svg-canvas"></svg>
         </div>
 
-        <div class="code-panel">
-            <div class="code-header">
-                <h3 id="variable-name">Select a variable to view its code</h3>
+        <div class="divider"></div>
+
+        <div class="content">
+            <!-- Pill buttons -->
+            <div class="tabs">
+                <button class="tab is-active" data-tab="code">
+                    <span class="material-symbols-rounded icon-16">code</span>Code
+                </button>
+                <button class="tab" data-tab="relations">
+                    <span class="material-symbols-rounded icon-16">chevron_right</span>Relations
+                </button>
+                <button class="tab" data-tab="results">
+                    <span class="material-symbols-rounded icon-16">trending_up</span>Results
+                </button>
             </div>
-            <div class="code-content">
-                <pre id="variable-code">Click on a variable node in the graph to see its source code here.</pre>
+
+            <div class="tab-panels">
+                <!-- Code -->
+                <section class="tab-panel" data-tab-panel="code">
+                    <div class="variable-name">pv_premiums</div>
+                    <div class="variable-code">
+                        <pre>
+@variable()
+def pv_premiums(t):
+    return 123</pre>
+                    </div>
+                </section>
+
+                <!-- Relations -->
+                <section class="tab-panel" data-tab-panel="relations">
+                    <div class="variable-name">pv_premiums</div>
+                    <div class="relation-label">
+                        <span class="material-symbols-rounded icon-16">chevron_right</span>Before
+                    </div>
+
+                    <ul class="relation-list">
+                        <li><a href="/">premium</a></li>
+                        <li><a href="/">mortality</a></li>
+                    </ul>
+
+                    <div class="relation-label">
+                        <span class="material-symbols-rounded icon-16">chevron_left</span>After
+                    </div>
+
+                    <ul class="relation-list">
+                        <li><a href="/">reserves</a></li>
+                    </ul>
+
+                </section>
+
+                <!-- Results -->
+                <section class="tab-panel is-active" data-tab-panel="results">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>t</th>
+                                <th>pv_premiums</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>1000</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>1500</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                </section>
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
-        // Store node data for easy access
-        var nodeData = {};
-        var selectedNode = null;
+        function initGraph() {
+            // Store node data for easy access
+            var nodeData = {};
+            var selectedNode = null;
 
-        // Create a new directed graph
-        var g = new dagreD3.graphlib.Graph()
-            .setGraph({})
-            .setDefaultEdgeLabel(function() { return {}; });
+            // Create a new directed graph
+            var g = new dagreD3.graphlib.Graph()
+                .setGraph({})
+                .setDefaultEdgeLabel(function() { return {}; });
 
-        // Add nodes
-        var nodes = {{NODES_DATA}};
-        nodes.forEach(function(node) {
-            g.setNode(node.id, { label: node.label });
-            nodeData[node.id] = node;
-        });
-
-        // Add edges
-        var edges = {{EDGES_DATA}};
-        edges.forEach(function(edge) {
-            g.setEdge(edge.source, edge.target);
-        });
-
-        // Create the renderer
-        var render = new dagreD3.render();
-
-        // Set up an SVG group so that we can translate the final graph.
-        var svg = d3.select("#svg-canvas");
-        var svgGroup = svg.append("g");
-
-        // Run the renderer
-        render(svgGroup, g);
-
-        // Add click handlers to nodes
-        svgGroup.selectAll(".node")
-            .on("click", function(d) {
-                // Remove previous selection
-                svgGroup.selectAll(".node").classed("selected", false);
-
-                // Add selection to current node
-                d3.select(this).classed("selected", true);
-
-                // Update code panel
-                var nodeInfo = nodeData[d];
-                if (nodeInfo) {
-                    document.getElementById("variable-name").textContent = nodeInfo.label;
-                    document.getElementById("variable-code").textContent = nodeInfo.source;
-                    selectedNode = d;
-                }
+            // Add nodes
+            var nodes = {{NODES_DATA}};
+            nodes.forEach(function(node) {
+                g.setNode(node.id, { label: node.label });
+                nodeData[node.id] = node;
             });
 
-        // Set up zoom support
-        var zoom = d3.zoom()
-            .scaleExtent([0.1, 3])
-            .on("zoom", function() {
-                svgGroup.attr("transform", d3.event.transform);
+            // Add edges
+            var edges = {{EDGES_DATA}};
+            edges.forEach(function(edge) {
+                g.setEdge(edge.source, edge.target);
             });
 
-        svg.call(zoom);
+            // Create the renderer
+            var render = new dagreD3.render();
 
-        // Initial centering
-        var initialScale = 0.8;
-        var svgWidth = svg.node().getBoundingClientRect().width;
-        var svgHeight = svg.node().getBoundingClientRect().height;
-        var graphWidth = g.graph().width;
-        var graphHeight = g.graph().height;
+            // Set up an SVG group so that we can translate the final graph.
+            var svg = d3.select("#svg-canvas");
+            var svgGroup = svg.append("g");
 
-        var translateX = (svgWidth - graphWidth * initialScale) / 2;
-        var translateY = (svgHeight - graphHeight * initialScale) / 2;
+            // Run the renderer
+            render(svgGroup, g);
 
-        svg.call(zoom.transform, d3.zoomIdentity
-            .translate(translateX, translateY)
-            .scale(initialScale));
+            // Add click handlers to nodes
+            svgGroup.selectAll(".node")
+                .on("click", function(d) {
+                    // Remove the previous selection
+                    svgGroup.selectAll(".node").classed("selected", false);
+
+                    // Add selection to the current node
+                    d3.select(this).classed("selected", true);
+
+                    // Update code panel
+                    var nodeInfo = nodeData[d];
+                    if (nodeInfo) {
+                        document.getElementById("variable-name").textContent = nodeInfo.label;
+                        document.getElementById("variable-code").textContent = nodeInfo.source;
+                        selectedNode = d;
+                    }
+                });
+
+            // Set up zoom support
+            var zoom = d3.zoom()
+                .scaleExtent([0.1, 3])
+                .on("zoom", function() {
+                    svgGroup.attr("transform", d3.event.transform);
+                });
+
+            svg.call(zoom);
+
+            // Initial centering
+            var initialScale = 0.8;
+            var svgWidth = svg.node().getBoundingClientRect().width;
+            var svgHeight = svg.node().getBoundingClientRect().height;
+            var graphWidth = g.graph().width;
+            var graphHeight = g.graph().height;
+
+            var translateX = (svgWidth - graphWidth * initialScale) / 2;
+            var translateY = (svgHeight - graphHeight * initialScale) / 2;
+
+            svg.call(zoom.transform, d3.zoomIdentity
+                .translate(translateX, translateY)
+                .scale(initialScale));
+        }
+
+        function initDivider() {
+            const divider = document.querySelector('.divider');
+            const graph   = document.querySelector('.graph');
+            let isDragging = false;
+
+            divider.addEventListener('mousedown', () => { isDragging = true; });
+            window.addEventListener('mouseup', () => { isDragging = false; });
+            window.addEventListener('mousemove', e => {
+                if (!isDragging) return;
+
+                const newWidth = e.clientX;
+                graph.style.width = newWidth + 'px';
+            });
+        }
+
+        function initTabs() {
+            const tabsContainer = document.querySelector('.tabs');
+            const panels = document.querySelectorAll('[data-tab-panel]');
+
+            tabsContainer?.addEventListener('click', (e) => {
+                const btn = e.target.closest('.tab');
+                if (!btn) return;
+
+                const name = btn.dataset.tab;
+                // Toggle active state on tabs
+                tabsContainer.querySelectorAll('.tab').forEach(t => {
+                    const isActive = t === btn;
+                    t.classList.toggle('is-active', isActive);
+                });
+
+                // Toggle panels
+                panels.forEach(p => {
+                    p.classList.toggle('is-active', p.dataset.tabPanel === name);
+                });
+            });
+        }
+
+        function init() {
+            initGraph();
+            initTabs();
+            initDivider();
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+
     </script>
 </body>
 </html>

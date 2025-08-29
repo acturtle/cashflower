@@ -1,4 +1,3 @@
-# cashflower/visualize.py
 import json
 import os
 import tempfile
@@ -71,5 +70,6 @@ def _generate_html_content(dg):
     # Replace placeholders with actual data
     html_content = template_content.replace('{{NODES_DATA}}', json.dumps(nodes))
     html_content = html_content.replace('{{EDGES_DATA}}', json.dumps(edges))
+    html_content = html_content.replace('{{MODEL_PATH}}', os.getcwd())
 
     return html_content
