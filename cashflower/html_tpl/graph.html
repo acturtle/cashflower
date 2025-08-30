@@ -167,7 +167,7 @@
         }
 
         /* Panel code */
-        .variable-code {
+        .code-content {
             background-color: var(--code-bg-color);
             padding: 12px;
             margin-top: 12px;
@@ -287,13 +287,10 @@
 
             <div class="tab-panels">
                 <!-- Code -->
-                <section class="tab-panel" data-tab-panel="code">
+                <section class="tab-panel is-active" data-tab-panel="code">
                     <div class="variable-name">pv_premiums</div>
-                    <div class="variable-code">
-                        <pre>
-@variable()
-def pv_premiums(t):
-    return 123</pre>
+                    <div class="code-content">
+                        <pre id="variable-code"></pre>
                     </div>
                 </section>
 
@@ -320,7 +317,7 @@ def pv_premiums(t):
                 </section>
 
                 <!-- Results -->
-                <section class="tab-panel is-active" data-tab-panel="results">
+                <section class="tab-panel" data-tab-panel="results">
                     <table>
                         <thead>
                             <tr>
@@ -347,6 +344,7 @@ def pv_premiums(t):
 
     <script>
         function initGraph() {
+
             // Store node data for easy access
             var nodeData = {};
             var selectedNode = null;
@@ -390,8 +388,9 @@ def pv_premiums(t):
 
                     // Update code panel
                     var nodeInfo = nodeData[d];
+
                     if (nodeInfo) {
-                        document.getElementById("variable-name").textContent = nodeInfo.label;
+                        // document.getElementById("variable-name").textContent = nodeInfo.label;
                         document.getElementById("variable-code").textContent = nodeInfo.source;
                         selectedNode = d;
                     }
