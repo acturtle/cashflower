@@ -160,7 +160,7 @@
             flex-direction: column;
         }
 
-        .variable-name {
+        .name-content {
             font-family: monospace;
             font-size: larger;
             font-weight: 600;
@@ -288,7 +288,9 @@
             <div class="tab-panels">
                 <!-- Code -->
                 <section class="tab-panel is-active" data-tab-panel="code">
-                    <div class="variable-name">pv_premiums</div>
+                    <div class="name-content">
+                        <span id="variable-name"></span>
+                    </div>
                     <div class="code-content">
                         <pre id="variable-code"></pre>
                     </div>
@@ -390,7 +392,7 @@
                     var nodeInfo = nodeData[d];
 
                     if (nodeInfo) {
-                        // document.getElementById("variable-name").textContent = nodeInfo.label;
+                        document.getElementById("variable-name").textContent = nodeInfo.label;
                         document.getElementById("variable-code").textContent = nodeInfo.source;
                         selectedNode = d;
                     }
