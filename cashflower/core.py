@@ -75,6 +75,33 @@ def check_arguments(func, array):
             )
 
 
+def check_single_value(name, value):
+    """
+    Validate that a variable returned a single value.
+
+    Args:
+        name (str): Name of the variable.
+        value (object): Value returned by the variable's function.
+
+    Raises:
+        CashflowModelError: If the variable did not return a single value.
+    """
+    try:
+        single_value = np.ndim(value) == 0
+    except (ValueError, TypeError):
+        # Data that numpy can not measure (for example, rows of different lengths) is not a single value
+        single_value = False
+
+    if single_value:
+        return
+
+    msg = (f"\n\nVariable '{name}' did not return a single value."
+           f"\nIf the variable calculates all the periods at once (for example, with the 'discount()' function), "
+           f"declare it as an array variable: '@variable(array=True)'. Array variables take no parameters.")
+    # Raised from None, so that the error of numpy does not hide the message above
+    raise CashflowModelError(msg) from None
+
+
 def variable(array=False, aggregation_type="sum"):
     """
     Decorator to transform a function into a Variable object.
@@ -172,7 +199,17 @@ class Variable:
     def calculate(self):
         t_max = len(self.result)
         if self.calc_direction == 0:
-            self.result = np.array([self.func(t) for t in range(t_max)], dtype=np.float64)
+            values = [self.func(t) for t in range(t_max)]
+            try:
+                result = np.array(values, dtype=np.float64)
+            except (ValueError, TypeError):
+                for value in values:
+                    check_single_value(self.name, value)
+                raise
+            # Multiple values per period form an additional dimension
+            if result.ndim != 1:
+                check_single_value(self.name, result)
+            self.result = result
         elif self.calc_direction == 1:
             for t in range(t_max):
                 self.result[t] = self.func(t)
@@ -205,7 +242,11 @@ class ConstantVariable(Variable):
 
     def calculate(self):
         value = self.func()
-        self.result.fill(value)
+        try:
+            self.result.fill(value)
+        except (ValueError, TypeError):
+            check_single_value(self.name, value)
+            raise
 
 
 class ArrayVariable(Variable):
