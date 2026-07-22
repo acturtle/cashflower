@@ -21,7 +21,7 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-          python -m pip install --upgrade pip setuptools==68.2.2 Cython==3.0.2 numpy==2.0.1
+          python -m pip install --upgrade pip setuptools Cython numpy
 
       - name: Build Cython extensions
         run: |
@@ -40,7 +40,7 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-          python -m pip install --upgrade pip setuptools==68.2.2 Cython==3.0.2 numpy==2.0.1
+          python -m pip install --upgrade pip setuptools Cython numpy
 
       - name: Build source distribution
         run: |
