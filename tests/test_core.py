@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from unittest import TestCase
@@ -159,3 +160,122 @@ class TestVariable(TestCase):
 
         with pytest.raises(CashflowModelError):
             foo(721)
+
+
+class TestCheckSingleValue(TestCase):
+    def test_check_single_value_accepts_single_values(self):
+        check_single_value("foo", 1)
+        check_single_value("foo", 1.5)
+        check_single_value("foo", np.float64(1.5))
+        check_single_value("foo", np.array(1.5))
+
+    def test_check_single_value_rejects_multiple_values(self):
+        with pytest.raises(CashflowModelError):
+            check_single_value("foo", np.array([1.0, 2.0]))
+
+        with pytest.raises(CashflowModelError):
+            check_single_value("foo", [1.0, 2.0])
+
+    def test_check_single_value_mentions_the_variable_name(self):
+        with pytest.raises(CashflowModelError, match="foo"):
+            check_single_value("foo", np.array([1.0, 2.0]))
+
+    def test_check_single_value_handles_rows_of_different_lengths(self):
+        """Numpy can not measure ragged data, but it is still not a single value."""
+        with pytest.raises(CashflowModelError):
+            check_single_value("foo", [[1.0, 2.0], [3.0]])
+
+
+class TestVariableReturningMultipleValues(TestCase):
+    """A variable that is not an array variable must return a single value per period."""
+
+    def test_constant_variable_raises_informative_error(self):
+        @variable()
+        def present_value():
+            return np.array([1.0, 2.0, 3.0])
+
+        present_value.result = np.empty(3)
+        with pytest.raises(CashflowModelError, match="array=True"):
+            present_value.calculate()
+
+    def test_variable_raises_informative_error(self):
+        @variable()
+        def present_value(t):
+            return np.array([1.0, 2.0, 3.0])
+
+        present_value.result = np.empty(3)
+        present_value.calc_direction = 0
+        with pytest.raises(CashflowModelError, match="array=True"):
+            present_value.calculate()
+
+    def test_variable_does_not_store_multiple_values_per_period(self):
+        """Without the check, the result would silently become two-dimensional."""
+        @variable()
+        def present_value(t):
+            return np.array([1.0, 2.0, 3.0])
+
+        present_value.result = np.empty(3)
+        present_value.calc_direction = 0
+        with pytest.raises(CashflowModelError):
+            present_value.calculate()
+        assert present_value.result.ndim == 1
+
+    def test_variable_raises_informative_error_when_only_some_periods_return_multiple_values(self):
+        @variable()
+        def present_value(t):
+            return 1.0 if t == 0 else np.array([1.0, 2.0, 3.0])
+
+        present_value.result = np.empty(3)
+        present_value.calc_direction = 0
+        with pytest.raises(CashflowModelError, match="array=True"):
+            present_value.calculate()
+
+    def test_error_message_contains_the_variable_name(self):
+        @variable()
+        def present_value(t):
+            return np.array([1.0, 2.0, 3.0])
+
+        present_value.result = np.empty(3)
+        present_value.calc_direction = 0
+        with pytest.raises(CashflowModelError, match="present_value"):
+            present_value.calculate()
+
+    def test_other_errors_are_not_replaced(self):
+        """Values that are single but can not be converted keep their original error."""
+        @variable()
+        def sex_factor(t):
+            return "F"
+
+        for calc_direction in (0, 1, -1):
+            sex_factor.result = np.empty(3)
+            sex_factor.calc_direction = calc_direction
+            with pytest.raises(ValueError, match="could not convert string to float"):
+                sex_factor.calculate()
+
+        @variable()
+        def constant_sex_factor():
+            return "F"
+
+        constant_sex_factor.result = np.empty(3)
+        with pytest.raises(ValueError, match="could not convert string to float"):
+            constant_sex_factor.calculate()
+
+    def test_single_values_are_still_accepted(self):
+        @variable()
+        def premium(t):
+            return t
+
+        for calc_direction in (0, 1, -1):
+            premium.result = np.empty(3)
+            premium.calc_direction = calc_direction
+            premium.calculate()
+            assert premium.result.ndim == 1
+            np.testing.assert_array_equal(premium.result, np.array([0.0, 1.0, 2.0]))
+
+    def test_array_variable_still_accepts_multiple_values(self):
+        @variable(array=True)
+        def present_value():
+            return np.array([1.0, 2.0, 3.0])
+
+        present_value.calculate()
+        np.testing.assert_array_equal(present_value.result, np.array([1.0, 2.0, 3.0]))
