@@ -19,7 +19,9 @@ The :code:`discount()` function takes two mandatory parameters, both of which mu
 * :code:`cash_flows` - an array representing the cash flows to be discounted,
 * :code:`discount_rates`- an array of forward discount rates corresponding to each period.
 
-The :code:`discount()` function returns an array, so you can specify :code:`@variable(array=True)` for the variable that will hold the result.
+The :code:`discount()` function returns the values for all the periods at once,
+so the variable that holds the result must be declared as an array variable with :code:`@variable(array=True)`.
+Without :code:`array=True`, the model raises an error, because a regular variable is expected to return a single value for each period.
 
 |
 
