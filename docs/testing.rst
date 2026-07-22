@@ -24,8 +24,9 @@ During the development of the "cashflower" package, three types of tests should 
 
    To perform checks on the models, follow these steps:
 
-   a. Before making any changes, run :code:`01_initial_runs.py`.
-   b. After completing the development, run :code:`02_perform_checks.py` to ensure that the code changes have no adverse impact on any of the models.
+   a. Navigate to the :code:`dev_models` folder (:code:`cd tests\\dev_models`). 
+   b. Before making any changes, run :code:`python 01_initial_runs.py`.
+   c. After completing the development, run :code:`python 02_perform_checks.py` to ensure that the code changes have no adverse impact on any of the models.
 
 |
 
