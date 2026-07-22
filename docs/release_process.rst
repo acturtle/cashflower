@@ -39,7 +39,15 @@ Building the package
 Building the documentation
 --------------------------
 
-1. Build the documentation:
+1. The docs folder has its own requirements.txt file. Install the packages:
+
+..  code-block:: bash
+    :caption: terminal
+
+    cd docs
+    pip install -r requirements.txt
+
+2. Build the documentation:
 
 ..  code-block:: bash
     :caption: terminal
@@ -48,7 +56,9 @@ Building the documentation
     make clean
     make html
 
-2. View the documentation by opening the following file in your browser:
+In Windows PowerShell, use :code:`.\\make clean` and :code:`.\\make html`.
+
+3. View the documentation by opening the following file in your browser:
 
 ..  code-block:: text
 

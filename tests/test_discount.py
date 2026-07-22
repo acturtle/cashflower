@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from unittest import TestCase
 
-from cashflower import discount, variable  # Replace 'your_module' with the actual module name
+from cashflower import discount, variable
 from cashflower.error import CashflowModelError
 
 
