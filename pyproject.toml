@@ -1,12 +1,36 @@
 [build-system]
 requires = [
-    "setuptools == 68.2.2",
-    "wheel >= 0.34.2",
-    "Cython",
-    "numpy>=2.0.1",
+    "setuptools==68.2.2",
+    "wheel>=0.34.2",
+    "Cython==3.0.2",
+    "numpy==2.0.1",
 ]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "cashflower"
+version = "0.10.7"
+description = "Framework for actuarial cash flow models"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{name = "Zuzanna Chmielewska"}]
+dependencies = [
+    "pandas==2.2.2",
+    "psutil==5.9.5",
+    "networkx==3.1",
+    "numpy==2.0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==7.4.2",
+    "ruff==0.0.291",
+    "Sphinx==7.2.6",
+    "furo==2023.9.10",
+]
+
+[tool.setuptools]
+include-package-data = true
 
 [tool.cibuildwheel]
 skip = "pp* *_i686"
