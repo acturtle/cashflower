@@ -1,11 +1,1 @@
-﻿Cython==3.0.2
-furo==2023.9.10
-networkx==3.1
-numpy==2.0.1
-pandas==2.2.2
-psutil==5.9.5
-pytest==7.4.2
-ruff==0.0.291
-setuptools==73.0.1
-Sphinx==7.2.6
-wheel==0.44.0
+﻿-e .[dev]
