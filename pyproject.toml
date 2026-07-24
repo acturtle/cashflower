@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cashflower"
-version = "0.10.7"
+version = "0.10.8"
 description = "Framework for actuarial cash flow models"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -20,6 +20,12 @@ dependencies = [
     "networkx==3.1",
     "numpy==2.0.1",
 ]
+
+[project.urls]
+Source = "https://github.com/acturtle/cashflower"
+Tracker = "https://github.com/acturtle/cashflower/issues"
+Documentation = "https://cashflower.acturtle.com"
+"Cheat sheet" = "https://www.acturtle.com/static/pdf/cheat_sheet.pdf"
 
 [project.optional-dependencies]
 dev = [
