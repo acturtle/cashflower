@@ -29,10 +29,4 @@ setup(
         "cashflower": ["cython/*.pyx", "cython/*.c"],
         "cashflower.model_tpl": ["*.py"],
     },
-    project_urls={
-        "Source": "https://github.com/acturtle/cashflower",
-        "Tracker": "https://github.com/acturtle/cashflower/issues",
-        "Documentation": "https://cashflower.acturtle.com",
-        "Cheat sheet": "https://www.acturtle.com/static/pdf/cheat_sheet.pdf",
-    },
 )

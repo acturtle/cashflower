@@ -21,6 +21,12 @@ dependencies = [
     "numpy==2.0.1",
 ]
 
+[project.urls]
+Source = "https://github.com/acturtle/cashflower"
+Tracker = "https://github.com/acturtle/cashflower/issues"
+Documentation = "https://cashflower.acturtle.com"
+"Cheat sheet" = "https://www.acturtle.com/static/pdf/cheat_sheet.pdf"
+
 [project.optional-dependencies]
 dev = [
     "pytest==7.4.2",
