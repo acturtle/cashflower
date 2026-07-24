@@ -355,6 +355,7 @@ def set_cycle_order(dg_cycle):
     cycle_order = 0
     while dg_cycle.nodes:
         cycle_nodes_without_predecessors = [cn for cn in dg_cycle.nodes if len(list(dg_cycle.predecessors(cn))) == 0]
+        cycle_nodes_without_predecessors = sorted(cycle_nodes_without_predecessors, key=lambda node: node.name)
         if len(cycle_nodes_without_predecessors) > 0:
             for node in cycle_nodes_without_predecessors:
                 cycle_order += 1
