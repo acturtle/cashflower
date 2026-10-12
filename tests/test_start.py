@@ -2,9 +2,49 @@ import argparse
 import pytest
 
 from unittest import TestCase
+from unittest.mock import Mock
 
 from cashflower.core import *
 from cashflower.start import *
+
+
+@variable()
+def level_first(t):
+    return 1
+
+
+@variable()
+def level_second(t):
+    return 2
+
+
+@variable()
+def level_total(t):
+    return level_first(t) + level_second(t)
+
+
+@variable()
+def recursive_forward(t):
+    if t == 0:
+        return 0
+    return recursive_forward(t - 1) + 1
+
+
+@variable()
+def recursive_backward(t):
+    if t == 10:
+        return 0
+    return recursive_backward(t + 1) + 1
+
+
+@variable()
+def runtime_first(t):
+    return 1
+
+
+@variable()
+def runtime_second(t):
+    return 2
 
 
 class TestCreateModel(TestCase):
@@ -92,3 +132,50 @@ class TestGetVariables(TestCase):
         model_members = [("foo", "foo"), ("t", t)]
         with pytest.raises(CashflowModelError):
             get_variables(model_members, settings)
+
+
+class TestDetermineCalculationOrder:
+    @staticmethod
+    def test_independent_variables_share_calculation_level():
+        variables = determine_calculation_order(
+            [level_first, level_second, level_total],
+            {"OUTPUT_VARIABLES": None},
+        )
+        calculation_order = {v.name: v.calc_order for v in variables}
+
+        assert calculation_order == {"level_first": 1, "level_second": 1, "level_total": 2}
+
+    @staticmethod
+    def test_independent_recursive_variables_keep_their_own_direction():
+        variables = determine_calculation_order(
+            [recursive_forward, recursive_backward],
+            {"OUTPUT_VARIABLES": None},
+        )
+        calculation = {v.name: (v.calc_order, v.calc_direction) for v in variables}
+
+        assert calculation == {"recursive_backward": (1, -1), "recursive_forward": (1, 1)}
+
+    @staticmethod
+    def test_variables_at_same_level_are_not_calculated_as_cycle():
+        variables = determine_calculation_order(
+            [runtime_first, runtime_second],
+            {"OUTPUT_VARIABLES": None},
+        )
+        for item in variables:
+            item.result = np.empty(1)
+            item.calculate = Mock(wraps=item.calculate)
+
+        model_point_set = ModelPointSet(pd.DataFrame({"id": [1]}))
+        model = Model(
+            variables,
+            [model_point_set],
+            {
+                "OUTPUT_VARIABLES": None,
+                "T_MAX_CALCULATION": 0,
+                "T_MAX_OUTPUT": 0,
+            },
+        )
+
+        model.calculate_model_point(0, one_core=False, progressbar_max=1)
+
+        assert all(item.calculate.call_count == 1 for item in variables)

@@ -270,11 +270,14 @@ def set_calc_direction(variables):
     """
     max_calc_order = variables[-1].calc_order
     for calc_order in range(1, max_calc_order + 1):
-        # Multiple variables can have the same calc_order if they are part of the cycle
         calc_order_variables = [v for v in variables if v.calc_order == calc_order]
-        calc_direction = get_calc_direction(calc_order_variables)
-        for variable in calc_order_variables:
-            variable.calc_direction = calc_direction
+        if calc_order_variables[0].cycle:
+            calc_direction = get_calc_direction(calc_order_variables)
+            for variable in calc_order_variables:
+                variable.calc_direction = calc_direction
+        else:
+            for variable in calc_order_variables:
+                variable.calc_direction = get_calc_direction([variable])
     return variables
 
 

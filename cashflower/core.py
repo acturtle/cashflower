@@ -597,18 +597,15 @@ class Model:
         # Perform calculations
         max_calc_order = self.variables[-1].calc_order
         for calc_order in range(1, max_calc_order + 1):
-            # Either a single variable or a cycle
             variables = [v for v in self.variables if v.calc_order == calc_order]
 
-            # Single variable
-            if len(variables) == 1:
-                v = variables[0]
-                start = time.time()
-                v.calculate()
-                v.runtime += time.time() - start
-            # Cycle
-            else:
+            if variables[0].cycle:
                 self.calculate_cycle(variables)
+            else:
+                for v in variables:
+                    start = time.time()
+                    v.calculate()
+                    v.runtime += time.time() - start
 
         # Average stochastic results
         for v in self.variables:

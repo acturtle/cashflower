@@ -336,8 +336,8 @@ def determine_calculation_order(variables, settings):
 
         # [3A] Acyclic
         if has_acyclic_nodes:
+            calc_order += 1
             for node in nodes_without_predecessors:
-                calc_order += 1
                 node.calc_order = calc_order
             dg.remove_nodes_from(nodes_without_predecessors)
 
