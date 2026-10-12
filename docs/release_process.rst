@@ -74,14 +74,12 @@ Uploading to PyPI
 * :code:`feature/branch_name` --> :code:`develop`
 * :code:`develop` --> :code:`main`
 
-2. Update the version number in :code:`setup.py`:
+2. Update the version number in :code:`pyproject.toml`:
 
 ..  code-block:: python
 
-    setup(
-        ...
-        version="X.Y.Z",
-    )
+    [project]
+    version = "0.10.9"
 
 3. Publish a new release on GitHub:
 
